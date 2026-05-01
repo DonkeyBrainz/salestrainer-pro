@@ -40,13 +40,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
     if (isConnected && inputAnalyser) {
         const bufferLength = inputAnalyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        
+
         const updateMicLevel = () => {
             inputAnalyser.getByteFrequencyData(dataArray);
             let sum = 0;
             for (let i = 0; i < bufferLength; i++) { sum += dataArray[i]; }
             const average = sum / bufferLength;
-            const level = Math.min(average / 40, 1.0); 
+            const level = Math.min(average / 40, 1.0);
             setMicVolume(level);
             rafRef.current = requestAnimationFrame(updateMicLevel);
         };
@@ -96,10 +96,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
               disabled={!isConnected}
               className={`
                 relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-300 shadow-sm
-                ${!isConnected 
-                    ? 'bg-stone-100 text-stone-300 cursor-not-allowed' 
-                    : isMuted 
-                        ? 'bg-red-50 text-red-500 border border-red-100 hover:bg-red-100' 
+                ${!isConnected
+                    ? 'bg-stone-100 text-stone-300 cursor-not-allowed'
+                    : isMuted
+                        ? 'bg-red-50 text-red-500 border border-red-100 hover:bg-red-100'
                         : 'bg-emerald-50 text-emerald-600 border border-emerald-100 hover:bg-emerald-100'
                 }
               `}
@@ -107,9 +107,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
             >
               {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
               {!isMuted && isConnected && (
-                <div 
+                <div
                     className="absolute inset-0 rounded-full bg-emerald-500 transition-transform duration-75 ease-out pointer-events-none -z-10"
-                    style={{ 
+                    style={{
                         transform: `scale(${ringScale})`,
                         opacity: ringOpacity * 0.4
                     }}
@@ -130,8 +130,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
               disabled={isConnecting}
               className={`
                 group flex items-center justify-center gap-3 px-8 h-14 rounded-full transition-all duration-500 ease-out shadow-xl font-bold uppercase tracking-widest text-sm
-                ${isConnected 
-                  ? 'bg-red-900 text-white hover:bg-red-800' 
+                ${isConnected
+                  ? 'bg-red-900 text-white hover:bg-red-800'
                   : 'bg-[#2C2825] text-[#F9F8F6] hover:bg-black hover:scale-105 active:scale-95'
                 }
                 ${isConnecting ? 'opacity-80 cursor-wait animate-pulse' : ''}
@@ -179,8 +179,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   disabled={!isConnected}
                   className={`
                     flex items-center justify-center w-10 h-10 rounded-full transition-all
-                    ${isConnected 
-                      ? 'bg-stone-200 text-stone-600 hover:bg-stone-300' 
+                    ${isConnected
+                      ? 'bg-stone-200 text-stone-600 hover:bg-stone-300'
                       : 'bg-stone-100 text-stone-300 cursor-not-allowed'
                     }
                   `}

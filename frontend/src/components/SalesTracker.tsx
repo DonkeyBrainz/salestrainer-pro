@@ -25,7 +25,7 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
   // Helper to render a stage block
   const renderStage = (stageName: string, stageId: SalesStage, items: { label: string; completed: boolean }[]) => {
     const isActive = currentStage === stageId;
-    
+
     // Calculate Stage Progress
     const stageTotal = items.length;
     const stageCompleted = items.filter(i => i.completed).length;
@@ -34,8 +34,8 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
     return (
       <div className={`
         flex flex-col mb-4 p-4 rounded-xl border transition-all duration-500 relative overflow-hidden
-        ${isActive 
-          ? 'bg-white border-[#8B5E3C] shadow-md scale-100 opacity-100' 
+        ${isActive
+          ? 'bg-white border-[#8B5E3C] shadow-md scale-100 opacity-100'
           : 'bg-stone-50 border-stone-200 opacity-70 scale-95'
         }
       `}>
@@ -53,7 +53,7 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
 
         {/* Stage Progress Bar */}
         <div className="w-full h-1 bg-stone-100 rounded-full mb-3 overflow-hidden">
-             <div 
+             <div
                 className={`h-full transition-all duration-700 ease-out ${isActive ? 'bg-[#8B5E3C]' : 'bg-stone-300'}`}
                 style={{ width: `${stagePercent}%` }}
              />
@@ -79,7 +79,7 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
 
   return (
     <div className="h-full flex flex-col w-full bg-white/50 border-r border-stone-200 p-4 overflow-y-auto">
-      
+
       {/* HUD Header with Global Progress */}
       <div className="flex flex-col gap-2 mb-6">
         <div className="flex items-center justify-between opacity-80">
@@ -105,10 +105,10 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
              <span className="text-xs font-bold text-[#8B5E3C]">{globalProgressPercentage}%</span>
           </div>
         </div>
-        
+
         {/* Global Progress Bar */}
         <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-[#8B5E3C] to-[#C4A484] transition-all duration-1000 ease-out rounded-full"
             style={{ width: `${globalProgressPercentage}%` }}
           />

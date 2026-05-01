@@ -33,14 +33,14 @@ const Transcript: React.FC<TranscriptProps> = ({ messages, currentInput = '', re
       <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-[#F9F8F6] to-transparent z-10 pointer-events-none" />
       <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#F9F8F6] to-transparent z-10 pointer-events-none" />
 
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-6 py-12 flex flex-col gap-8 scroll-smooth custom-scrollbar"
       >
         {messages.map((msg) => {
           const isCoach = msg.text.includes('[COACH MODE ACTIVE]');
           const isResuming = msg.text.includes('[RESUMING SCENARIO]');
-          
+
           let speakerName = 'Guest';
           if (msg.role === 'user') speakerName = 'You';
           if (isCoach) speakerName = 'Coach Intervention';
@@ -51,8 +51,8 @@ const Transcript: React.FC<TranscriptProps> = ({ messages, currentInput = '', re
             .trim();
 
           return (
-            <div 
-              key={msg.id} 
+            <div
+              key={msg.id}
               className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}
             >
               <div className="flex items-center gap-1.5 mb-2 ml-1">
@@ -62,12 +62,12 @@ const Transcript: React.FC<TranscriptProps> = ({ messages, currentInput = '', re
                   {speakerName}
                 </span>
               </div>
-              <div 
+              <div
                 className={`
                   max-w-[85%] font-serif-display text-xl leading-relaxed
-                  ${msg.role === 'user' 
-                    ? 'text-stone-500 text-right' 
-                    : isCoach 
+                  ${msg.role === 'user'
+                    ? 'text-stone-500 text-right'
+                    : isCoach
                         ? 'text-amber-900 text-left bg-amber-50 p-6 rounded-3xl border border-amber-200 shadow-sm'
                         : 'text-stone-800 text-left'
                   }

@@ -10,10 +10,10 @@ from app.agents.personas import (
 )
 from app.agents.prompts import build_customer_prompt
 from app.agents.state import (
+    CoreStageProgress,
     CustomerAgentState,
     CustomerPersona,
     Difficulty,
-    CoreStageProgress,
     Mood,
     ObjectionDifficulty,
     RegardLevel,

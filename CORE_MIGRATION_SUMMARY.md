@@ -7,7 +7,7 @@ What Changed?
 BEFORE: E.A.S.Y. (Ashley Furniture specific)
 - ENGAGE → Build rapport
 - ASK → Discover needs
-- SHOW → Present solutions  
+- SHOW → Present solutions
 - YES → Close
 
 AFTER: C.O.R.E. (Universal, industry-agnostic)

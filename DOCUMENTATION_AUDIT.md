@@ -12,7 +12,7 @@ CRITICAL - API Documentation
 Last Updated: February 5, 2026 (85 days old)
 Missing Endpoints:
 - POST /admin/personas/metrics - Persona performance metrics
-- GET /admin/users/metrics - User-level analytics  
+- GET /admin/users/metrics - User-level analytics
 - GET /admin/users/{user_id}/sessions - Admin session list
 - GET /admin/sessions/{session_id} - Admin session details
 - GET /products - Product catalog endpoint

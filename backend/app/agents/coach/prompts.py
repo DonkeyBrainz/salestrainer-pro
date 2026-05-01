@@ -135,18 +135,10 @@ def build_coach_prompt(
         Complete prompt string for LLM
     """
     # Build completed items strings
-    connect_completed = (
-        ", ".join([k for k, v in stage_progress.connect.items() if v]) or "none"
-    )
-    observe_completed = (
-        ", ".join([k for k, v in stage_progress.observe.items() if v]) or "none"
-    )
-    recommend_completed = (
-        ", ".join([k for k, v in stage_progress.recommend.items() if v]) or "none"
-    )
-    execute_completed = (
-        ", ".join([k for k, v in stage_progress.execute.items() if v]) or "none"
-    )
+    connect_completed = ", ".join([k for k, v in stage_progress.connect.items() if v]) or "none"
+    observe_completed = ", ".join([k for k, v in stage_progress.observe.items() if v]) or "none"
+    recommend_completed = ", ".join([k for k, v in stage_progress.recommend.items() if v]) or "none"
+    execute_completed = ", ".join([k for k, v in stage_progress.execute.items() if v]) or "none"
 
     # Build product context section
     if product_context:

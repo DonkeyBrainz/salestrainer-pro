@@ -73,7 +73,7 @@ echo -n "your-random-secret-key" | gcloud secrets versions add jwt-secret-key --
 # OAuth client ID
 echo -n "your-oauth-client-id" | gcloud secrets versions add google-oauth-client-id --data-file=-
 
-# OAuth client secret  
+# OAuth client secret
 echo -n "your-oauth-client-secret" | gcloud secrets versions add google-oauth-client-secret --data-file=-
 ```
 

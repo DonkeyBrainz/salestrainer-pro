@@ -9,7 +9,7 @@ interface AmbientBackgroundProps {
 
 const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel, sentiment = 'neutral' }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   // Helper to convert Hex to RGBA
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);
@@ -26,13 +26,13 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
         if (s === 'positive') return ['#ECFDF5', '#D1FAE5', '#6EE7B7', '#34D399']; // Brighter Mint
         if (s === 'warning') return ['#ECFDF5', '#D1FAE5', '#FCD34D', '#F59E0B']; // Hint of concern (Amber)
         return ['#ECFDF5', '#D1FAE5', '#A7F3D0', '#34D399']; // Standard
-        
+
       case AppMode.EVALUATION:
         // Cool Slates/Greys/Reds - Serious Tone
         if (s === 'positive') return ['#F8FAFC', '#E0F2FE', '#BAE6FD', '#7DD3FC']; // Blue hint for success
         if (s === 'warning') return ['#FEF2F2', '#FEE2E2', '#FCA5A5', '#EF4444']; // Red alert
         return ['#F8FAFC', '#F1F5F9', '#E2E8F0', '#94A3B8']; // Neutral Slate
-        
+
       case AppMode.TRAINING:
       default:
         // Warm Stone/Gold - Luxe Professional
@@ -65,7 +65,7 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
       // Cast sentiment to ensure it matches the union type expected by getPalette
       // Even though prop types enforce this, TS might widen it to string in some contexts
       const palette = getPalette(mode, sentiment as 'neutral' | 'positive' | 'warning');
-      
+
       // Resize handling
       if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
         width = canvas.width = window.innerWidth;
@@ -79,9 +79,9 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
       ctx.fillRect(0, 0, width, height);
 
       // --- DYNAMIC PHYSICS CALCULATIONS ---
-      
+
       // 1. Audio Reactivity: Louder audio = Faster Movement + Larger Radius
-      const audioPulse = Math.min(audioLevel * 300, 150); 
+      const audioPulse = Math.min(audioLevel * 300, 150);
       const speedMultiplier = 1 + (audioLevel * 4); // Up to 5x speed during loud moments
 
       // 2. Mode-Specific Physics
@@ -92,7 +92,7 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
       if (mode === AppMode.SAFE_SPACE) {
         modeSpeedBase = 0.5; // Slow down for calm
         // Sine wave breathing effect (approx 4 second cycle)
-        breathingEffect = Math.sin(Date.now() / 2000) * 20; 
+        breathingEffect = Math.sin(Date.now() / 2000) * 20;
       } else if (mode === AppMode.EVALUATION) {
         modeSpeedBase = 1.8; // Faster, busier for testing
         sharpness = 0.4; // Harder edges
@@ -111,33 +111,33 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
 
         // Calculate Radius
         const currentRadius = blob.r + audioPulse + breathingEffect;
-        
+
         // Draw Gradient Blob
         ctx.beginPath();
-        
+
         const gradient = ctx.createRadialGradient(
-          blob.x, blob.y, 0, 
+          blob.x, blob.y, 0,
           blob.x, blob.y, currentRadius
         );
-        
+
         const colorHex = palette[blob.colorIdx % palette.length];
-        
+
         // Dynamic Alpha: Boost brightness when audio is detected
-        const alphaBoost = audioLevel * 0.3; 
+        const alphaBoost = audioLevel * 0.3;
 
         // Gradient Stops - Evaluation mode makes these tighter for a "sharper" look
-        const coreStop = 0 + (sharpness * 0.1); 
-        const midStop = 0.5 + (sharpness * 0.2); 
+        const coreStop = 0 + (sharpness * 0.1);
+        const midStop = 0.5 + (sharpness * 0.2);
 
         gradient.addColorStop(coreStop, hexToRgba(colorHex, 0.6 + alphaBoost)); // Core
         gradient.addColorStop(midStop, hexToRgba(colorHex, 0.3 + (alphaBoost/2))); // Mid
         gradient.addColorStop(1, hexToRgba(colorHex, 0)); // Edge transparent
 
         ctx.fillStyle = gradient;
-        
+
         // Blend Mode: 'multiply' gives that watercolor look, 'overlay' is more intense
-        ctx.globalCompositeOperation = mode === AppMode.EVALUATION ? 'hard-light' : 'multiply'; 
-        
+        ctx.globalCompositeOperation = mode === AppMode.EVALUATION ? 'hard-light' : 'multiply';
+
         ctx.arc(blob.x, blob.y, currentRadius, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalCompositeOperation = 'source-over'; // Reset
@@ -152,8 +152,8 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
   }, [mode, audioLevel, sentiment]);
 
   return (
-    <canvas 
-      ref={canvasRef} 
+    <canvas
+      ref={canvasRef}
       className="absolute inset-0 w-full h-full pointer-events-none -z-10 transition-colors duration-1000"
     />
   );

@@ -451,9 +451,7 @@ async def get_user_metrics(
     )
 
 
-def _session_to_summary(
-    session: Any, has_evaluation: bool = False
-) -> SessionSummary:
+def _session_to_summary(session: Any, has_evaluation: bool = False) -> SessionSummary:
     """Convert Session model to SessionSummary for admin views."""
     return SessionSummary(
         session_id=session.session_id,

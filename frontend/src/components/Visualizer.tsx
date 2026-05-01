@@ -69,22 +69,22 @@ const Visualizer: React.FC<VisualizerProps> = ({ analyser, isActive, color = '#A
             // BARS MODE (Frequency Domain) - Best for User Mic Input
             analyser.getByteFrequencyData(dataArray);
             ctx.fillStyle = color;
-            
+
             // Draw fewer, wider bars for a cleaner "voice recorder" look
-            const barCount = 24; 
+            const barCount = 24;
             const step = Math.floor(bufferLength / barCount);
             const barWidth = (width / barCount) * 0.6; // Gap ratio
             const gap = (width / barCount) * 0.4;
-            
+
             for (let i = 0; i < barCount; i++) {
-                const dataIndex = Math.floor(i * step); 
+                const dataIndex = Math.floor(i * step);
                 const v = dataArray[dataIndex] / 255.0; // Normalized 0-1
-                
+
                 // Make bars symmetric around center
                 const barHeight = Math.max(2, v * height * 0.8);
                 const x = i * (barWidth + gap) + gap/2;
                 const y = centerY - (barHeight / 2);
-                
+
                 // Use standard rect to avoid compatibility issues with roundRect
                 ctx.beginPath();
                 ctx.rect(x, y, barWidth, barHeight);
@@ -112,8 +112,8 @@ const Visualizer: React.FC<VisualizerProps> = ({ analyser, isActive, color = '#A
   }, [analyser, isActive, color, variant]);
 
   return (
-    <canvas 
-      ref={canvasRef} 
+    <canvas
+      ref={canvasRef}
       className="w-full h-full"
     />
   );

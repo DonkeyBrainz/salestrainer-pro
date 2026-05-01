@@ -78,5 +78,5 @@ When updating docs:
 
 ---
 
-**Last updated:** 2026-04-30  
+**Last updated:** 2026-04-30
 **Vault:** SalesTrainer Pro

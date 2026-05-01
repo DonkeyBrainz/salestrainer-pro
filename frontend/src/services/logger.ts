@@ -43,7 +43,7 @@ const internalLog = (level: LogLevel, category: LogCategory, message: string, de
     logStore.shift();
   }
   notifyListeners();
-  
+
   // Mirror to actual console for backup
   // const style = 'font-weight: bold; color: #888;';
   // console.groupCollapsed(`%c[${category}] ${message}`, style);
@@ -85,12 +85,12 @@ export const initLogger = () => {
     // Try to detect if the first arg is a category tag we use, e.g. "[Audio]"
     let category: LogCategory = 'System';
     let msg = args.join(' ');
-    
+
     // Heuristic: If we call console.log explicitly with an object
     internalLog('debug', category, msg, args.length > 1 ? args : undefined);
     originalLog.apply(console, args);
   };
-  
+
   const originalError = console.error;
   console.error = (...args) => {
     internalLog('error', 'System', args.join(' '), args);
@@ -108,7 +108,7 @@ export const logger = {
   error: (category: LogCategory, message: string, details?: any) => internalLog('error', category, message, details),
   debug: (category: LogCategory, message: string, details?: any) => internalLog('debug', category, message, details),
   success: (category: LogCategory, message: string, details?: any) => internalLog('success', category, message, details),
-  
+
   // Shortcuts
   system: (msg: string, data?: any) => internalLog('info', 'System', msg, data),
   gemini: (msg: string, data?: any) => internalLog('info', 'Gemini', msg, data),
@@ -127,8 +127,8 @@ export const useLogs = () => {
     return () => { listeners.delete(listener); };
   }, []);
 
-  return { 
-    logs, 
+  return {
+    logs,
     clearLogs: () => {
       logStore.length = 0;
       notifyListeners();

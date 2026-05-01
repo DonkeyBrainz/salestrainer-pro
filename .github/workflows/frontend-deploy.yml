@@ -12,9 +12,9 @@ on:
 env:
   REGION: us-central1
   AR_REGION: us-central1
-  AR_REPO: salescoach
-  SERVICE_NAME: salescoach-frontend
-  BACKEND_SERVICE_NAME: salescoach-backend
+  AR_REPO: salestrainer-pro
+  SERVICE_NAME: salestrainer-pro-frontend
+  BACKEND_SERVICE_NAME: salestrainer-pro-backend
 
 jobs:
   deploy:

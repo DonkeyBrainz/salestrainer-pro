@@ -141,6 +141,6 @@ These docs were moved to **Cleanup/** because they're artifacts/legacy:
 
 ---
 
-**Created:** 2026-04-30  
-**Vault Location:** `documentation/SalesTrainer/`  
+**Created:** 2026-04-30
+**Vault Location:** `documentation/SalesTrainer/`
 **Format:** Obsidian node-based documentation

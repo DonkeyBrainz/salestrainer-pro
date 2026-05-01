@@ -8,7 +8,7 @@ This document preserves the purpose and vision of features removed from the Luxe
 - **Visuals:** Emerald/Sage green calming ambient background.
 
 ## 2. General AI Chat
-- **Purpose:** A sandbox mode allowing users to have unrestricted voice conversations with Gemini on any topic. 
+- **Purpose:** A sandbox mode allowing users to have unrestricted voice conversations with Gemini on any topic.
 - **AI Persona:** Friendly, helpful AI assistant.
 - **Visuals:** Indigo/Blue ambient background.
 

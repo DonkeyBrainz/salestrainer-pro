@@ -2,9 +2,9 @@
 set -e
 
 # Set project details
-export PROJECT_ID="ashley-ai"
-export GITHUB_ORG="afi-internal"
-export GITHUB_REPO="ai-ml-sales-coach"
+export PROJECT_ID="salescoach-494901"
+export GITHUB_ORG="DonkeyBrainz"
+export GITHUB_REPO="salestrainer-pro"
 
 echo "=== Phase 1.1: Create Workload Identity Pool and Provider ==="
 

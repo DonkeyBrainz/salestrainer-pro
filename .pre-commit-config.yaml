@@ -1,7 +1,22 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: detect-private-key
+
   - repo: local
     hooks:
       # Backend hooks
+      - id: backend-format
+        name: backend format (ruff)
+        entry: bash -c 'cd backend && uv run ruff format --check app/'
+        language: system
+        pass_filenames: false
+        files: ^backend/
+
       - id: backend-lint
         name: backend lint (ruff)
         entry: bash -c 'cd backend && uv run ruff check app/'

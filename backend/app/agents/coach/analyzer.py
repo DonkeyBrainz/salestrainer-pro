@@ -14,7 +14,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 from app.agents.coach.hints import get_intervention_message
 from app.agents.coach.prompts import build_coach_prompt, format_conversation_history
-from app.agents.state import CustomerPersona, CoreStageProgress
+from app.agents.state import CoreStageProgress, CustomerPersona
 from app.config import get_settings
 from app.models.coach import CoachAnalysis, InterventionLevel, StageItemUpdate
 

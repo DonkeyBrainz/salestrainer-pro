@@ -12,9 +12,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from app.agents.customer_agent import CustomerAgentGraph
 from app.agents.personas import get_persona
 from app.agents.state import (
+    CoreStageProgress,
     CustomerAgentState,
     CustomerPersona,
-    CoreStageProgress,
     Mood,
     RegardLevel,
 )
