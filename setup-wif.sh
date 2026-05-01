@@ -56,15 +56,15 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
   --role="roles/secretmanager.secretAccessor" --condition=None > /dev/null
 
 # Check if backend SA exists
-if gcloud iam service-accounts describe salescoach-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com --project=$PROJECT_ID > /dev/null 2>&1; then
+if gcloud iam service-accounts describe salestrainer-pro-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com --project=$PROJECT_ID > /dev/null 2>&1; then
   echo "Allowing impersonation of backend SA..."
   gcloud iam service-accounts add-iam-policy-binding \
-    salescoach-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com \
+    salestrainer-pro-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com \
     --project=$PROJECT_ID \
     --member="serviceAccount:github-actions-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
     --role="roles/iam.serviceAccountUser" --condition=None > /dev/null
 else
-  echo "WARNING: salescoach-backend-sa does not exist yet. Will need to grant serviceAccountUser role later."
+  echo "WARNING: salestrainer-pro-backend-sa does not exist yet. Will need to grant serviceAccountUser role later."
 fi
 
 echo ""
