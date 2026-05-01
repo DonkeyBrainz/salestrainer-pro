@@ -206,7 +206,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
   }, []);
 
   // Get mode-specific title
-  const modeTitle = mode === AppMode.TRAINING ? 'Training & Drills' : 'Final Evaluation';
+  const modeTitle = mode === AppMode.TRAINING ? 'Live Practice' : 'Performance Assessment';
 
   // Show persona selector for training mode if no persona selected
   const showPersonaSelector = mode === AppMode.TRAINING && !selectedPersona;
@@ -391,8 +391,8 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
                     </h3>
                     <p className="text-stone-500 mb-6">
                       {mode === AppMode.TRAINING
-                        ? 'Click "Start Practice" to begin a training scrimmage with your AI guest. You\'ll receive real-time coaching and hints.'
-                        : 'Click "Start Practice" to begin your evaluation. No hints from the coach will be provided during this assessment.'}
+                        ? 'Click "Start Practice" to begin a live coached session. You\'ll receive real-time coaching and on-screen hints.'
+                        : 'Click "Start Practice" to begin your assessment. No coaching or hints will be provided during this session.'}
                     </p>
                     <div className="flex items-center justify-center gap-2 text-xs text-stone-400 uppercase tracking-wider">
                       <span className="w-2 h-2 bg-stone-300 rounded-full" />

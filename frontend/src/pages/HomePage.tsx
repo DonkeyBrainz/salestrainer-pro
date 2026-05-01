@@ -18,7 +18,7 @@ const HomePage: React.FC = () => {
               <LayoutDashboard className="w-6 h-6 text-[#F9F8F6]" />
             </div>
             <h1 className="text-4xl font-serif-display font-medium text-[#2C2825]">
-              Luxe Sales Coach
+              SalesTrainer Pro
             </h1>
           </div>
           <UserMenu />
@@ -35,10 +35,10 @@ const HomePage: React.FC = () => {
                 <Dumbbell className="w-7 h-7 text-white" />
               </div>
               <h3 className="text-3xl font-serif-display text-[#2C2825] mb-4">
-                Training & Drills
+                Live Practice
               </h3>
               <p className="text-stone-500 text-lg leading-relaxed mb-10">
-                Guided scrimmage with real-time HUD feedback. Practice specific scenarios with AI hints and coaching interruptions.
+                Full coaching experience with real-time HUD feedback. Work through scenarios with live AI guidance and on-screen coaching cues.
               </p>
               <div className="flex items-center gap-2 text-[#8B5E3C] font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">
                 Start Practice <ArrowRight className="w-5 h-5" />
@@ -54,10 +54,10 @@ const HomePage: React.FC = () => {
                 <Trophy className="w-7 h-7 text-red-500" />
               </div>
               <h3 className="text-3xl font-serif-display text-[#2C2825] mb-4">
-                Final Evaluation
+                Performance Assessment
               </h3>
               <p className="text-stone-500 text-lg leading-relaxed mb-10">
-                Strict guest scrimmage. No hints, no coaching. Provide a realistic test of your skills and receive a graded audit.
+                A full unassisted conversation with an AI customer. No hints, no coaching — just you and your skills, graded end to end.
               </p>
               <div className="flex items-center gap-2 text-red-500 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">
                 Start Test <ArrowRight className="w-5 h-5" />
@@ -76,7 +76,7 @@ const HomePage: React.FC = () => {
                 Session History
               </h3>
               <p className="text-stone-500 text-lg leading-relaxed mb-10">
-                Review past training sessions and evaluations. View transcripts and scorecard feedback.
+                Review past practice sessions and assessments. View transcripts and scorecard feedback.
               </p>
               <div className="flex items-center gap-2 text-blue-600 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">
                 View History <ArrowRight className="w-5 h-5" />

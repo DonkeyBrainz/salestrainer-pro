@@ -28,13 +28,13 @@ const LoginPage: React.FC = () => {
               <LayoutDashboard className="w-6 h-6 text-[#F9F8F6]" />
             </div>
             <h1 className="text-3xl font-serif-display font-medium text-[#2C2825]">
-              Luxe Sales Coach
+              SalesTrainer Pro
             </h1>
           </div>
 
           {/* Description */}
           <p className="text-stone-500 text-center mb-8">
-            Sign in to access your sales training and evaluation sessions.
+            Sign in to access your sales practice sessions and performance assessments.
           </p>
 
           {/* Error Display */}
