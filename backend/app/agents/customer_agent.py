@@ -1,0 +1,447 @@
+"""LangGraph customer agent for sales training roleplay.
+
+This module implements a stateful customer agent using LangGraph. The agent
+simulates a furniture store customer with dynamic mood, objections, and
+realistic conversational behavior based on the selected persona.
+"""
+
+import random
+from typing import Any, Literal, cast
+
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, START, StateGraph
+
+from app.agents.prompts import build_customer_prompt
+from app.agents.state import (
+    DIFFICULTY_CONFIG,
+    CustomerAgentState,
+    Mood,
+    RegardLevel,
+)
+from app.config import Settings
+
+
+class CustomerAgentGraph:
+    """LangGraph-based customer agent for roleplay sessions.
+
+    The graph processes each salesperson message through a series of nodes:
+    1. analyze_input - Detect salesperson techniques
+    2. update_mood - Adjust customer mood/regard
+    3. check_objection - Decide if objection should be raised
+    4. inject_objection (conditional) - Select objection to raise
+    5. generate_response - Call LLM for customer response
+    """
+
+    def __init__(self, settings: Settings) -> None:
+        """Initialize the customer agent graph.
+
+        Args:
+            settings: Application settings with Gemini configuration.
+        """
+        self.settings = settings
+        self.llm = ChatGoogleGenerativeAI(
+            model=settings.gemini_model,
+            google_api_key=settings.gemini_api_key,
+            temperature=settings.gemini_temperature,
+            max_output_tokens=settings.gemini_max_tokens,
+        )
+        self.checkpointer = MemorySaver()
+        self.graph = self._build_graph()
+
+    def _build_graph(self) -> Any:
+        """Build and compile the customer agent graph.
+
+        Returns:
+            Compiled StateGraph ready for invocation.
+        """
+        workflow = StateGraph(CustomerAgentState)
+
+        # Add nodes
+        workflow.add_node("analyze_input", self._analyze_input)
+        workflow.add_node("update_mood", self._update_mood)
+        workflow.add_node("check_objection", self._check_objection)
+        workflow.add_node("inject_objection", self._inject_objection)
+        workflow.add_node("generate_response", self._generate_response)
+
+        # Add edges
+        workflow.add_edge(START, "analyze_input")
+        workflow.add_edge("analyze_input", "update_mood")
+        workflow.add_edge("update_mood", "check_objection")
+
+        # Conditional routing from check_objection
+        workflow.add_conditional_edges(
+            "check_objection",
+            self._route_objection,
+            {
+                "inject": "inject_objection",
+                "respond": "generate_response",
+            },
+        )
+
+        workflow.add_edge("inject_objection", "generate_response")
+        workflow.add_edge("generate_response", END)
+
+        return workflow.compile(checkpointer=self.checkpointer)
+
+    # --- Node implementations ---
+
+    def _analyze_input(self, state: CustomerAgentState) -> dict[str, Any]:
+        """Analyze the salesperson's latest message for techniques used.
+
+        Detects:
+        - Non-business greetings (good ENGAGE technique)
+        - Questions (discovery behavior)
+        - Pushy sales language (negative)
+        - Acknowledgment of customer concerns (positive)
+
+        Args:
+            state: Current agent state.
+
+        Returns:
+            Analysis results stored in _analysis key.
+        """
+        messages = state["messages"]
+        if not messages:
+            return {}
+
+        last_msg = messages[-1]
+        if not isinstance(last_msg, HumanMessage):
+            return {}
+
+        content = last_msg.content.lower() if isinstance(last_msg.content, str) else ""
+
+        # Simple keyword-based analysis
+        analysis = {
+            "has_greeting": any(
+                g in content for g in ["hi", "hello", "how are you", "nice to", "good morning"]
+            ),
+            "has_question": "?" in content,
+            "is_pushy": any(
+                p in content for p in ["buy now", "today only", "special deal", "limited time"]
+            ),
+            "acknowledges_concern": any(
+                a in content
+                for a in ["understand", "hear you", "makes sense", "i see", "that's fair"]
+            ),
+        }
+
+        return {"_analysis": analysis}
+
+    def _update_mood(self, state: CustomerAgentState) -> dict[str, Any]:
+        """Update customer mood and regard based on salesperson behavior.
+
+        Args:
+            state: Current agent state with _analysis from previous node.
+
+        Returns:
+            Updated mood and regard_level.
+        """
+        # _analysis is a runtime key added by previous node, not in TypedDict
+        analysis: dict[str, bool] = cast(Any, state).get("_analysis", {})
+        current_mood = state["mood"]
+        current_regard = state["regard_level"]
+        difficulty = state["persona"].difficulty.value
+
+        new_mood = current_mood
+        new_regard = current_regard
+
+        positive_action = False
+        negative_action = False
+
+        # Positive behavior improves mood/regard
+        if analysis.get("acknowledges_concern"):
+            positive_action = True
+            new_mood = self._improve_mood(current_mood, difficulty)
+            new_regard = self._improve_regard(current_regard)
+
+        if analysis.get("has_greeting") and state["turn_count"] <= 2:
+            positive_action = True
+            new_regard = self._improve_regard(current_regard)
+
+        # Negative behavior worsens mood
+        if analysis.get("is_pushy"):
+            negative_action = True
+            new_mood = self._worsen_mood(current_mood, difficulty)
+
+        # Mood decay: if no positive/negative action detected, check for decay
+        if not positive_action and not negative_action:
+            new_mood = self._apply_mood_decay(current_mood, difficulty)
+
+        return {"mood": new_mood, "regard_level": new_regard}
+
+    def _check_objection(self, state: CustomerAgentState) -> dict[str, Any]:
+        """Check conditions for raising an objection.
+
+        This node doesn't modify state - routing logic is in _route_objection.
+
+        Args:
+            state: Current agent state.
+
+        Returns:
+            Empty dict (no state changes).
+        """
+        return {}
+
+    def _route_objection(self, state: CustomerAgentState) -> Literal["inject", "respond"]:
+        """Determine whether to inject an objection.
+
+        Routing rules:
+        1. No objections available -> respond
+        2. All objections already raised -> respond
+        3. Automatic: turns 2-4 for medium/low/no regard personas -> inject
+        4. Behavior-responsive: difficulty-based chance if mood is negative -> inject
+
+        Args:
+            state: Current agent state.
+
+        Returns:
+            Routing decision: "inject" or "respond".
+        """
+        turn = state["turn_count"]
+        available = state["objections_available"]
+        raised = state["objections_raised"]
+        persona = state["persona"]
+        difficulty = persona.difficulty.value
+        config = DIFFICULTY_CONFIG[difficulty]
+
+        # No objections available
+        if not available:
+            return "respond"
+
+        # All objections already raised
+        pending = [o for o in available if o not in raised]
+        if not pending:
+            return "respond"
+
+        # Automatic objection timing (early in conversation for medium/low/no regard)
+        if difficulty in ("medium_regard", "low_regard", "no_regard"):
+            if 2 <= turn <= 4 and len(raised) == 0:
+                return "inject"
+
+        # Behavior-responsive: if mood is skeptical/frustrated, difficulty-based chance
+        if state["mood"] in (Mood.SKEPTICAL, Mood.FRUSTRATED):
+            inject_chance = float(config["objection_inject_chance"])
+            if random.random() < inject_chance:
+                return "inject"
+
+        return "respond"
+
+    def _inject_objection(self, state: CustomerAgentState) -> dict[str, Any]:
+        """Select and inject an objection to be raised.
+
+        Args:
+            state: Current agent state.
+
+        Returns:
+            Updated objections_raised and _injected_objection.
+        """
+        available = state["objections_available"]
+        raised = list(state["objections_raised"])
+        difficulty = state["persona"].difficulty.value
+
+        pending = [o for o in available if o not in raised]
+        if not pending:
+            return {}
+
+        # Select objection based on difficulty priority
+        selected = self._select_objection(pending, difficulty)
+
+        return {
+            "objections_raised": raised + [selected],
+            "_injected_objection": selected,
+        }
+
+    async def _generate_response(self, state: CustomerAgentState) -> dict[str, Any]:
+        """Generate customer response using LLM.
+
+        Args:
+            state: Current agent state.
+
+        Returns:
+            New message appended to messages and incremented turn_count.
+        """
+        persona = state["persona"]
+
+        # Build system prompt
+        system_prompt = build_customer_prompt(persona, state)
+
+        # Prepare messages for LLM
+        llm_messages: list[BaseMessage] = [SystemMessage(content=system_prompt)]
+
+        # Add conversation history
+        for msg in state["messages"]:
+            llm_messages.append(msg)
+
+        # If objection was injected, add instruction (runtime key, not in TypedDict)
+        injected: str | None = cast(Any, state).get("_injected_objection")
+        if injected:
+            instruction = f'\n[Naturally work this concern into your response: "{injected}"]'
+            llm_messages.append(SystemMessage(content=instruction))
+
+        # Generate response
+        response = await self.llm.ainvoke(llm_messages)
+
+        return {
+            "messages": [AIMessage(content=response.content)],
+            "turn_count": state["turn_count"] + 1,
+        }
+
+    # --- Helper methods ---
+
+    def _improve_mood(self, mood: Mood, difficulty: str) -> Mood:
+        """Move mood in positive direction with difficulty-based resistance.
+
+        Lower regard personas resist improvement probabilistically.
+
+        Args:
+            mood: Current mood.
+            difficulty: Persona difficulty level (high/medium/low/no regard).
+
+        Returns:
+            Improved mood (or same if resisted or already at max).
+        """
+        config = DIFFICULTY_CONFIG[difficulty]
+        improve_chance = float(config["mood_improve_chance"])
+
+        # Harder personas may resist mood improvement
+        if random.random() > improve_chance:
+            return mood
+
+        progression = [
+            Mood.FRUSTRATED,
+            Mood.SKEPTICAL,
+            Mood.NEUTRAL,
+            Mood.INTERESTED,
+            Mood.READY_TO_BUY,
+        ]
+        idx = progression.index(mood)
+        return progression[min(idx + 1, len(progression) - 1)]
+
+    def _worsen_mood(self, mood: Mood, difficulty: str) -> Mood:
+        """Move mood in negative direction with difficulty-based severity.
+
+        Lower regard personas may worsen more steps at once.
+
+        Args:
+            mood: Current mood.
+            difficulty: Persona difficulty level (high/medium/low/no regard).
+
+        Returns:
+            Worsened mood (or same if already at min).
+        """
+        config = DIFFICULTY_CONFIG[difficulty]
+        worsen_steps = int(config["mood_worsen_steps"])
+
+        progression = [
+            Mood.FRUSTRATED,
+            Mood.SKEPTICAL,
+            Mood.NEUTRAL,
+            Mood.INTERESTED,
+            Mood.READY_TO_BUY,
+        ]
+        idx = progression.index(mood)
+        new_idx = max(idx - worsen_steps, 0)
+        return progression[new_idx]
+
+    def _apply_mood_decay(self, mood: Mood, difficulty: str) -> Mood:
+        """Apply mood decay when no progress is made.
+
+        Lower regard personas become frustrated without salesperson progress.
+
+        Args:
+            mood: Current mood.
+            difficulty: Persona difficulty level (high/medium/low/no regard).
+
+        Returns:
+            Decayed mood or same if decay didn't trigger.
+        """
+        config = DIFFICULTY_CONFIG[difficulty]
+        decay_chance = float(config["mood_decay_chance"])
+
+        # Check if decay triggers
+        if random.random() >= decay_chance:
+            return mood
+
+        # Apply single-step decay
+        progression = [
+            Mood.FRUSTRATED,
+            Mood.SKEPTICAL,
+            Mood.NEUTRAL,
+            Mood.INTERESTED,
+            Mood.READY_TO_BUY,
+        ]
+        idx = progression.index(mood)
+        return progression[max(idx - 1, 0)]
+
+    def _select_objection(self, pending: list[str], difficulty: str) -> str:
+        """Select which objection to inject based on difficulty.
+
+        Hard personas select the hardest (last) objection first.
+        Other personas select the first available objection.
+
+        Args:
+            pending: List of pending objections.
+            difficulty: Persona difficulty level.
+
+        Returns:
+            Selected objection string.
+        """
+        config = DIFFICULTY_CONFIG[difficulty]
+        priority = str(config["objection_priority"])
+
+        if priority == "hardest":
+            # Hard personas pick the last (hardest) objection
+            return pending[-1]
+        else:
+            # Default: pick first objection
+            return pending[0]
+
+    def _improve_regard(self, regard: RegardLevel) -> RegardLevel:
+        """Move regard in positive direction.
+
+        Args:
+            regard: Current regard level.
+
+        Returns:
+            Improved regard (or same if already at max).
+        """
+        progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.HIGH]
+        idx = progression.index(regard)
+        return progression[min(idx + 1, len(progression) - 1)]
+
+    # --- Public API ---
+
+    async def invoke(
+        self,
+        state: CustomerAgentState,
+        thread_id: str,
+    ) -> CustomerAgentState:
+        """Invoke the graph with current state.
+
+        Args:
+            state: Current agent state.
+            thread_id: Thread ID for checkpointing (usually session_id).
+
+        Returns:
+            Updated agent state after graph execution.
+        """
+        config = {"configurable": {"thread_id": thread_id}}
+        result = await self.graph.ainvoke(state, config)
+        return cast(CustomerAgentState, result)
+
+    def get_state(self, thread_id: str) -> CustomerAgentState | None:
+        """Retrieve saved state for a thread.
+
+        Args:
+            thread_id: Thread ID to look up.
+
+        Returns:
+            Current state or None if not found.
+        """
+        config = {"configurable": {"thread_id": thread_id}}
+        checkpoint = self.graph.get_state(config)
+        if checkpoint is None:
+            return None
+        return cast(CustomerAgentState, checkpoint.values)

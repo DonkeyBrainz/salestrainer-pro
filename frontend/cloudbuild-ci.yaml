@@ -1,0 +1,24 @@
+# CI-only pipeline for pull requests.
+# Runs type check and tests. Does not build or deploy.
+
+steps:
+  - name: 'node:20-alpine'
+    id: 'ci-checks'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        set -e
+        npm ci --quiet
+
+        echo "=== Type Check ==="
+        npm run typecheck
+
+        echo "=== Test ==="
+        npm run test:run
+    dir: 'frontend'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '600s'

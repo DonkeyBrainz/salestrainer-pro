@@ -1,0 +1,127 @@
+/Users/mpuerto/Documents/ai-ml-sales-coach/backend/.venv/lib/python3.14/site-packages/google/cloud/firestore_v1/base_collection.py:316: UserWarning: Detected filter using positional arguments. Prefer using the 'filter' keyword argument instead.
+  return query.where(field_path, op_string, value)
+/Users/mpuerto/Documents/ai-ml-sales-coach/backend/scripts/analyze_volunteer_behavior.py:158: UserWarning: Detected filter using positional arguments. Prefer using the 'filter' keyword argument instead.
+  .where("is_deleted", "==", False)
+🔍 Looking up user: LRiggs@ashley.com
+✅ Found user: Riggs, Leah (ID: 423c48b5-9be9-4c05-a262-73795453e0b4)
+
+📊 Fetching sessions...
+✅ Found 136 sessions
+
+📝 Fetching transcripts...
+✅ Found 29 transcripts
+
+🔬 Analyzing volunteer behavior...
+
+====================================================================================================
+📊 VOLUNTEER BEHAVIOR ANALYSIS
+====================================================================================================
+
+📋 BY PERSONA
+
+🎭 EAGER_NEWLYWED
+   Sessions: 12
+   Total Messages: 79
+   Volunteer Score: 1.19 (avg per message)
+   First Message Volunteer Rate: 100%
+   Volunteers:
+     - Sharing personal/family details: 11x
+     - Showing enthusiasm: 10x
+     - Volunteering name: 10x
+     - Stating needs unprompted: 9x
+     - Mentioning budget: 8x
+     - Sharing preferences: 2x
+     - Stating timeline/urgency: 2x
+   First Message Examples:
+     • "Oh, that's really good to know! Since this is our first home, we're definitely open to things like t..." (score: 1)
+     • "Hi there! I'm Maria. My husband and I just moved into our first apartment, and we're looking for a l..." (score: 6)
+
+🎭 SKEPTICAL_SHOPPER
+   Sessions: 5
+   Total Messages: 30
+   Volunteer Score: 0.57 (avg per message)
+   First Message Volunteer Rate: 60%
+   Volunteers:
+     - Volunteering name: 3x
+   First Message Examples:
+     • "Hello. Thank you. I'm Robert. Just looking around today...." (score: 1)
+     • "Yes, it is. I'm Robert. Just taking a look around, not planning on buying anything today...." (score: 1)
+
+🎭 BUSY_PARENT
+   Sessions: 9
+   Total Messages: 91
+   Volunteer Score: 0.55 (avg per message)
+   First Message Volunteer Rate: 100%
+   Volunteers:
+     - Volunteering name: 7x
+     - Stating needs unprompted: 4x
+     - Sharing personal/family details: 2x
+   First Message Examples:
+     • "Oh, thank you! I'm just looking for a new sectional with some durable fabric...." (score: 1)
+     • "Sure, that works. I'm just trying to get a sense of the options. With two young kids and a dog, I ne..." (score: 2)
+
+🎭 PRICE_RESISTANT
+   Sessions: 3
+   Total Messages: 35
+   Volunteer Score: 0.20 (avg per message)
+   First Message Volunteer Rate: 33%
+   Volunteers:
+     - Volunteering name: 1x
+   First Message Examples:
+     • "It feels alright, I guess. But I'm sure it's way over my budget. What's the price on this one?..." (score: 1)
+
+
+📊 BY DIFFICULTY/REGARD LEVEL
+
+⚡ HIGH_REGARD
+   Sessions: 5
+   Total Messages: 30
+   Volunteer Score: 1.43 (avg per message)
+   First Message Volunteer Rate: 100%
+   Top Volunteers:
+     - Volunteering name: 5x
+     - Stating needs unprompted: 5x
+     - Sharing personal/family details: 5x
+     - Mentioning budget: 4x
+     - Showing enthusiasm: 4x
+
+⚡ EASY
+   Sessions: 7
+   Total Messages: 49
+   Volunteer Score: 1.04 (avg per message)
+   First Message Volunteer Rate: 100%
+   Top Volunteers:
+     - Showing enthusiasm: 6x
+     - Sharing personal/family details: 6x
+     - Volunteering name: 5x
+     - Stating needs unprompted: 4x
+     - Mentioning budget: 4x
+
+⚡ MEDIUM_REGARD
+   Sessions: 7
+   Total Messages: 52
+   Volunteer Score: 0.58 (avg per message)
+   First Message Volunteer Rate: 100%
+   Top Volunteers:
+     - Volunteering name: 7x
+     - Stating needs unprompted: 1x
+
+⚡ MEDIUM
+   Sessions: 7
+   Total Messages: 69
+   Volunteer Score: 0.54 (avg per message)
+   First Message Volunteer Rate: 71%
+   Top Volunteers:
+     - Volunteering name: 3x
+     - Stating needs unprompted: 3x
+     - Sharing personal/family details: 2x
+
+⚡ HARD
+   Sessions: 3
+   Total Messages: 35
+   Volunteer Score: 0.20 (avg per message)
+   First Message Volunteer Rate: 33%
+   Top Volunteers:
+     - Volunteering name: 1x
+
+====================================================================================================

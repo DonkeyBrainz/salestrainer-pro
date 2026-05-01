@@ -1,0 +1,43 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - development
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    name: Backend Lint, Type Check, and Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Lint with ruff
+        run: uv run ruff check app/
+
+      - name: Type check with mypy
+        run: uv run mypy app/
+
+      - name: Run tests with pytest
+        run: uv run pytest --cov=app --cov-report=term -q

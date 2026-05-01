@@ -1,0 +1,52 @@
+name: Test GCP Authentication
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-auth:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        run: |
+          # Get GitHub OIDC token
+          OIDC_TOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://iam.googleapis.com/${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" \
+            | jq -r '.value')
+
+          # Write OIDC token to file for credential config
+          echo "$OIDC_TOKEN" > /tmp/oidc_token
+
+          # Create external account credential config
+          cat > /tmp/gha_creds.json << CRED_EOF
+          {
+            "type": "external_account",
+            "audience": "//iam.googleapis.com/${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1/token",
+            "credential_source": {
+              "file": "/tmp/oidc_token",
+              "format": { "type": "text" }
+            },
+            "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${{ vars.GCP_SERVICE_ACCOUNT }}:generateAccessToken"
+          }
+          CRED_EOF
+
+          # Authenticate gcloud with credential config
+          gcloud auth login --cred-file=/tmp/gha_creds.json --quiet
+          gcloud config set project ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Test commands
+        run: |
+          echo "Project: $(gcloud config get-value project)"
+          gcloud run services list --region=us-central1
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/oidc_token /tmp/gha_creds.json

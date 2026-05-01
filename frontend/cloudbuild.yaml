@@ -1,0 +1,96 @@
+steps:
+  # ---------------------------------------------------------------------------
+  # 1. Resolve backend URL
+  #
+  # The frontend needs the backend URL baked in at build time via
+  # VITE_API_BASE_URL. We fetch it from the already-deployed backend
+  # Cloud Run service and write it to a file in /workspace.
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'get-backend-url'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        URL=$(gcloud run services describe salescoach-backend \
+          --region=${_REGION} \
+          --format='value(status.url)')
+        echo "$URL" > /workspace/backend_url.txt
+        echo "Backend URL: $URL"
+
+  # ---------------------------------------------------------------------------
+  # 2. Type check and test
+  # ---------------------------------------------------------------------------
+  - name: 'node:20-alpine'
+    id: 'ci-checks'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        set -e
+        npm ci --quiet
+
+        echo "=== Type Check ==="
+        npm run typecheck
+
+        echo "=== Test ==="
+        npm run test:run
+    dir: 'frontend'
+
+  # ---------------------------------------------------------------------------
+  # 3. Build Docker image
+  #
+  # Reads the backend URL from the file written in step 1 and passes it
+  # as a build arg. Vite bakes it into the JS bundle.
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        BACKEND_URL=$(cat /workspace/backend_url.txt)
+        docker build \
+          --build-arg VITE_API_BASE_URL="$BACKEND_URL" \
+          -t ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:$SHORT_SHA \
+          -t ${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:latest \
+          .
+    dir: 'frontend'
+    waitFor: ['ci-checks', 'get-backend-url']
+
+  # ---------------------------------------------------------------------------
+  # 4. Push to Artifact Registry
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend'
+    waitFor: ['build']
+
+  # ---------------------------------------------------------------------------
+  # 5. Deploy to Cloud Run
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'salescoach-frontend'
+      - '--image=${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+    waitFor: ['push']
+
+substitutions:
+  _REGION: us-central1
+  _AR_REGION: us-central1
+  _AR_REPO: salescoach
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'

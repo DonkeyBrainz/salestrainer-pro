@@ -1,0 +1,81 @@
+[project]
+name = "salestrainer-pro-backend"
+version = "0.1.0"
+description = "Backend API for SalesTrainer Pro - Universal Sales Roleplay Platform"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "python-jose[cryptography]>=3.3.0",
+    "httpx>=0.26.0",
+    "google-cloud-firestore>=2.14.0",
+    "google-cloud-secret-manager>=2.18.0",
+    "google-genai>=1.0.0",
+    "python-multipart>=0.0.6",
+    "python-json-logger>=2.0.7",
+    "email-validator>=2.3.0",
+    "itsdangerous>=2.1.0",
+    # LangGraph agent dependencies
+    "langgraph>=0.2.0",
+    "langchain-core>=0.3.0",
+    "langchain-google-genai>=2.0.0",
+]
+
+[project.optional-dependencies]
+scripts = [
+    "google-cloud-storage>=2.14.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.26.0",
+    "respx>=0.20.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
+    "websockets>=12.0",  # For E2E WebSocket testing
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+mypy_path = "stubs"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --cov=app --cov-report=term-missing"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.12.0",
+    "httpx>=0.26.0",
+    "respx>=0.20.0",
+    "ruff>=0.14.14",
+    "pre-commit>=4.5.1",
+]

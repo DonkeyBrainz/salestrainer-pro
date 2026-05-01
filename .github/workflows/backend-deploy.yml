@@ -1,0 +1,172 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches:
+      - main  # Only deploy when merging to main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  workflow_dispatch:
+
+env:
+  REGION: us-central1
+  AR_REGION: us-central1
+  AR_REPO: salescoach
+  SERVICE_NAME: salescoach-backend
+  FRONTEND_SERVICE_NAME: salescoach-frontend
+
+jobs:
+  deploy:
+    name: Build and Deploy Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Quality Gates
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: uv sync --dev
+
+      - name: Lint with ruff
+        run: uv run ruff check app/
+
+      - name: Type check with mypy
+        run: uv run mypy app/
+
+      - name: Run tests
+        run: uv run pytest --cov=app --cov-report=term -q
+
+      # GCP Authentication (no third-party actions)
+      - name: Authenticate to Google Cloud
+        id: auth
+        run: |
+          # Get GitHub OIDC token
+          OIDC_TOKEN=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://iam.googleapis.com/${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}" \
+            | jq -r '.value')
+
+          # Write OIDC token to file for credential config
+          echo "$OIDC_TOKEN" > /tmp/oidc_token
+
+          # Create external account credential config
+          cat > /tmp/gha_creds.json << CRED_EOF
+          {
+            "type": "external_account",
+            "audience": "//iam.googleapis.com/${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1/token",
+            "credential_source": {
+              "file": "/tmp/oidc_token",
+              "format": { "type": "text" }
+            },
+            "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${{ vars.GCP_SERVICE_ACCOUNT }}:generateAccessToken"
+          }
+          CRED_EOF
+
+          # Authenticate gcloud with credential config
+          gcloud auth login --cred-file=/tmp/gha_creds.json --quiet
+          gcloud config set project ${{ vars.GCP_PROJECT_ID }}
+
+          # Generate access token for Docker auth
+          ACCESS_TOKEN=$(gcloud auth print-access-token)
+          echo "access_token=$ACCESS_TOKEN" >> $GITHUB_OUTPUT
+        working-directory: .
+
+      # Fetch frontend URL for CORS and OAuth redirect
+      - name: Get frontend URL
+        id: frontend_url
+        run: |
+          URL=$(gcloud run services describe ${{ env.FRONTEND_SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $URL"
+        working-directory: .
+
+      # Docker Build and Push
+      - name: Configure Docker for Artifact Registry
+        run: |
+          echo '${{ steps.auth.outputs.access_token }}' | \
+            docker login -u oauth2accesstoken --password-stdin \
+            https://${{ env.AR_REGION }}-docker.pkg.dev
+        working-directory: .
+
+      - name: Extract short SHA
+        id: vars
+        run: echo "short_sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+        working-directory: .
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.AR_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/backend:${{ steps.vars.outputs.short_sha }} \
+            -t ${{ env.AR_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/backend:latest \
+            .
+        working-directory: backend
+
+      - name: Push Docker image
+        run: |
+          docker push --all-tags \
+            ${{ env.AR_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/backend
+        working-directory: .
+
+      # Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image=${{ env.AR_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/backend:${{ steps.vars.outputs.short_sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --service-account=salescoach-backend-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
+            --set-secrets=GEMINI_API_KEY=gemini-api-key:latest,GOOGLE_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=google-oauth-client-secret:latest,AZURE_CLIENT_ID=azure-oauth-client-id:latest,AZURE_CLIENT_SECRET=azure-oauth-client-secret:latest,AZURE_TENANT_ID=azure-tenant-id:latest,SECRET_KEY=jwt-secret-key:latest \
+            --set-env-vars='^||^GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}||ENVIRONMENT=production||LOG_JSON=true||FIRESTORE_DATABASE=ai-ml-native||CORS_ORIGINS=["${{ steps.frontend_url.outputs.url }}","http://localhost:3000","http://localhost:5173"]||GOOGLE_REDIRECT_URI=${{ steps.frontend_url.outputs.url }}/auth/callback||AZURE_REDIRECT_URI=${{ steps.frontend_url.outputs.url }}/auth/callback' \
+            --memory=1Gi \
+            --cpu=2 \
+            --timeout=300 \
+            --max-instances=10 \
+            --quiet
+        working-directory: .
+
+      - name: Get service URL
+        id: service_url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Backend deployed to: $URL"
+        working-directory: .
+
+      - name: Summary
+        run: |
+          echo "### Backend Deployment Successful :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service:** ${{ env.SERVICE_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** ${{ steps.vars.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${{ steps.service_url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+        working-directory: .
+
+      - name: Cleanup credentials
+        if: always()
+        run: rm -f /tmp/oidc_token /tmp/gha_creds.json
+        working-directory: .

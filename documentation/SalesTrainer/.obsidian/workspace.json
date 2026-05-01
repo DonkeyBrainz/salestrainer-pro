@@ -1,0 +1,204 @@
+{
+  "main": {
+    "id": "84d9be4570899f48",
+    "type": "split",
+    "children": [
+      {
+        "id": "09e9f2412c9bcd71",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3d1bb901d4558db0",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Getting Started/BACKEND_SETUP.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "BACKEND_SETUP"
+            }
+          }
+        ]
+      },
+      {
+        "id": "9150226eda2620f1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "47529ee5bccc502e",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "be90e3a693ff74ac",
+    "type": "split",
+    "children": [
+      {
+        "id": "fbbbc60c60b33693",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4b8a3db275ff49e3",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "1bfe130b8330ce02",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "88b138705fdc2593",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "6b35669d8fbdb5e4",
+    "type": "split",
+    "children": [
+      {
+        "id": "31736cf4e3fb4bbe",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1279bbad79a27f51",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "YO Sample Text.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for YO Sample Text"
+            }
+          },
+          {
+            "id": "bbe30d356ff9652f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "YO Sample Text.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from YO Sample Text"
+            }
+          },
+          {
+            "id": "2367816a53334246",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "26bf23240efd94f0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "YO Sample Text.md"
+              },
+              "icon": "lucide-list",
+              "title": "Outline of YO Sample Text"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:Create new base": false,
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "3d1bb901d4558db0",
+  "lastOpenFiles": [
+    "Architecture & Design/PRODUCT_REQUIREMENTS.md.tmp.152983.1777567609553",
+    "Architecture & Design/DATABASE_SCHEMA.md.tmp.152983.1777567605956",
+    "Architecture & Design/AGENT_FLOW.md.tmp.152983.1777567603628",
+    "Architecture & Design/DATABASE_SCHEMA.md.tmp.152983.1777567602360",
+    "Architecture & Design/PRODUCT_REQUIREMENTS.md.tmp.152983.1777567600645",
+    "Architecture & Design/PRODUCT_REQUIREMENTS.md.tmp.152983.1777567596934",
+    "Architecture & Design/AGENT_FLOW.md.tmp.152983.1777567595792",
+    "Architecture & Design/DATABASE_SCHEMA.md.tmp.152983.1777567593993",
+    "API Documentation/API_SPECIFICATION.md.tmp.152983.1777567592952",
+    "Architecture & Design/PRODUCT_REQUIREMENTS.md.tmp.152983.1777567590808",
+    "API Documentation/API_SPECIFICATION.md.tmp.152983.1777567589152",
+    "Features/AshleyFurnitureEASYSellingSystem.md",
+    "Features/index.md",
+    "Architecture & Design/DATABASE_SCHEMA.md",
+    "API Documentation/index.md",
+    "Getting Started/index.md",
+    "YO Sample Text.md",
+    "Welcome.md"
+  ]
+}

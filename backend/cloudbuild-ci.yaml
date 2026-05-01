@@ -1,0 +1,28 @@
+# CI-only pipeline for pull requests.
+# Runs lint, type check, and tests. Does not build or deploy.
+
+steps:
+  - name: 'python:3.11-slim'
+    id: 'ci-checks'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        pip install --quiet uv
+        uv pip install --system --quiet ".[dev]"
+
+        echo "=== Lint ==="
+        ruff check app/
+
+        echo "=== Type Check ==="
+        mypy app/
+
+        echo "=== Test ==="
+        pytest --cov=app --cov-report=term -q
+    dir: 'backend'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '600s'

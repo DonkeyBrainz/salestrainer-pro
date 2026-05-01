@@ -1,0 +1,77 @@
+steps:
+  # ---------------------------------------------------------------------------
+  # 1. Lint, type check, and test
+  #
+  # Runs in a single step because each Cloud Build step is a fresh container.
+  # Installing deps once and running all checks is faster than repeating
+  # the install in 3 separate steps.
+  # ---------------------------------------------------------------------------
+  - name: 'python:3.11-slim'
+    id: 'ci-checks'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        pip install --quiet uv
+        uv pip install --system --quiet ".[dev]"
+
+        echo "=== Lint ==="
+        ruff check app/
+
+        echo "=== Type Check ==="
+        mypy app/
+
+        echo "=== Test ==="
+        pytest --cov=app --cov-report=term -q
+    dir: 'backend'
+
+  # ---------------------------------------------------------------------------
+  # 2. Build Docker image
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA'
+      - '-t'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:latest'
+      - '.'
+    dir: 'backend'
+    waitFor: ['ci-checks']
+
+  # ---------------------------------------------------------------------------
+  # 3. Push to Artifact Registry
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend'
+    waitFor: ['build']
+
+  # ---------------------------------------------------------------------------
+  # 4. Deploy to Cloud Run
+  # ---------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'salescoach-backend'
+      - '--image=${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+    waitFor: ['push']
+
+substitutions:
+  _REGION: us-central1
+  _AR_REGION: us-central1
+  _AR_REPO: salescoach
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'
