@@ -132,6 +132,8 @@ jobs:
             --image=${{ env.AR_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/frontend:${{ steps.vars.outputs.short_sha }} \
             --region=${{ env.REGION }} \
             --platform=managed \
+            --allow-unauthenticated \
+            --service-account=salestrainer-pro-backend-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --quiet
         working-directory: .
 

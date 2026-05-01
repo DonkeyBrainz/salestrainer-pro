@@ -178,6 +178,8 @@ resource "google_cloud_run_v2_service" "frontend" {
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
+    service_account = google_service_account.backend.email
+
     scaling {
       min_instance_count = 0
       max_instance_count = 5
