@@ -21,39 +21,39 @@ interface StageConfig {
 
 const STAGE_CONFIGS: StageConfig[] = [
   {
-    name: 'ENGAGE',
-    title: 'Engage',
+    name: 'CONNECT',
+    title: 'Connect',
     items: [
-      { id: 'non_business_greet', label: 'Non-Business Greeting' },
-      { id: 'established_rapport', label: 'Build Rapport' },
-      { id: 'manager_mention', label: 'Manager Mention' },
+      { id: 'warm_greeting', label: 'Warm Greeting' },
+      { id: 'establish_credibility', label: 'Establish Credibility' },
+      { id: 'create_comfort', label: 'Create Comfort' },
     ],
   },
   {
-    name: 'ASK',
-    title: 'Ask',
+    name: 'OBSERVE',
+    title: 'Observe',
     items: [
-      { id: 'critical_questions', label: 'Critical Questions' },
-      { id: 'layer2_discovery', label: 'Layer 2 Discovery' },
-      { id: 'pbms_identified', label: 'PBMs Identified' },
+      { id: 'needs_discovery', label: 'Needs Discovery' },
+      { id: 'goal_identification', label: 'Goal Identification' },
+      { id: 'motivator_mapping', label: 'Motivator Mapping' },
     ],
   },
   {
-    name: 'SHOW',
-    title: 'Show',
+    name: 'RECOMMEND',
+    title: 'Recommend',
     items: [
-      { id: 'power_demo', label: 'Power Demo' },
-      { id: 'feature_benefit_pbm', label: 'Feature-Benefit-PBM' },
-      { id: 'protection_plan', label: 'Protection Plan' },
+      { id: 'solution_presentation', label: 'Solution Presentation' },
+      { id: 'value_connection', label: 'Value Connection' },
+      { id: 'risk_mitigation', label: 'Risk Mitigation' },
     ],
   },
   {
-    name: 'YES',
-    title: 'Yes',
+    name: 'EXECUTE',
+    title: 'Execute',
     items: [
-      { id: 'pay_your_way', label: 'Pay Your Way' },
-      { id: 'clear_constraint', label: 'Clear Constraint' },
-      { id: 'closed_sale', label: 'Closed Sale' },
+      { id: 'commitment_request', label: 'Commitment Request' },
+      { id: 'objection_handling', label: 'Objection Handling' },
+      { id: 'finalize_agreement', label: 'Finalize Agreement' },
     ],
   },
 ];

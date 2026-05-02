@@ -346,7 +346,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
       {showSessionUI && (
         <>
           <div className="flex-1 flex overflow-hidden">
-            {/* Left Sidebar - E.A.S.Y. Checklist (training mode only) */}
+            {/* Left Sidebar - C.O.R.E. Checklist (training mode only) */}
             {mode === AppMode.TRAINING && (
               <div className="w-80 flex-shrink-0 px-4 py-6 overflow-y-auto bg-gradient-to-b from-[#F9F8F6] to-white border-r border-stone-200">
                 <CoreChecklist

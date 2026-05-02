@@ -54,7 +54,7 @@ export function useWebSocket(): UseWebSocketReturn {
   const [dismissedHint, setDismissedHint] = useState<CoachHint | null>(null);
   const [userTranscription, setUserTranscription] = useState<string>('');
   const [completedItems, setCompletedItems] = useState<string[]>([]);
-  const [currentStage, setCurrentStage] = useState<SalesStage>('ENGAGE');
+  const [currentStage, setCurrentStage] = useState<SalesStage>('CONNECT');
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
@@ -224,7 +224,7 @@ export function useWebSocket(): UseWebSocketReturn {
     setCurrentInput('');
     setError(null);
     setCompletedItems([]);
-    setCurrentStage('ENGAGE');
+    setCurrentStage('CONNECT');
   }, []);
 
   const sendAudio = useCallback((base64Data: string) => {

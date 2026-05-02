@@ -140,6 +140,7 @@ class CustomerAgentService:
         """
         mood_map = {
             "high": Mood.INTERESTED,
+            "medium": Mood.NEUTRAL,
             "low": Mood.NEUTRAL,
             "no": Mood.SKEPTICAL,
         }

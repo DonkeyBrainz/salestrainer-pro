@@ -7,7 +7,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
 from app.agents.customer_agent import CustomerAgentGraph
-from app.agents.personas import BUSY_PARENT, DEMANDING_PROFESSIONAL, EAGER_NEWLYWED
+from app.agents.personas import ANXIOUS_FIRST_TIMER, WEALTHY_SKEPTIC, OPTIMISTIC_RENOVATOR
 from app.agents.prompts import (
     build_customer_prompt,
     get_regard_description,
@@ -41,10 +41,10 @@ def sample_state() -> CustomerAgentState:
     return {
         "messages": [],
         "turn_count": 0,
-        "persona": EAGER_NEWLYWED,
+        "persona": OPTIMISTIC_RENOVATOR,
         "mood": Mood.INTERESTED,
         "regard_level": RegardLevel.HIGH,
-        "objections_available": ["need to measure the space"],
+        "objections_available": ["I can fix all this myself — no problem"],
         "objections_raised": [],
         "objections_resolved": [],
         "stage_progress": CoreStageProgress(),
@@ -277,7 +277,7 @@ class TestObjectionRouting:
         state: CustomerAgentState = {
             "messages": [],
             "turn_count": 3,
-            "persona": BUSY_PARENT,  # Medium difficulty
+            "persona": ANXIOUS_FIRST_TIMER,  # Medium difficulty
             "mood": Mood.NEUTRAL,
             "regard_level": RegardLevel.LOW,
             "objections_available": ["need to talk to my husband"],
@@ -325,7 +325,7 @@ class TestObjectionRouting:
         with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
             agent = CustomerAgentGraph(mock_settings)
 
-        # EAGER_NEWLYWED is easy difficulty
+        # OPTIMISTIC_RENOVATOR is easy difficulty
         sample_state["turn_count"] = 3
         sample_state["mood"] = Mood.INTERESTED  # Good mood, no behavior-responsive trigger
 
@@ -482,12 +482,12 @@ class TestStartSession:
             state = await service.start_session(
                 session_id="test-session",
                 user_id="test-user",
-                persona_id="eager_newlywed",
+                persona_id="optimistic_renovator",
             )
 
         assert state["session_id"] == "test-session"
         assert state["user_id"] == "test-user"
-        assert state["persona"].id == "eager_newlywed"
+        assert state["persona"].id == "optimistic_renovator"
         assert state["turn_count"] == 0
         assert state["messages"] == []
 
@@ -504,8 +504,8 @@ class TestStartSession:
         with patch("app.services.customer_agent_service.CustomerAgentGraph"):
             service = CustomerAgentService(mock_settings)
 
-            # EAGER_NEWLYWED has high regard
-            state = await service.start_session("s", "u", "eager_newlywed")
+            # OPTIMISTIC_RENOVATOR has high regard
+            state = await service.start_session("s", "u", "optimistic_renovator")
 
         assert state["mood"] == Mood.INTERESTED
 
@@ -514,29 +514,29 @@ class TestStartSession:
         with patch("app.services.customer_agent_service.CustomerAgentGraph"):
             service = CustomerAgentService(mock_settings)
 
-            # BUSY_PARENT has low regard
-            state = await service.start_session("s", "u", "busy_parent")
+            # ANXIOUS_FIRST_TIMER has low regard
+            state = await service.start_session("s", "u", "anxious_first_timer")
 
         assert state["mood"] == Mood.NEUTRAL
 
-    async def test_sets_initial_mood_no_regard(self, mock_settings: MagicMock) -> None:
-        """Should set skeptical mood for no regard personas."""
+    async def test_sets_initial_mood_medium_regard(self, mock_settings: MagicMock) -> None:
+        """Should set neutral mood for medium regard personas."""
         with patch("app.services.customer_agent_service.CustomerAgentGraph"):
             service = CustomerAgentService(mock_settings)
 
-            # SKEPTICAL_SHOPPER has no regard
-            state = await service.start_session("s", "u", "skeptical_shopper")
+            # PRIVACY_SEEKING_REMOTE_WORKER has medium regard
+            state = await service.start_session("s", "u", "privacy_remote_worker")
 
-        assert state["mood"] == Mood.SKEPTICAL
+        assert state["mood"] == Mood.NEUTRAL
 
     async def test_copies_persona_objections(self, mock_settings: MagicMock) -> None:
         """Should copy persona objections to available list."""
         with patch("app.services.customer_agent_service.CustomerAgentGraph"):
             service = CustomerAgentService(mock_settings)
 
-            state = await service.start_session("s", "u", "busy_parent")
+            state = await service.start_session("s", "u", "anxious_first_timer")
 
-        assert len(state["objections_available"]) == len(BUSY_PARENT.objections)
+        assert len(state["objections_available"]) == len(ANXIOUS_FIRST_TIMER.objections)
         assert state["objections_raised"] == []
 
 
@@ -554,7 +554,7 @@ class TestProcessMessage:
                         AIMessage(content="Hi there!"),
                     ],
                     "turn_count": 1,
-                    "persona": EAGER_NEWLYWED,
+                    "persona": OPTIMISTIC_RENOVATOR,
                     "mood": Mood.INTERESTED,
                     "regard_level": RegardLevel.HIGH,
                     "objections_available": [],
@@ -568,7 +568,7 @@ class TestProcessMessage:
             MockGraph.return_value = mock_agent
 
             service = CustomerAgentService(mock_settings)
-            initial_state = await service.start_session("s", "u", "eager_newlywed")
+            initial_state = await service.start_session("s", "u", "optimistic_renovator")
 
             response, new_state = await service.process_message("s", "Hello!", initial_state)
 
@@ -586,7 +586,7 @@ class TestProcessMessage:
                 return_value={
                     "messages": [AIMessage(content="I'm looking for a sofa.")],
                     "turn_count": 1,
-                    "persona": EAGER_NEWLYWED,
+                    "persona": OPTIMISTIC_RENOVATOR,
                     "mood": Mood.INTERESTED,
                     "regard_level": RegardLevel.HIGH,
                     "objections_available": [],
@@ -600,7 +600,7 @@ class TestProcessMessage:
             MockGraph.return_value = mock_agent
 
             service = CustomerAgentService(mock_settings)
-            initial_state = await service.start_session("s", "u", "eager_newlywed")
+            initial_state = await service.start_session("s", "u", "optimistic_renovator")
 
             response, new_state = await service.process_message("s", "Hello!", initial_state)
 
@@ -696,7 +696,7 @@ class TestSerializeDeserializeState:
 
         messages = [HumanMessage(content="Hello"), AIMessage(content="Hi there")]
 
-        result = service.deserialize_state(snapshot, EAGER_NEWLYWED, messages)
+        result = service.deserialize_state(snapshot, OPTIMISTIC_RENOVATOR, messages)
 
         assert result["turn_count"] == 5
         assert result["mood"] == Mood.SKEPTICAL
@@ -704,7 +704,7 @@ class TestSerializeDeserializeState:
         assert result["objections_available"] == ["too expensive", "need to measure"]
         assert result["objections_raised"] == ["too expensive"]
         assert result["session_id"] == "test-session"
-        assert result["persona"] == EAGER_NEWLYWED
+        assert result["persona"] == OPTIMISTIC_RENOVATOR
         assert len(result["messages"]) == 2
         assert result["stage_progress"].current_stage.value == "OBSERVE"
         assert result["stage_progress"].pbms_expressed == ["durability"]
@@ -722,7 +722,7 @@ class TestSerializeDeserializeState:
             AIMessage(content="Hello!"),
         ]
         sample_state["turn_count"] = 1
-        sample_state["objections_raised"] = ["need to measure the space"]
+        sample_state["objections_raised"] = ["I can fix all this myself — no problem"]
 
         # Serialize
         serialized = service.serialize_state(sample_state)
@@ -765,14 +765,14 @@ class TestResumeSession:
             user_id="test-user",
             session_type=SessionType.TRAINING,
             status=SessionStatus.COMPLETED,
-            selected_persona="eager_newlywed",
+            selected_persona="optimistic_renovator",
             difficulty=SessionDifficulty.HIGH_REGARD,
             agent_state_snapshot=json.dumps(
                 {
                     "turn_count": 2,
                     "mood": "interested",
                     "regard_level": "high",
-                    "objections_available": ["need to measure the space"],
+                    "objections_available": ["I can fix all this myself — no problem"],
                     "objections_raised": [],
                     "objections_resolved": [],
                     "session_id": "test-session",
@@ -816,7 +816,7 @@ class TestResumeSession:
         assert result["session_id"] == "test-session"
         assert result["turn_count"] == 2
         assert result["mood"] == Mood.INTERESTED
-        assert result["persona"].id == "eager_newlywed"
+        assert result["persona"].id == "optimistic_renovator"
         assert len(result["messages"]) == 2
         assert isinstance(result["messages"][0], HumanMessage)
         assert isinstance(result["messages"][1], AIMessage)
@@ -838,7 +838,7 @@ class TestResumeSession:
             user_id="test-user",
             session_type=SessionType.TRAINING,
             status=SessionStatus.ACTIVE,
-            selected_persona="busy_parent",
+            selected_persona="anxious_first_timer",
             difficulty=SessionDifficulty.MEDIUM_REGARD,
             agent_state_snapshot=None,  # No snapshot
             started_at=now,
@@ -849,7 +849,7 @@ class TestResumeSession:
         result = service.resume_session(session, None)
 
         assert result["session_id"] == "test-session"
-        assert result["persona"].id == "busy_parent"
+        assert result["persona"].id == "anxious_first_timer"
         assert result["mood"] == Mood.NEUTRAL  # Low regard -> neutral
         assert result["turn_count"] == 0
         assert result["messages"] == []
@@ -1039,7 +1039,7 @@ class TestDifficultyTuning:
         state: CustomerAgentState = {
             "messages": [],
             "turn_count": 5,  # Past automatic window
-            "persona": DEMANDING_PROFESSIONAL,  # Hard difficulty
+            "persona": WEALTHY_SKEPTIC,  # Hard difficulty
             "mood": Mood.SKEPTICAL,
             "regard_level": RegardLevel.NO,
             "objections_available": ["too expensive"],
@@ -1067,7 +1067,7 @@ class TestDifficultyTuning:
         with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
             agent = CustomerAgentGraph(mock_settings)
 
-        # EAGER_NEWLYWED is easy difficulty
+        # OPTIMISTIC_RENOVATOR is easy difficulty
         sample_state["turn_count"] = 5  # Past automatic window
         sample_state["mood"] = Mood.SKEPTICAL  # Need negative mood for behavior-responsive
 
@@ -1145,7 +1145,7 @@ class TestDifficultyTuning:
         state: CustomerAgentState = {
             "messages": [],
             "turn_count": 5,
-            "persona": DEMANDING_PROFESSIONAL,  # Hard difficulty
+            "persona": WEALTHY_SKEPTIC,  # Hard difficulty
             "mood": Mood.INTERESTED,
             "regard_level": RegardLevel.NO,
             "objections_available": [],

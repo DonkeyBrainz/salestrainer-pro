@@ -16,16 +16,20 @@ class TestListPersonasEndpoint:
         assert "personas" in data
         personas = data["personas"]
 
-        # Should have 5 training personas
-        assert len(personas) == 5
+        # Should have 10 training personas (all real estate buyer archetypes)
+        assert len(personas) == 10
 
-        # Verify all are training personas (not eval-only)
         training_ids = {
-            "eager_newlywed",
-            "busy_parent",
-            "skeptical_shopper",
-            "demanding_professional",
-            "price_resistant",
+            "optimistic_renovator",
+            "anxious_first_timer",
+            "practical_family",
+            "urban_minimalist",
+            "privacy_remote_worker",
+            "scaling_investor",
+            "wealthy_skeptic",
+            "landlord_investor",
+            "school_obsessed_parent",
+            "lifestyle_retiree",
         }
         returned_ids = {p["id"] for p in personas}
         assert returned_ids == training_ids
@@ -38,7 +42,6 @@ class TestListPersonasEndpoint:
         data = response.json()
         persona = data["personas"][0]
 
-        # Check required fields
         assert "id" in persona
         assert "name" in persona
         assert "backstory" in persona
@@ -50,7 +53,7 @@ class TestListEvaluationPersonasEndpoint:
     """Tests for GET /api/v1/personas/evaluation endpoint."""
 
     async def test_returns_only_eval_personas(self, client: AsyncClient) -> None:
-        """Should return only evaluation-only personas (medium and hard)."""
+        """Should return only evaluation-only personas (none currently defined)."""
         response = await client.get("/api/v1/personas/evaluation")
 
         assert response.status_code == status.HTTP_200_OK
@@ -58,37 +61,11 @@ class TestListEvaluationPersonasEndpoint:
         assert "personas" in data
         personas = data["personas"]
 
-        # Should have 6 eval-only personas
-        assert len(personas) == 6
-
-        # Verify all are eval-only personas
-        eval_ids = {
-            "tech_savvy_millennial",
-            "empty_nester",
-            "young_professional",
-            "luxury_renovator",
-            "frugal_retiree",
-            "indecisive_couple_rep",
-        }
-        returned_ids = {p["id"] for p in personas}
-        assert returned_ids == eval_ids
-
-    async def test_only_medium_and_hard_difficulty(self, client: AsyncClient) -> None:
-        """Should only return medium and low regard personas."""
-        response = await client.get("/api/v1/personas/evaluation")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        personas = data["personas"]
-
-        # Verify no high regard personas
-        difficulties = {p["difficulty"] for p in personas}
-        assert "high_regard" not in difficulties
-        assert "medium_regard" in difficulties
-        assert "low_regard" in difficulties
+        # No eval-only personas defined; all 10 real estate personas are training personas
+        assert len(personas) == 0
 
     async def test_hides_persona_details(self, client: AsyncClient) -> None:
-        """Should not include name or looking_for to avoid giving unfair information."""
+        """Eval personas should not expose name or looking_for."""
         response = await client.get("/api/v1/personas/evaluation")
 
         assert response.status_code == status.HTTP_200_OK
@@ -96,11 +73,8 @@ class TestListEvaluationPersonasEndpoint:
         personas = data["personas"]
 
         for persona in personas:
-            # Should have id, backstory, difficulty
             assert "id" in persona
             assert "backstory" in persona
             assert "difficulty" in persona
-
-            # Should NOT have name or looking_for
             assert "name" not in persona
             assert "looking_for" not in persona

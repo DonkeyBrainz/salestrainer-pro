@@ -10,11 +10,11 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
   const { currentStage, checklist, feedback, cloudSyncStatus } = evaluation;
 
   // Calculate Global Progress
-  const categories = ['engage', 'ask', 'show', 'yes'] as const;
+  const categories = ['connect', 'observe', 'recommend', 'execute'] as const;
   let totalItems = 0;
   let completedItems = 0;
 
-  categories.forEach(cat => {
+  categories.forEach((cat) => {
     const items = Object.values(checklist[cat]);
     totalItems += items.length;
     completedItems += items.filter(Boolean).length;
@@ -126,32 +126,32 @@ const SalesTracker: React.FC<SalesTrackerProps> = ({ evaluation }) => {
         </div>
       )}
 
-      {/* STAGE 1: ENGAGE */}
-      {renderStage('1. Engage', 'ENGAGE', [
-        { label: 'Non-Business Greet', completed: checklist.engage.nonBusinessGreet },
-        { label: 'Build Rapport', completed: checklist.engage.establishedRapport },
-        { label: 'Mention Manager', completed: checklist.engage.managerMention },
+      {/* STAGE 1: CONNECT */}
+      {renderStage('1. Connect', 'CONNECT', [
+        { label: 'Warm Greeting', completed: checklist.connect.warmGreeting },
+        { label: 'Establish Credibility', completed: checklist.connect.establishCredibility },
+        { label: 'Create Comfort', completed: checklist.connect.createComfort },
       ])}
 
-      {/* STAGE 2: ASK */}
-      {renderStage('2. Ask', 'ASK', [
-        { label: 'Ask Critical Questions', completed: checklist.ask.criticalQuestions },
-        { label: 'Layer 2 Discovery', completed: checklist.ask.layer2Discovery },
-        { label: 'Identify PBMs', completed: checklist.ask.pbmsIdentified },
+      {/* STAGE 2: OBSERVE */}
+      {renderStage('2. Observe', 'OBSERVE', [
+        { label: 'Needs Discovery', completed: checklist.observe.needsDiscovery },
+        { label: 'Goal Identification', completed: checklist.observe.goalIdentification },
+        { label: 'Motivator Mapping', completed: checklist.observe.motivatorMapping },
       ])}
 
-      {/* STAGE 3: SHOW */}
-      {renderStage('3. Show', 'SHOW', [
-        { label: 'Power Demonstration', completed: checklist.show.powerDemo },
-        { label: 'Feature -> Benefit -> PBM', completed: checklist.show.featureBenefitPbm },
-        { label: 'Offer Protection Plan', completed: checklist.show.protectionPlan },
+      {/* STAGE 3: RECOMMEND */}
+      {renderStage('3. Recommend', 'RECOMMEND', [
+        { label: 'Solution Presentation', completed: checklist.recommend.solutionPresentation },
+        { label: 'Value Connection', completed: checklist.recommend.valueConnection },
+        { label: 'Risk Mitigation', completed: checklist.recommend.riskMitigation },
       ])}
 
-      {/* STAGE 4: YES */}
-      {renderStage('4. Yes', 'YES', [
-        { label: 'Pay Your Way (Financing)', completed: checklist.yes.payYourWay },
-        { label: 'Clear Constraints', completed: checklist.yes.clearConstraint },
-        { label: 'Close the Sale', completed: checklist.yes.closedSale },
+      {/* STAGE 4: EXECUTE */}
+      {renderStage('4. Execute', 'EXECUTE', [
+        { label: 'Commitment Request', completed: checklist.execute.commitmentRequest },
+        { label: 'Objection Handling', completed: checklist.execute.objectionHandling },
+        { label: 'Finalize Agreement', completed: checklist.execute.finalizeAgreement },
       ])}
     </div>
   );

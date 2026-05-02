@@ -17,12 +17,12 @@ const GRADE_COLORS: Record<Grade, { bg: string; text: string; ring: string }> = 
   F: { bg: 'bg-red-100', text: 'text-red-700', ring: 'ring-red-300' },
 };
 
-const STAGE_ORDER = ['ENGAGE', 'ASK', 'SHOW', 'YES'];
+const STAGE_ORDER = ['CONNECT', 'OBSERVE', 'RECOMMEND', 'EXECUTE'];
 const STAGE_LABELS: Record<string, string> = {
-  ENGAGE: 'Engage',
-  ASK: 'Ask',
-  SHOW: 'Show',
-  YES: 'Yes',
+  CONNECT: 'Connect',
+  OBSERVE: 'Observe',
+  RECOMMEND: 'Recommend',
+  EXECUTE: 'Execute',
 };
 
 function ScoreBar({ score }: { score: number }) {

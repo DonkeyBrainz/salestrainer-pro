@@ -1,7 +1,7 @@
-# Product Requirements Document: Luxe Sales Coach v2
+# Product Requirements Document: SalesTrainer Pro
 
-> **Version:** 1.0.0
-> **Last Updated:** 2026-02-19
+> **Version:** 1.1.0
+> **Last Updated:** 2026-05-01
 > **Status:** Current
 > **Document Type:** Product Requirements (Functional & Technical Specifications)
 
@@ -26,14 +26,14 @@
 
 ### 1.1 Product Vision
 
-Luxe Sales Coach v2 is an AI-native sales training platform that enables Ashley Furniture sales representatives to master the E.A.S.Y. Selling System through immersive, voice-based roleplay with realistic AI customer personas. The platform replaces traditional static training materials with real-time, adaptive conversations that simulate authentic customer interactions.
+SalesTrainer Pro is an AI-native sales training platform that enables sales professionals across any industry to master the C.O.R.E. Selling System through immersive, voice-based roleplay with realistic AI customer personas. The platform replaces traditional static training materials with real-time, adaptive conversations that simulate authentic customer interactions.
 
 ### 1.2 Value Proposition
 
 **For Sales Representatives:**
 - Practice challenging sales scenarios in a safe, judgment-free environment
-- Receive real-time coaching hints aligned with Ashley's proven E.A.S.Y. methodology
-- Build muscle memory for techniques that drive $1.25M+ annual sales performance
+- Receive real-time coaching hints aligned with the proven C.O.R.E. methodology
+- Build muscle memory for consultative techniques that drive sales performance
 - Track progress over time with detailed performance scorecards
 
 **For Sales Managers:**
@@ -44,16 +44,16 @@ Luxe Sales Coach v2 is an AI-native sales training platform that enables Ashley 
 
 ### 1.3 Key Objectives
 
-1. **Skill Development**: Enable sales reps to master all four stages of E.A.S.Y. (Engage, Ask, Show, Yes) through deliberate practice
+1. **Skill Development**: Enable sales reps to master all four stages of C.O.R.E. (Connect, Observe, Recommend, Execute) through deliberate practice
 2. **Realistic Simulation**: Provide customer personas with authentic objections, buying motivations, and conversation dynamics
 3. **Immediate Feedback**: Deliver contextual coaching hints within 2.5 seconds of identifying technique opportunities
-4. **Measurable Progress**: Quantify performance across 12 E.A.S.Y. checklist items with scores and letter grades
-5. **Voice-First Experience**: Leverage natural speech for immersive roleplay that mirrors real showroom interactions
+4. **Measurable Progress**: Quantify performance across C.O.R.E. checklist items with scores and letter grades
+5. **Voice-First Experience**: Leverage natural speech for immersive roleplay that mirrors real customer interactions
 
 ### 1.4 Target Users
 
 **Primary Users:**
-- **Sales Representatives** (Ashley Furniture): Frontline salespeople seeking to improve technique, confidence, and sales outcomes
+- **Sales Representatives**: Frontline salespeople across industries (real estate, SaaS, insurance, automotive, B2B/B2C) seeking to improve technique, confidence, and sales outcomes
 - **Experience Levels**: New hires (onboarding), intermediate (skill refinement), advanced (objection handling mastery)
 
 **Secondary Users:**
@@ -87,7 +87,7 @@ Luxe Sales Coach v2 is an AI-native sales training platform that enables Ashley 
 
 ### 2.1 Problem Statement
 
-Traditional sales training at Ashley Furniture faces critical limitations:
+Traditional sales training faces critical limitations across industries:
 
 **Static Learning Materials:**
 - Video modules and printed scripts cannot adapt to learner needs
@@ -113,7 +113,7 @@ These limitations result in longer ramp-up times for new hires, inconsistent tec
 
 ### 2.2 Solution Summary
 
-Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
+SalesTrainer Pro delivers AI-powered voice roleplay training with:
 
 **Realistic AI Customer Personas:**
 - 11 distinct personas representing common customer archetypes (eager newlyweds, skeptical shoppers, demanding professionals, price-resistant buyers)
@@ -122,12 +122,12 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 
 **Real-Time Coaching System:**
 - Dual-agent architecture: Customer Agent (roleplay) + Coach Agent (analysis)
-- Live technique detection during conversation (E.A.S.Y. stage completion)
+- Live technique detection during conversation (C.O.R.E. stage completion)
 - Contextual hints delivered within 2.5 seconds of identifying opportunities
 - Silent evaluation mode for performance testing without assistance
 
 **Comprehensive Evaluation:**
-- Post-session scorecard tracking 12 E.A.S.Y. checklist items
+- Post-session scorecard tracking C.O.R.E. checklist items
 - Letter grades (A-F) based on stage completion and technique quality
 - Detailed feedback with strengths, improvement areas, and actionable recommendations
 - Full conversation transcript with coach reasoning preserved
@@ -140,14 +140,14 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 
 ### 2.3 Core Capabilities
 
-1. **Voice Roleplay Sessions** (Training Mode)
+1. **Voice Roleplay Sessions** (Live Practice)
    - Select customer persona and difficulty level
    - Speak naturally to AI customer via microphone
-   - See live E.A.S.Y. checklist progress in HUD
+   - See live C.O.R.E. checklist progress in HUD
    - Receive coaching hints after each conversational turn
    - End session and request detailed evaluation
 
-2. **Silent Evaluation** (Assessment Mode)
+2. **Silent Evaluation** (Performance Assessment)
    - Practice with no coaching hints (test environment)
    - Complete full sales conversation independently
    - Receive comprehensive scorecard at session end
@@ -162,7 +162,7 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 4. **Admin Dashboard** (Manager View)
    - View org-wide persona usage metrics
    - Monitor user activity and session completion rates
-   - Track average scores by E.A.S.Y. stage
+   - Track average scores by C.O.R.E. stage
    - Identify high/low performing personas for training optimization
 
 ---
@@ -173,18 +173,18 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 
 **Profile:**
 - **Experience Levels**:
-  - New Hires (0-3 months): Focus on E.A.S.Y. fundamentals
+  - New Hires (0-3 months): Focus on C.O.R.E. fundamentals
   - Intermediate (3-12 months): Refining technique quality
   - Advanced (12+ months): Mastering objection handling
 - **Goals**:
-  - Achieve $1.25M annual sales target
+  - Hit sales targets and improve close rates
   - Build confidence in difficult customer scenarios
-  - Improve close rates and average ticket size
+  - Improve close rates and average deal size
   - Reduce time to competency (new hires)
 - **Pain Points**:
   - Limited practice opportunities before real customer interactions
   - Fear of judgment when making mistakes during training
-  - Difficulty remembering all 12 E.A.S.Y. checklist items in real-time
+  - Difficulty applying C.O.R.E. checklist requirements in real-time
   - Uncertainty about which techniques work for which customer types
 
 ### 3.2 Secondary User: Sales Manager
@@ -202,9 +202,9 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
   - Lack of objective performance data for coaching conversations
   - Difficulty identifying specific skill gaps for each rep
 
-### 3.3 Workflow 1: Training Session Flow
+### 3.3 Workflow 1: Live Practice Session Flow
 
-**Objective**: Practice E.A.S.Y. selling techniques with real-time coaching
+**Objective**: Practice C.O.R.E. selling techniques with real-time coaching
 
 **Steps:**
 
@@ -215,8 +215,8 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
    - Dashboard loads with user profile and session history
 
 2. **Persona Selection**
-   - User clicks "Start New Training Session"
-   - Views list of 5 training personas (Eager Newlywed, Busy Parent, Skeptical Shopper, Demanding Professional, Price-Resistant)
+   - User clicks "Start New Live Practice Session"
+   - Views list of available training personas
    - Reviews persona card: name, backstory, looking for, difficulty level
    - Selects persona → clicks "Begin Session"
 
@@ -227,13 +227,13 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
    - Customer persona greets user (voice audio plays): "Hi, I'm looking for a new sofa for my living room"
 
 4. **Roleplay Conversation**
-   - **User speaks**: "Welcome to Ashley! How has your day been?"
+   - **User speaks**: "Hi! I'd love to understand what brings you in today..."
    - **HUD updates**: Transcription appears in real-time
-   - **Customer responds** (voice + text): "Good, thanks. We just moved into a new place."
+   - **Customer responds** (voice + text): "Good, thanks. We're looking to upgrade our setup."
    - **Coach analyzes**: Background analysis runs (2s latency)
-   - **Hint appears** (if training mode): "Great non-business greeting! Now transition to building rapport by asking about their move."
-   - **E.A.S.Y. checklist updates**: "Non-Business Greet" item checked
-   - **Repeat**: User continues conversation through stages (Engage → Ask → Show → Yes)
+   - **Hint appears** (if Live Practice mode): "Great warm opening! Now transition to discovering their situation with a broader question."
+   - **C.O.R.E. checklist updates**: "Connect - Established rapport" item checked
+   - **Repeat**: User continues conversation through stages (Connect → Observe → Recommend → Execute)
 
 5. **End Session**
    - User clicks "Evaluate" button (or after 30-minute timeout)
@@ -244,32 +244,32 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 6. **Review Scorecard**
    - Scorecard displays:
      - Overall grade (A-F) and score (0-100)
-     - Breakdown by E.A.S.Y. stage (Engage: 67%, Ask: 75%, Show: 67%, Yes: 67%)
-     - Strengths: "Effective use of Layer 2 discovery questions"
-     - Improvements: "Missed opportunity to present Protection Plan"
-     - Suggested Actions: "Practice connecting features to PBMs in next session"
+     - Breakdown by C.O.R.E. stage (Connect: 67%, Observe: 75%, Recommend: 67%, Execute: 67%)
+     - Strengths: "Effective use of discovery questions to uncover customer motivators"
+     - Improvements: "Missed opportunity to tie recommendation back to stated needs"
+     - Suggested Actions: "Practice connecting features to customer motivators in next session"
    - Full transcript available for review with coach reasoning annotations
 
 7. **Session Saved**
    - Session persisted to Firestore with metadata (persona, duration, score)
    - Appears in session history for future reference
 
-### 3.4 Workflow 2: Evaluation Session Flow
+### 3.4 Workflow 2: Performance Assessment Flow
 
 **Objective**: Assess skill level without coaching assistance
 
 **Steps:**
 
-1. **Select Evaluation Mode**
-   - User clicks "Start Evaluation"
-   - Views 6 evaluation-only personas (Medium/Hard difficulty)
+1. **Select Performance Assessment**
+   - User clicks "Start Performance Assessment"
+   - Views evaluation-only personas (Medium/Hard difficulty)
    - Cannot see persona details in advance (blind assessment)
-   - Selects persona → clicks "Begin Evaluation"
+   - Selects persona → clicks "Begin Assessment"
 
 2. **Silent Roleplay**
-   - Same voice connection flow as training mode
+   - Same voice connection flow as Live Practice
    - **No coaching hints displayed** during conversation
-   - E.A.S.Y. checklist hidden from view
+   - C.O.R.E. checklist hidden from view
    - User must self-direct through stages based on training
 
 3. **Complete Conversation**
@@ -394,14 +394,14 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 
 ---
 
-#### FR-TRAIN-003: E.A.S.Y. Checklist HUD
+#### FR-TRAIN-003: C.O.R.E. Checklist HUD
 **Description**: Display 4-stage checklist with real-time progress
 **Acceptance Criteria**:
-- HUD shows 4 collapsible sections: ENGAGE, ASK, SHOW, YES
-- Each section lists stage-specific requirements (see FR-EASY-*)
+- HUD shows 4 collapsible sections: CONNECT, OBSERVE, RECOMMEND, EXECUTE
+- Each section lists stage-specific requirements (see FR-CORE-*)
 - Items marked with checkmark as coach detects completion
 - Current stage highlighted
-- Checklist visible throughout training session
+- Checklist visible throughout Live Practice session
 
 **Priority**: P0 (Must Have)
 
@@ -449,10 +449,10 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 ### 4.3 FR-EVAL: Evaluation Mode Features
 
 #### FR-EVAL-001: Silent Coaching
-**Description**: Hide coaching hints during evaluation sessions
+**Description**: Hide coaching hints during Performance Assessment sessions
 **Acceptance Criteria**:
 - Coach analyzer still runs but hints not sent to frontend
-- E.A.S.Y. checklist hidden from view
+- C.O.R.E. checklist hidden from view
 - User must self-direct through conversation stages
 - Session metadata marked as `sessionType: evaluation`
 
@@ -479,7 +479,7 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 **Acceptance Criteria**:
 - Transcript shows user and assistant messages with timestamps
 - Coach reasoning displayed per turn (which techniques detected, confidence scores)
-- Techniques highlighted in transcript (color-coded by E.A.S.Y. stage)
+- Techniques highlighted in transcript (color-coded by C.O.R.E. stage)
 - Transcript downloadable as JSON or readable in browser
 
 **Priority**: P1 (Should Have)
@@ -549,63 +549,63 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 
 ---
 
-### 4.5 FR-EASY: E.A.S.Y. System Requirements
+### 4.5 FR-CORE: C.O.R.E. System Requirements
 
-#### FR-EASY-001: ENGAGE Stage
-**Description**: First stage of E.A.S.Y. selling system - building rapport
+#### FR-CORE-001: CONNECT Stage
+**Description**: First stage of C.O.R.E. selling system - building rapport and credibility
 **Acceptance Criteria**:
-- 3 requirements tracked:
-  1. **Non-Business Greet**: Uses conversational greeting (weather, compliment, day going)
-  2. **Established Rapport**: Demonstrates QAS Conversational Selling (Question-Answer-Share balance)
-  3. **Manager Mention**: Introduces store manager during engagement
+- Requirements tracked:
+  1. **Warm Greeting**: Uses professional, conversational opening focused on the customer's experience
+  2. **Established Rapport**: Demonstrates genuine interest in the customer's situation and challenges
+  3. **Credibility Established**: Shows relevant expertise and creates environment for open dialogue
 - Coach detects completion via LLM analysis of conversation
 - Stage score: 0-100 based on completion percentage
 
 **Priority**: P0 (Must Have)
-**Reference**: `/documentation/AshleyFurnitureEASYSellingSystem.md` lines 36-173
+**Reference**: `/frontend/src/data/CoreSellingSystem.ts`
 
 ---
 
-#### FR-EASY-002: ASK Stage
-**Description**: Second stage - discovering customer needs and PBMs
+#### FR-CORE-002: OBSERVE Stage
+**Description**: Second stage - discovering customer needs and motivators
 **Acceptance Criteria**:
-- 4 requirements tracked:
-  1. **Critical Questions**: Asks 4+ of 5 critical questions (What brings you in? Tell me about your space? Who will use this? Timeline? Shopping around?)
-  2. **Layer 2 Discovery**: Asks follow-up "why" questions to deepen understanding
-  3. **PBMs Identified**: Discovers minimum 2 Personal Buying Motivators
-  4. **Ashley Story Shared**: Tells brand story and community partnerships
+- Requirements tracked:
+  1. **Discovery Questions**: Asks open-ended questions to understand current situation
+  2. **Deep Discovery**: Asks follow-up "why" questions to uncover underlying motivators
+  3. **Customer Motivators Identified**: Discovers minimum 2 Personal Buying Motivators (PBMs)
+  4. **Situation Understood**: Demonstrates comprehension of customer challenges and goals
 - Stage score: 0-100 based on completion percentage
 
 **Priority**: P0 (Must Have)
-**Reference**: `/documentation/AshleyFurnitureEASYSellingSystem.md` lines 174-361
+**Reference**: `/frontend/src/data/CoreSellingSystem.ts`
 
 ---
 
-#### FR-EASY-003: SHOW Stage
-**Description**: Third stage - demonstrating solutions and value
+#### FR-CORE-003: RECOMMEND Stage
+**Description**: Third stage - presenting tailored solutions
 **Acceptance Criteria**:
-- 3 requirements tracked:
-  1. **Power Demonstration**: Shows 3 products across Good/Better/Best tiers, invites physical interaction
-  2. **Feature → Benefit → PBM**: Connects every feature to benefit tied to customer's stated PBM
-  3. **Protection Plan Presented**: Offers No Use, No Lose protection plan with lifestyle connection
+- Requirements tracked:
+  1. **Solution Presentation**: Recommends solution tied to discovered customer motivators
+  2. **Feature → Benefit → Motivator**: Connects every feature to benefit tied to customer's stated needs
+  3. **Value Demonstrated**: Positions recommendation as trusted advisor, not vendor
 - Stage score: 0-100 based on completion percentage
 
 **Priority**: P0 (Must Have)
-**Reference**: `/documentation/AshleyFurnitureEASYSellingSystem.md` lines 362-536
+**Reference**: `/frontend/src/data/CoreSellingSystem.ts`
 
 ---
 
-#### FR-EASY-004: YES Stage
-**Description**: Fourth stage - closing the sale
+#### FR-CORE-004: EXECUTE Stage
+**Description**: Fourth stage - closing the sale and handling objections
 **Acceptance Criteria**:
-- 3 requirements tracked:
-  1. **Pay Your Way Presented**: Shows 3 payment options (Lowest Monthly, Lowest Total Price, Best of Both)
-  2. **Clear the Constraint Used**: Applies Confirm → Clarify → Commit framework to objections
-  3. **Closed Sale**: Gains commitment or schedules follow-up appointment
+- Requirements tracked:
+  1. **Commitment Requested**: Asks for next step or purchase commitment
+  2. **Objections Handled**: Applies ADS framework (Acknowledge, Discover, Solve) to objections
+  3. **Sale Closed or Follow-up Scheduled**: Gains commitment or sets specific next action
 - Stage score: 0-100 based on completion percentage
 
 **Priority**: P0 (Must Have)
-**Reference**: `/documentation/AshleyFurnitureEASYSellingSystem.md` lines 638-916
+**Reference**: `/frontend/src/data/CoreSellingSystem.ts`
 
 ---
 
@@ -617,7 +617,7 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 - Frontend sends WebSocket connection with: JWT token, mode (training/evaluation), persona ID, difficulty
 - Backend creates Session document in Firestore: sessionId (UUID), userId, sessionType, status (ACTIVE), selectedPersona, difficulty, startedAt
 - Customer agent initialized with persona state
-- Coach agent initialized with E.A.S.Y. stage progress
+- Coach agent initialized with C.O.R.E. stage progress
 
 **Priority**: P0 (Must Have)
 **Reference**: `/backend/app/models/session.py`
@@ -773,7 +773,7 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Frontend (React 19)                     │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │ Voice UI     │  │ E.A.S.Y. HUD │  │ Scorecard    │         │
+│  │ Voice UI     │  │ C.O.R.E. HUD │  │ Scorecard    │         │
 │  │ (WebRTC)     │  │ (Checklist)  │  │ (Report)     │         │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
 │         │                 │                 │                   │
@@ -814,7 +814,7 @@ Luxe Sales Coach v2 delivers AI-powered voice roleplay training with:
 - **WebRTC**: Browser audio input/output
 - **WebSocket Client**: Bidirectional audio/text streaming
 - **State Management**: React hooks (useState, useEffect, useContext)
-- **UI Components**: Voice interface, E.A.S.Y. HUD, Report card, Admin dashboard
+- **UI Components**: Voice interface, C.O.R.E. HUD, Report card, Admin dashboard
 
 **Backend:**
 - **FastAPI** (Python 3.11+)
@@ -885,7 +885,7 @@ class CustomerAgentState(TypedDict):
     objections_resolved: list[str]  # Objections successfully handled
     pbms_expressed: list[str]  # PBMs customer revealed
     pbms_acknowledged: list[str]  # PBMs salesperson recognized
-    stage_progress: EASYStageProgress  # Current E.A.S.Y. stage + checklist
+    stage_progress: COREStageProgress  # Current C.O.R.E. stage + checklist
     turn_count: int  # Number of conversational turns
 ```
 
@@ -907,6 +907,7 @@ User Message → Process → Update State → Generate Response
       Format Response with Persona Voice
 ```
 
+
 **Reference**: `/backend/app/agents/customer_agent.py`
 
 ---
@@ -924,22 +925,22 @@ User Message → Process → Update State → Generate Response
 **Coach Analysis Response Schema**:
 ```json
 {
-  "stage_items_completed": ["non_business_greet", "established_rapport"],
-  "pbms_detected": ["durability", "easy_maintenance"],
-  "techniques_used": ["layer_2_discovery", "feature_benefit_pbm"],
+  "stage_items_completed": ["warm_greeting", "established_rapport"],
+  "pbms_detected": ["reliability", "ease_of_use"],
+  "techniques_used": ["deep_discovery", "feature_benefit_motivator"],
   "technique_quality": 0.85,
   "intervention_level": "SUGGESTION",
-  "hint": "Great job asking about their concerns! Now connect this to a specific product feature.",
-  "reasoning": "Salesperson asked Layer 2 question but didn't tie answer to product recommendation"
+  "hint": "Great job asking about their concerns! Now connect this to a specific solution.",
+  "reasoning": "Salesperson asked deep discovery question but didn't tie answer to recommendation"
 }
 ```
 
 **Intervention Levels**:
 - **NONE**: No hint needed, on track
-- **INFO**: Informational nudge (e.g., "You're in ASK stage")
+- **INFO**: Informational nudge (e.g., "You're in the OBSERVE stage")
 - **SUGGESTION**: Technique improvement opportunity
 - **WARNING**: Missing critical step
-- **CRITICAL**: Major deviation from E.A.S.Y. system
+- **CRITICAL**: Major deviation from C.O.R.E. system
 
 **Reference**: `/backend/app/agents/coach/analyzer.py`
 
@@ -967,7 +968,7 @@ NEUTRAL mood → INTERESTED (if good rapport)
 LOW regard → MEDIUM (after 2-3 positive exchanges)
           → HIGH (after strong PBM connection)
 
-Stage: ENGAGE → ASK → SHOW → YES (coach drives progression)
+Stage: CONNECT → OBSERVE → RECOMMEND → EXECUTE (coach drives progression)
 ```
 
 **Reference**: `/documentation/AGENT_FLOW.md`
@@ -1014,7 +1015,7 @@ Stage: ENGAGE → ASK → SHOW → YES (coach drives progression)
 - **Features**: Microphone permission, audio visualizer, mute/unmute, volume control
 - **State**: isConnected, isSpeaking, audioLevel, transcriptBuffer
 
-**EASYChecklist Component**:
+**COREChecklist Component**:
 - **Purpose**: Display 4-stage checklist with real-time progress
 - **Features**: Collapsible stages, checkmark animations, current stage highlight
 - **State**: stageProgress (from WebSocket updates)
@@ -1063,8 +1064,8 @@ interface WSMessage {
 {
   type: 'stage_update',
   data: {
-    currentStage: "ASK",
-    itemsCompleted: ["non_business_greet", "established_rapport"]
+    currentStage: "OBSERVE",
+    itemsCompleted: ["warm_greeting", "established_rapport"]
   }
 }
 ```
@@ -1243,10 +1244,10 @@ interface Evaluation {
 }
 
 interface Scorecard {
-  engage: StageScore;
-  ask: StageScore;
-  show: StageScore;
-  yes: StageScore;
+  connect: StageScore;
+  observe: StageScore;
+  recommend: StageScore;
+  execute: StageScore;
   totalScore: number;
 }
 
@@ -1259,17 +1260,15 @@ interface StageScore {
 
 ---
 
-#### 5.5.2 E.A.S.Y. System Data
+#### 5.5.2 C.O.R.E. System Data
 
 **Stages**:
-- **ENGAGE**: 3 items (non_business_greet, established_rapport, manager_mention)
-- **ASK**: 4 items (critical_questions, layer_2_discovery, pbms_identified, ashley_story)
-- **SHOW**: 3 items (power_demonstration, feature_benefit_pbm, protection_plan)
-- **YES**: 3 items (pay_your_way, clear_constraint, closed_sale)
+- **CONNECT**: warm_greeting, established_rapport, credibility_established
+- **OBSERVE**: discovery_questions, deep_discovery, pbms_identified, situation_understood
+- **RECOMMEND**: solution_presentation, feature_benefit_motivator, value_demonstrated
+- **EXECUTE**: commitment_requested, objections_handled, sale_closed
 
-**Total**: 13 checklist items (12 stage items + overall close)
-
-**Reference**: `/backend/app/data/easy_system.py`
+**Reference**: `/frontend/src/data/CoreSellingSystem.ts`
 
 ---
 
@@ -1490,10 +1489,10 @@ class CustomerPersona:
 ---
 
 #### 6.1.4 Google Cloud Storage
-- **Purpose**: Store product knowledge PDFs
-- **Bucket**: `gs://ashley-ai-sales-coach-knowledge/`
+- **Purpose**: Store product knowledge PDFs for RAG
+- **Bucket**: `gs://{PROJECT_ID}-knowledge/`
 - **Access**: Backend service account has `storage.objectViewer` role
-- **Files**: 8 PDF catalogs (bedroom, living room, mattresses, etc.)
+- **Files**: Industry-specific product/knowledge documents for RAG ingestion
 
 ---
 
@@ -1510,7 +1509,7 @@ class CustomerPersona:
 ### 6.2 Internal APIs
 
 #### 6.2.1 REST API
-- **Base URL**: `https://api.luxe-sales-coach.run.app` (production)
+- **Base URL**: `https://salestrainer-pro-backend-{HASH}-uc.a.run.app` (production)
 - **Authentication**: Bearer token (JWT) in `Authorization` header
 - **Endpoints**: Auth, Sessions, Personas, Admin, Health
 - **Documentation**: OpenAPI spec generated by FastAPI (`/docs`)
@@ -1556,8 +1555,8 @@ class CustomerPersona:
 
 ### 7.1 Functional Testing
 
-**TEST-FUNC-001: E.A.S.Y. Technique Detection**
-- **Objective**: Validate coach detects all 12 checklist items accurately
+**TEST-FUNC-001: C.O.R.E. Technique Detection**
+- **Objective**: Validate coach detects all checklist items accurately across all four stages
 - **Method**: 50+ test conversations with known technique usage
 - **Pass Criteria**: >85% true positive rate, <10% false positive rate
 
@@ -1596,7 +1595,7 @@ class CustomerPersona:
 
 **TEST-UAT-001: Real Sales Reps**
 - **Objective**: Validate system meets user needs
-- **Participants**: 10-20 Ashley sales reps (new hires + experienced)
+- **Participants**: 10-20 sales reps across target industries (new hires + experienced)
 - **Method**: Guided sessions + feedback survey
 - **Pass Criteria**: Satisfaction >4/5, perceived value >4/5
 
@@ -1609,7 +1608,7 @@ class CustomerPersona:
 **TEST-UAT-003: Coaching Quality**
 - **Objective**: Validate hints are helpful and accurate
 - **Participants**: Sales managers review hint quality
-- **Method**: Review 50 training sessions, rate hint relevance
+- **Method**: Review 50 Live Practice sessions, rate hint relevance
 - **Pass Criteria**: >80% of hints rated "helpful" or "very helpful"
 
 ---
@@ -1653,7 +1652,7 @@ class CustomerPersona:
 - **Mitigation**: Display browser compatibility check on login
 
 **CONST-TECH-004: Single Organization Scope**
-- **Constraint**: System designed for Ashley Furniture only (not multi-tenant)
+- **Constraint**: Current system is single-tenant (one organization per deployment)
 - **Impact**: No organization-level isolation, shared user namespace
 - **Future**: Require refactor for multi-tenant support
 
@@ -1708,8 +1707,8 @@ class CustomerPersona:
 - **Impact**: Affects coach analyzer prompt tuning and evaluation criteria
 
 **Q-002: Product Catalog Depth**
-- **Question**: Should coach reference real Ashley SKUs or generic placeholders?
-- **Options**: Real SKUs (requires catalog integration), Generic (simpler, less realistic)
+- **Question**: Should coach reference real product SKUs or generic placeholders?
+- **Options**: Real SKUs (requires catalog integration per industry), Generic (simpler, less realistic)
 - **Impact**: RAG implementation complexity and hint specificity
 
 **Q-003: Financing Complexity**
@@ -1744,7 +1743,7 @@ class CustomerPersona:
 - **Mitigation**: Auto-reconnection, state persistence, graceful degradation
 
 **RISK-TECH-003: Transcription Accuracy**
-- **Risk**: Gemini transcription misses technical vocabulary (product names, Ashley terms)
+- **Risk**: Gemini transcription misses technical vocabulary (product names, industry-specific terms)
 - **Probability**: High
 - **Impact**: Medium (incorrect coaching, user confusion)
 - **Mitigation**: Custom vocabulary injection (future), user feedback mechanism
@@ -1789,10 +1788,13 @@ class CustomerPersona:
 
 ### 10.1 Business & Training
 
-- **E.A.S.Y. Selling System** (1,146 lines): `/documentation/AshleyFurnitureEASYSellingSystem.md`
+- **C.O.R.E. Selling System**: `/frontend/src/data/CoreSellingSystem.ts`
   - Complete methodology specification
-  - Stage requirements, techniques, scripts
+  - Stage requirements, techniques, key phrases
   - PBM framework, objection handling
+
+- **E.A.S.Y. Reference** (legacy industry example): `/documentation/AshleyFurnitureEASYSellingSystem.md`
+  - Original Ashley Furniture methodology used as prototype reference
 
 - **Stakeholder Feedback Analysis** (520 lines): `/documentation/STAKEHOLDER_FEEDBACK_ANALYSIS.md`
   - Legacy system limitations
@@ -1868,17 +1870,19 @@ class CustomerPersona:
 - **Repositories**: `/backend/app/repositories/` (session_repository.py, evaluation_repository.py, transcript_repository.py, user_repository.py)
 
 **Frontend (TypeScript/React):**
-- **Main App**: `/gstudio_ts/App.tsx`
-- **Components**: `/gstudio_ts/components/`
-- **Services**: `/gstudio_ts/services/`
+- **Main App**: `/frontend/src/App.tsx` (or `index.html` entry)
+- **Components**: `/frontend/src/components/`
+- **Pages**: `/frontend/src/pages/`
+- **Services**: `/frontend/src/services/`
+- **Data**: `/frontend/src/data/CoreSellingSystem.ts`
 
 ---
 
 ## Appendix A: Glossary
 
-**E.A.S.Y. Selling System**: Ashley Furniture's proven 4-stage sales methodology (Engage, Ask, Show, Yes)
+**C.O.R.E. Selling System**: Universal 4-stage sales methodology (Connect, Observe, Recommend, Execute) applicable across any industry
 
-**PBM (Personal Buying Motivator)**: The underlying emotional/practical reasons driving a customer's purchase decision (e.g., durability, style, budget)
+**PBM (Personal Buying Motivator)**: The underlying emotional/practical reasons driving a customer's purchase decision (e.g., reliability, style, budget, convenience)
 
 **Persona**: AI customer archetype with backstory, needs, objections, and behavioral traits
 
@@ -1900,13 +1904,9 @@ class CustomerPersona:
 
 **ADS Model**: Objection handling framework (Acknowledge, Discover, Solve)
 
-**Layer 2 Discovery**: Follow-up questions asking "why" to uncover deeper customer motivations
+**Deep Discovery**: Follow-up questions asking "why" to uncover deeper customer motivations
 
 **Clear the Constraint**: Technique to identify real objections (Confirm → Clarify → Commit)
-
-**Power Demonstration**: Showing 3 products across Good/Better/Best tiers with physical interaction
-
-**Pay Your Way**: Presenting 3 payment options (Lowest Monthly, Lowest Price, Best of Both)
 
 ---
 
@@ -1915,9 +1915,10 @@ class CustomerPersona:
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0.0 | 2026-02-19 | Engineering Team | Initial PRD created from existing documentation |
+| 1.1.0 | 2026-05-01 | Engineering Team | Rebrand to SalesTrainer Pro; E.A.S.Y. → C.O.R.E. Selling System; mode renames (Live Practice, Performance Assessment); remove Ashley Furniture specificity; update CI/CD references to GitHub Actions + WIF |
 
 ---
 
 **End of Document**
 
-*This PRD is the authoritative functional and technical specification for Luxe Sales Coach v2. Changes require approval from Product and Engineering leadership.*
+*This PRD is the authoritative functional and technical specification for SalesTrainer Pro. Changes require approval from Product and Engineering leadership.*

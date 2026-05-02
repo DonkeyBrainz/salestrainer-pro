@@ -48,14 +48,14 @@ def sample_state() -> CustomerAgentState:
     """Create sample customer agent state."""
     from langchain_core.messages import AIMessage, HumanMessage
 
-    from app.agents.personas import BUSY_PARENT
+    from app.agents.personas import ANXIOUS_FIRST_TIMER
 
     return CustomerAgentState(
         messages=[
             HumanMessage(content="Hi there!"),
             AIMessage(content="Hello! How can I help you today?"),
         ],
-        persona=BUSY_PARENT,
+        persona=ANXIOUS_FIRST_TIMER,
         stage_progress=CoreStageProgress(
             current_stage=SalesStage.OBSERVE,
             connect={
@@ -729,14 +729,14 @@ class TestGenerateEvaluation:
         """Should calculate high score for complete progress."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         complete_state = CustomerAgentState(
             messages=[
                 HumanMessage(content="Hi"),
                 AIMessage(content="Hello"),
             ],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.COMPLETE,
                 connect={
@@ -1074,7 +1074,7 @@ class TestMultiTurnProgressTracking:
         """Items detected in separate turns should all be reflected in progress."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         # Start with a fresh state where all ENGAGE items are False
         state = CustomerAgentState(
@@ -1082,7 +1082,7 @@ class TestMultiTurnProgressTracking:
                 HumanMessage(content="Hi there!"),
                 AIMessage(content="Hello!"),
             ],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.CONNECT,
                 connect={
@@ -1372,11 +1372,11 @@ class TestEvaluationAccuracy:
         """Empty stage progress should produce score 0 and grade F."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         empty_state = CustomerAgentState(
             messages=[HumanMessage(content="Hi"), AIMessage(content="Hello")],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(current_stage=SalesStage.CONNECT),
         )
 
@@ -1415,12 +1415,12 @@ class TestEvaluationAccuracy:
         """Half-complete progress should produce predictable weighted score."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         # ENGAGE: 2/3 = 66.67, ASK: 1/3 = 33.33, SHOW: 0/3, YES: 0/3
         half_state = CustomerAgentState(
             messages=[HumanMessage(content="Hi"), AIMessage(content="Hello")],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.OBSERVE,
                 connect={
@@ -1465,11 +1465,11 @@ class TestEvaluationAccuracy:
         """Full stage progress with PBMs should achieve grade A."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         full_state = CustomerAgentState(
             messages=[HumanMessage(content="Hi"), AIMessage(content="Hello")],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.COMPLETE,
                 connect={
@@ -1528,11 +1528,11 @@ class TestEvaluationAccuracy:
         """Scorecard stage_scores items should match the stage_progress state."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         state = CustomerAgentState(
             messages=[HumanMessage(content="Hi"), AIMessage(content="Hello")],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.RECOMMEND,
                 connect={
@@ -1591,12 +1591,12 @@ class TestEvaluationAccuracy:
         """Strengths should list high-scoring stages, improvements low-scoring ones."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         # ENGAGE and ASK complete (scores 100), SHOW and YES empty (scores 0)
         state = CustomerAgentState(
             messages=[HumanMessage(content="Hi"), AIMessage(content="Hello")],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.RECOMMEND,
                 connect={
@@ -1652,11 +1652,11 @@ class TestEvaluationAccuracy:
         """Unresolved objections should reduce the final score."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from app.agents.personas import BUSY_PARENT
+        from app.agents.personas import ANXIOUS_FIRST_TIMER
 
         state = CustomerAgentState(
             messages=[HumanMessage(content="Hi"), AIMessage(content="Hello")],
-            persona=BUSY_PARENT,
+            persona=ANXIOUS_FIRST_TIMER,
             stage_progress=CoreStageProgress(
                 current_stage=SalesStage.COMPLETE,
                 connect={

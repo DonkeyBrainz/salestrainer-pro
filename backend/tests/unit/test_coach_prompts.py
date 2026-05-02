@@ -6,7 +6,7 @@ from app.agents.coach.prompts import (
     build_coach_prompt,
     format_conversation_history,
 )
-from app.agents.personas import BUSY_PARENT
+from app.agents.personas import ANXIOUS_FIRST_TIMER
 from app.agents.state import CoreStageProgress, SalesStage
 
 # =============================================================================
@@ -108,7 +108,7 @@ class TestBuildCoachPrompt:
 
     def test_builds_complete_prompt(self) -> None:
         """Should build a complete prompt with all context."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(
             current_stage=SalesStage.OBSERVE,
             connect={
@@ -143,7 +143,7 @@ class TestBuildCoachPrompt:
 
     def test_handles_no_completed_items(self) -> None:
         """Should handle case with no completed items."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(current_stage=SalesStage.CONNECT)
 
         prompt = build_coach_prompt(
@@ -158,13 +158,13 @@ class TestBuildCoachPrompt:
 
     def test_handles_no_secondary_pbm(self) -> None:
         """Should handle persona with no secondary PBM."""
-        from app.agents.personas import PRICE_RESISTANT
+        from app.agents.personas import LANDLORD_INVESTOR
 
         progress = CoreStageProgress(current_stage=SalesStage.CONNECT)
 
         prompt = build_coach_prompt(
             salesperson_message="Hello!",
-            persona=PRICE_RESISTANT,
+            persona=LANDLORD_INVESTOR,
             stage_progress=progress,
             conversation_history="",
         )
@@ -174,7 +174,7 @@ class TestBuildCoachPrompt:
 
     def test_includes_product_context_when_provided(self) -> None:
         """Should include Product Knowledge section when product_context is given."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(current_stage=SalesStage.RECOMMEND)
 
         prompt = build_coach_prompt(
@@ -190,7 +190,7 @@ class TestBuildCoachPrompt:
 
     def test_excludes_product_context_when_empty(self) -> None:
         """Should not include Product Knowledge section when product_context is empty."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(current_stage=SalesStage.CONNECT)
 
         prompt = build_coach_prompt(
@@ -205,7 +205,7 @@ class TestBuildCoachPrompt:
 
     def test_default_product_context_is_empty(self) -> None:
         """Should default to no product context when param not passed."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(current_stage=SalesStage.CONNECT)
 
         prompt = build_coach_prompt(
@@ -219,7 +219,7 @@ class TestBuildCoachPrompt:
 
     def test_includes_objection_context_when_provided(self) -> None:
         """Should include Objection Handling section when objection_context is given."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(current_stage=SalesStage.RECOMMEND)
 
         prompt = build_coach_prompt(
@@ -235,7 +235,7 @@ class TestBuildCoachPrompt:
 
     def test_excludes_objection_context_when_empty(self) -> None:
         """Should not include Objection Handling section when empty."""
-        persona = BUSY_PARENT
+        persona = ANXIOUS_FIRST_TIMER
         progress = CoreStageProgress(current_stage=SalesStage.CONNECT)
 
         prompt = build_coach_prompt(
