@@ -15,12 +15,12 @@ from app.agents import (
     Timeline,
 )
 from app.agents.personas import (
-    BUSY_PARENT,
-    DEMANDING_PROFESSIONAL,
-    EAGER_NEWLYWED,
+    ANXIOUS_FIRST_TIMER,
+    LANDLORD_INVESTOR,
+    OPTIMISTIC_RENOVATOR,
     PERSONAS,
-    PRICE_RESISTANT,
-    SKEPTICAL_SHOPPER,
+    PRACTICAL_FAMILY,
+    WEALTHY_SKEPTIC,
     get_persona,
     get_personas_by_difficulty,
     list_all_personas,
@@ -52,20 +52,20 @@ class TestCustomerPersona:
             id="test_persona",
             name="Test Customer",
             backstory="A test customer for unit testing.",
-            looking_for="Test furniture",
-            budget_range=(1000, 2000),
+            looking_for="Test property",
+            budget_range=(200000, 300000),
             timeline=Timeline.FLEXIBLE,
             difficulty=Difficulty.MEDIUM_REGARD,
             initial_regard=RegardLevel.LOW,
-            primary_pbm="durability",
-            secondary_pbm="style",
+            primary_pbm="value",
+            secondary_pbm="location",
             objections=["need to think about it"],
             objection_difficulty=ObjectionDifficulty.FIRM,
             voice_name="leda",
         )
         assert persona.id == "test_persona"
         assert persona.name == "Test Customer"
-        assert persona.budget_range == (1000, 2000)
+        assert persona.budget_range == (200000, 300000)
         assert persona.difficulty == Difficulty.MEDIUM_REGARD
         assert persona.voice_name == "leda"
         assert persona.is_evaluation_only is False
@@ -76,12 +76,12 @@ class TestCustomerPersona:
             id="frozen_test",
             name="Frozen",
             backstory="Test",
-            looking_for="Sofa",
-            budget_range=(500, 1000),
+            looking_for="House",
+            budget_range=(300000, 400000),
             timeline=Timeline.URGENT,
             difficulty=Difficulty.HIGH_REGARD,
             initial_regard=RegardLevel.HIGH,
-            primary_pbm="comfort",
+            primary_pbm="opportunity",
             voice_name="kore",
         )
         with pytest.raises(Exception):  # Pydantic raises ValidationError for frozen
@@ -93,8 +93,8 @@ class TestCustomerPersona:
             id="no_secondary",
             name="Test",
             backstory="Test",
-            looking_for="Chair",
-            budget_range=(200, 400),
+            looking_for="Land",
+            budget_range=(100000, 200000),
             timeline=Timeline.BROWSING,
             difficulty=Difficulty.LOW_REGARD,
             initial_regard=RegardLevel.NO,
@@ -108,10 +108,10 @@ class TestCustomerPersona:
         """Test that objections default to empty list."""
         persona = CustomerPersona(
             id="no_objections",
-            name="Easy Customer",
-            backstory="Very agreeable",
-            looking_for="Anything",
-            budget_range=(5000, 10000),
+            name="Easy Buyer",
+            backstory="Very agreeable first-time buyer",
+            looking_for="Starter home",
+            budget_range=(250000, 350000),
             timeline=Timeline.URGENT,
             difficulty=Difficulty.HIGH_REGARD,
             initial_regard=RegardLevel.HIGH,
@@ -120,6 +120,23 @@ class TestCustomerPersona:
         )
         assert persona.objections == []
         assert persona.objection_difficulty == ObjectionDifficulty.SOFT
+
+    def test_persona_medium_regard_level(self) -> None:
+        """Test that MEDIUM regard level is a valid enum value."""
+        persona = CustomerPersona(
+            id="medium_regard_test",
+            name="Test",
+            backstory="Test",
+            looking_for="Duplex",
+            budget_range=(350000, 420000),
+            timeline=Timeline.MEDIUM,
+            difficulty=Difficulty.MEDIUM_REGARD,
+            initial_regard=RegardLevel.MEDIUM,
+            primary_pbm="cash flow",
+            voice_name="aoede",
+        )
+        assert persona.initial_regard == RegardLevel.MEDIUM
+        assert persona.timeline == Timeline.MEDIUM
 
 
 # =============================================================================
@@ -198,7 +215,7 @@ class TestCustomerAgentState:
 
     def test_create_valid_state(self) -> None:
         """Test creating a valid agent state."""
-        persona = EAGER_NEWLYWED
+        persona = OPTIMISTIC_RENOVATOR
         progress = CoreStageProgress()
 
         state: CustomerAgentState = {
@@ -207,7 +224,7 @@ class TestCustomerAgentState:
             "persona": persona,
             "mood": Mood.INTERESTED,
             "regard_level": RegardLevel.HIGH,
-            "objections_available": ["need to measure"],
+            "objections_available": list(OPTIMISTIC_RENOVATOR.objections),
             "objections_raised": [],
             "objections_resolved": [],
             "stage_progress": progress,
@@ -217,7 +234,7 @@ class TestCustomerAgentState:
 
         assert len(state["messages"]) == 1
         assert state["turn_count"] == 1
-        assert state["persona"].name == "Maria"
+        assert state["persona"].name == "Marcus"
         assert state["mood"] == Mood.INTERESTED
 
     def test_state_with_multiple_messages(self) -> None:
@@ -226,13 +243,13 @@ class TestCustomerAgentState:
             "messages": [
                 HumanMessage(content="Hi there!"),
                 AIMessage(content="Hello! How can I help you today?"),
-                HumanMessage(content="I'm looking for a sofa."),
+                HumanMessage(content="I'm looking for a starter home."),
             ],
             "turn_count": 3,
-            "persona": BUSY_PARENT,
+            "persona": ANXIOUS_FIRST_TIMER,
             "mood": Mood.NEUTRAL,
             "regard_level": RegardLevel.LOW,
-            "objections_available": BUSY_PARENT.objections.copy(),
+            "objections_available": ANXIOUS_FIRST_TIMER.objections.copy(),
             "objections_raised": [],
             "objections_resolved": [],
             "stage_progress": CoreStageProgress(),
@@ -253,27 +270,24 @@ class TestPersonaRegistry:
     """Tests for persona registry functions."""
 
     def test_all_personas_registered(self) -> None:
-        """Test that all 11 personas are in the registry (5 training + 6 eval)."""
-        assert len(PERSONAS) == 11
-        # Training personas
-        assert "eager_newlywed" in PERSONAS
-        assert "busy_parent" in PERSONAS
-        assert "skeptical_shopper" in PERSONAS
-        assert "demanding_professional" in PERSONAS
-        assert "price_resistant" in PERSONAS
-        # Eval-only personas
-        assert "tech_savvy_millennial" in PERSONAS
-        assert "empty_nester" in PERSONAS
-        assert "young_professional" in PERSONAS
-        assert "luxury_renovator" in PERSONAS
-        assert "frugal_retiree" in PERSONAS
-        assert "indecisive_couple_rep" in PERSONAS
+        """Test that all 10 real estate buyer personas are in the registry."""
+        assert len(PERSONAS) == 10
+        assert "optimistic_renovator" in PERSONAS
+        assert "anxious_first_timer" in PERSONAS
+        assert "practical_family" in PERSONAS
+        assert "urban_minimalist" in PERSONAS
+        assert "privacy_remote_worker" in PERSONAS
+        assert "scaling_investor" in PERSONAS
+        assert "wealthy_skeptic" in PERSONAS
+        assert "landlord_investor" in PERSONAS
+        assert "school_obsessed_parent" in PERSONAS
+        assert "lifestyle_retiree" in PERSONAS
 
     def test_get_persona_valid_id(self) -> None:
         """Test retrieving a persona by valid ID."""
-        persona = get_persona("eager_newlywed")
+        persona = get_persona("optimistic_renovator")
         assert persona is not None
-        assert persona.name == "Maria"
+        assert persona.name == "Marcus"
 
     def test_get_persona_invalid_id(self) -> None:
         """Test retrieving a persona by invalid ID returns None."""
@@ -281,51 +295,50 @@ class TestPersonaRegistry:
         assert persona is None
 
     def test_get_personas_by_difficulty_easy(self) -> None:
-        """Test getting easy difficulty personas."""
+        """Test getting easy (high regard) difficulty personas."""
         easy_personas = get_personas_by_difficulty(Difficulty.HIGH_REGARD)
         assert len(easy_personas) == 1
-        assert easy_personas[0].id == "eager_newlywed"
+        assert easy_personas[0].id == "optimistic_renovator"
 
     def test_get_personas_by_difficulty_medium(self) -> None:
         """Test getting medium difficulty personas."""
         medium_personas = get_personas_by_difficulty(Difficulty.MEDIUM_REGARD)
-        assert len(medium_personas) == 5  # 2 training + 3 eval
+        assert len(medium_personas) == 5
         ids = [p.id for p in medium_personas]
-        assert "busy_parent" in ids
-        assert "skeptical_shopper" in ids
-        assert "tech_savvy_millennial" in ids
-        assert "empty_nester" in ids
-        assert "young_professional" in ids
+        assert "anxious_first_timer" in ids
+        assert "practical_family" in ids
+        assert "urban_minimalist" in ids
+        assert "privacy_remote_worker" in ids
+        assert "scaling_investor" in ids
 
     def test_get_personas_by_difficulty_hard(self) -> None:
-        """Test getting hard difficulty personas."""
+        """Test getting hard (low regard) difficulty personas."""
         hard_personas = get_personas_by_difficulty(Difficulty.LOW_REGARD)
-        assert len(hard_personas) == 5  # 2 training + 3 eval
+        assert len(hard_personas) == 4
         ids = [p.id for p in hard_personas]
-        assert "demanding_professional" in ids
-        assert "price_resistant" in ids
-        assert "luxury_renovator" in ids
-        assert "frugal_retiree" in ids
-        assert "indecisive_couple_rep" in ids
+        assert "wealthy_skeptic" in ids
+        assert "landlord_investor" in ids
+        assert "school_obsessed_parent" in ids
+        assert "lifestyle_retiree" in ids
 
     def test_list_all_personas(self) -> None:
         """Test listing all personas."""
         all_personas = list_all_personas()
-        assert len(all_personas) == 11  # 5 training + 6 eval
+        assert len(all_personas) == 10
 
     def test_predefined_persona_values(self) -> None:
         """Test that predefined personas have expected values."""
-        assert EAGER_NEWLYWED.difficulty == Difficulty.HIGH_REGARD
-        assert EAGER_NEWLYWED.initial_regard == RegardLevel.HIGH
+        assert OPTIMISTIC_RENOVATOR.difficulty == Difficulty.HIGH_REGARD
+        assert OPTIMISTIC_RENOVATOR.initial_regard == RegardLevel.HIGH
 
-        assert BUSY_PARENT.difficulty == Difficulty.MEDIUM_REGARD
-        assert BUSY_PARENT.primary_pbm == "durability"
+        assert ANXIOUS_FIRST_TIMER.difficulty == Difficulty.MEDIUM_REGARD
+        assert ANXIOUS_FIRST_TIMER.primary_pbm == "confidence"
 
-        assert SKEPTICAL_SHOPPER.initial_regard == RegardLevel.NO
+        assert PRACTICAL_FAMILY.initial_regard == RegardLevel.LOW
 
-        assert DEMANDING_PROFESSIONAL.difficulty == Difficulty.LOW_REGARD
+        assert WEALTHY_SKEPTIC.difficulty == Difficulty.LOW_REGARD
 
-        assert PRICE_RESISTANT.objection_difficulty == ObjectionDifficulty.IMMOVABLE
+        assert LANDLORD_INVESTOR.objection_difficulty == ObjectionDifficulty.FIRM
 
 
 # =============================================================================
@@ -469,6 +482,7 @@ class TestEnums:
     def test_regard_level_values(self) -> None:
         """Test RegardLevel enum values."""
         assert RegardLevel.HIGH.value == "high"
+        assert RegardLevel.MEDIUM.value == "medium"
         assert RegardLevel.LOW.value == "low"
         assert RegardLevel.NO.value == "no"
 
@@ -483,6 +497,7 @@ class TestEnums:
     def test_timeline_values(self) -> None:
         """Test Timeline enum values."""
         assert Timeline.URGENT.value == "urgent"
+        assert Timeline.MEDIUM.value == "medium"
         assert Timeline.FLEXIBLE.value == "flexible"
         assert Timeline.BROWSING.value == "browsing"
 

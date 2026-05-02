@@ -57,7 +57,7 @@ export interface CoachHintMessage {
   type: 'coach_hint';
   level: 'info' | 'suggestion' | 'warning' | 'critical' | 'none';
   hint: string;
-  stage: 'ENGAGE' | 'ASK' | 'SHOW' | 'YES' | 'COMPLETE';
+  stage: 'CONNECT' | 'OBSERVE' | 'RECOMMEND' | 'EXECUTE' | 'COMPLETE';
   example_phrase: string | null;
   ready_for_next_stage: boolean;
 }
@@ -87,7 +87,7 @@ export interface EvaluationErrorMessage {
 
 export interface StageProgressMessage {
   type: 'stage_progress';
-  current_stage: 'ENGAGE' | 'ASK' | 'SHOW' | 'YES' | 'COMPLETE';
+  current_stage: 'CONNECT' | 'OBSERVE' | 'RECOMMEND' | 'EXECUTE' | 'COMPLETE';
   all_completed_items: string[];
 }
 

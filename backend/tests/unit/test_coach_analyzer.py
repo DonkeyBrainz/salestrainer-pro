@@ -6,7 +6,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
 from app.agents.coach.analyzer import CoachAnalyzer
-from app.agents.personas import BUSY_PARENT, EAGER_NEWLYWED
+from app.agents.personas import ANXIOUS_FIRST_TIMER, OPTIMISTIC_RENOVATOR
 from app.agents.state import CoreStageProgress, SalesStage
 from app.models.coach import InterventionLevel
 
@@ -281,7 +281,7 @@ class TestAnalyze:
             result = await analyzer.analyze(
                 salesperson_message="What would success look like for you?",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 
@@ -303,7 +303,7 @@ class TestAnalyze:
             result = await analyzer.analyze(
                 salesperson_message="Hello",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 
@@ -342,7 +342,7 @@ class TestAnalyzerIntegration:
             result = await analyzer.analyze(
                 salesperson_message="I'd love to understand your situation better - what brings you here today?",
                 messages=[],
-                persona=EAGER_NEWLYWED,
+                persona=OPTIMISTIC_RENOVATOR,
                 stage_progress=CoreStageProgress(current_stage=SalesStage.CONNECT),
             )
 
@@ -371,7 +371,7 @@ class TestAnalyzerIntegration:
             result = await analyzer.analyze(
                 salesperson_message="Let me show you this solution - it's on sale!",
                 messages=[HumanMessage(content="Hi")],
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=CoreStageProgress(current_stage=SalesStage.CONNECT),
             )
 
@@ -426,7 +426,7 @@ class TestAnalyzerRAGIntegration:
             await analyzer.analyze(
                 salesperson_message="Tell me about durability",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 
@@ -466,7 +466,7 @@ class TestAnalyzerRAGIntegration:
             await analyzer.analyze(
                 salesperson_message="Tell me about durability",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 
@@ -512,7 +512,7 @@ class TestAnalyzerRAGIntegration:
             result = await analyzer.analyze(
                 salesperson_message="Why is that important?",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 
@@ -538,7 +538,7 @@ class TestAnalyzerRAGIntegration:
         }"""
 
         # Persona with explicit product metadata
-        persona_with_product = BUSY_PARENT.model_copy(
+        persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(
             update={"product_category": "living_room", "product_type": "sectional_1"}
         )
 
@@ -589,7 +589,7 @@ class TestAnalyzerRAGIntegration:
             "suggested_stage": null
         }"""
 
-        persona_with_product = BUSY_PARENT.model_copy(
+        persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(
             update={"product_category": "bedroom", "product_type": "bedroom_set_1"}
         )
 
@@ -659,12 +659,12 @@ class TestAnalyzerRAGIntegration:
             await analyzer.analyze(
                 salesperson_message="Hello",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 
-            # BUSY_PARENT has product_category="living_room", product_type="sectional"
-            mock_retrieve.assert_called_once_with("Hello", "living_room", "sectional")
+            # ANXIOUS_FIRST_TIMER has product_category="primary_residence", product_type="starter_home"
+            mock_retrieve.assert_called_once_with("Hello", "primary_residence", "starter_home")
 
     @pytest.mark.asyncio
     async def test_conversation_aware_retrieval(
@@ -704,7 +704,7 @@ class TestAnalyzerRAGIntegration:
             await analyzer.analyze(
                 salesperson_message="Is it durable?",
                 messages=sample_messages,
-                persona=BUSY_PARENT,
+                persona=ANXIOUS_FIRST_TIMER,
                 stage_progress=sample_progress,
             )
 

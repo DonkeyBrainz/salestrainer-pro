@@ -129,7 +129,7 @@ const HistoryPage: React.FC = () => {
                 }`}
               >
                 <Dumbbell className="w-3 h-3" />
-                Training
+                Practice
               </button>
               <button
                 onClick={() => handleFilterChange('evaluation')}
@@ -167,7 +167,7 @@ const HistoryPage: React.FC = () => {
                 No sessions yet
               </p>
               <p className="text-stone-500">
-                Start your first training session to see your history here
+                Start your first practice session to see your history here
               </p>
             </div>
           )}

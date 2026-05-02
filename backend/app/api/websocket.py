@@ -24,7 +24,7 @@ router = APIRouter()
 async def websocket_gemini_relay(
     websocket: WebSocket,
     token: str = Query(..., description="JWT access token"),
-    persona_id: str = Query("eager_newlywed", description="Customer persona ID"),
+    persona_id: str = Query("optimistic_renovator", description="Customer persona ID"),
     mode: str = Query("training", description="Session mode: training or evaluation"),
     product_category: str | None = Query(
         None, description="Product category ID (e.g., 'living_room', 'bedroom')"
@@ -54,7 +54,7 @@ async def websocket_gemini_relay(
 
     Query Parameters:
         token (str): JWT access token obtained from /auth/callback
-        persona_id (str): Customer persona ID (default: eager_newlywed)
+        persona_id (str): Customer persona ID (default: optimistic_renovator)
         mode (str): Session mode - "training" (real-time hints) or "evaluation" (silent)
         resume (bool): Enable session resumption (default: true, set to false for fresh start)
 

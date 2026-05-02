@@ -71,6 +71,7 @@ class RegardLevel(str, Enum):
     """Customer engagement/regard level."""
 
     HIGH = "high"
+    MEDIUM = "medium"
     LOW = "low"
     NO = "no"
 
@@ -79,6 +80,7 @@ class Timeline(str, Enum):
     """Customer purchase timeline."""
 
     URGENT = "urgent"
+    MEDIUM = "medium"
     FLEXIBLE = "flexible"
     BROWSING = "browsing"
 
@@ -108,7 +110,7 @@ class CustomerPersona(BaseModel):
     behavioral traits that affect how they respond during sales interactions.
     """
 
-    id: str = Field(..., description="Unique identifier (e.g., 'busy_parent')")
+    id: str = Field(..., description="Unique identifier (e.g., 'anxious_first_timer')")
     name: str = Field(..., description="Customer's first name")
     backstory: str = Field(..., description="Brief background context")
     looking_for: str = Field(..., description="What furniture they're shopping for")

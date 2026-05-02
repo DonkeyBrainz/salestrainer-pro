@@ -448,9 +448,9 @@ class TestConversationPersistence:
         # Verify session creation parameters
         assert session_create.user_id == "test-user-123"
         assert session_create.session_type == SessionType.TRAINING
-        # Uses persona's difficulty (eager_newlywed = easy)
+        # Uses persona's difficulty (optimistic_renovator = easy)
         assert session_create.difficulty == Difficulty.HIGH_REGARD
-        assert session_create.selected_persona == "eager_newlywed"
+        assert session_create.selected_persona == "optimistic_renovator"
 
     def test_saves_transcript_on_disconnect(
         self, client_with_overrides, mock_session_service, mock_live_session
@@ -795,9 +795,9 @@ class TestProductParamsInjection:
         assert mock_session_service.start_session.called
         call_args = mock_session_service.start_session.call_args
         session_create = call_args[0][0]
-        # eager_newlywed persona already has product_category="bedroom" as default
-        assert session_create.product_category == "bedroom"
-        assert session_create.product_type == "bedroom_set"
+        # optimistic_renovator persona has product_category="fixer_upper" as default
+        assert session_create.product_category == "fixer_upper"
+        assert session_create.product_type == "renovation_opportunity"
 
     def test_no_product_params_backward_compatible(
         self, client_with_overrides, mock_session_service, mock_live_session
@@ -825,9 +825,9 @@ class TestProductParamsInjection:
         assert mock_session_service.start_session.called
         call_args = mock_session_service.start_session.call_args
         session_create = call_args[0][0]
-        # eager_newlywed persona has product_category="bedroom", product_type="bedroom_set"
-        assert session_create.product_category == "bedroom"
-        assert session_create.product_type == "bedroom_set"
+        # optimistic_renovator persona has product_category="fixer_upper", product_type="renovation_opportunity"
+        assert session_create.product_category == "fixer_upper"
+        assert session_create.product_type == "renovation_opportunity"
 
     def test_product_category_only_no_type(
         self, client_with_overrides, mock_session_service, mock_live_session
@@ -1074,13 +1074,13 @@ class TestEvaluateControlAction:
         mock_customer_agent_service,
     ):
         """Should return evaluation_result message when evaluate control is sent."""
-        from app.agents.personas import EAGER_NEWLYWED
+        from app.agents.personas import OPTIMISTIC_RENOVATOR
 
         # Set up customer agent service to return agent state
         agent_state = {
             "messages": [],
             "turn_count": 1,
-            "persona": EAGER_NEWLYWED,
+            "persona": OPTIMISTIC_RENOVATOR,
             "mood": Mood.NEUTRAL,
             "regard_level": RegardLevel.LOW,
             "objections_available": [],
@@ -1202,12 +1202,12 @@ class TestEvaluateControlAction:
         mock_customer_agent_service,
     ):
         """Should persist conversation before generating evaluation."""
-        from app.agents.personas import EAGER_NEWLYWED
+        from app.agents.personas import OPTIMISTIC_RENOVATOR
 
         agent_state = {
             "messages": [],
             "turn_count": 1,
-            "persona": EAGER_NEWLYWED,
+            "persona": OPTIMISTIC_RENOVATOR,
             "mood": Mood.NEUTRAL,
             "regard_level": RegardLevel.LOW,
             "objections_available": [],
@@ -1327,12 +1327,12 @@ class TestEvaluateControlAction:
         mock_customer_agent_service,
     ):
         """Should send evaluation_error when evaluation generation fails."""
-        from app.agents.personas import EAGER_NEWLYWED
+        from app.agents.personas import OPTIMISTIC_RENOVATOR
 
         agent_state = {
             "messages": [],
             "turn_count": 1,
-            "persona": EAGER_NEWLYWED,
+            "persona": OPTIMISTIC_RENOVATOR,
             "mood": Mood.NEUTRAL,
             "regard_level": RegardLevel.LOW,
             "objections_available": [],
@@ -1406,12 +1406,12 @@ class TestEvaluateControlAction:
         mock_customer_agent_service,
     ):
         """Buffer should be cleared after evaluate to prevent double-persist in finally."""
-        from app.agents.personas import EAGER_NEWLYWED
+        from app.agents.personas import OPTIMISTIC_RENOVATOR
 
         agent_state = {
             "messages": [],
             "turn_count": 1,
-            "persona": EAGER_NEWLYWED,
+            "persona": OPTIMISTIC_RENOVATOR,
             "mood": Mood.NEUTRAL,
             "regard_level": RegardLevel.LOW,
             "objections_available": [],

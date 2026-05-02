@@ -263,13 +263,13 @@ describe('useWebSocket', () => {
     act(() => {
       emitMessage({
         type: 'stage_progress',
-        current_stage: 'ASK',
-        all_completed_items: ['non_business_greet', 'established_rapport'],
+        current_stage: 'OBSERVE',
+        all_completed_items: ['warm_greeting', 'establish_credibility'],
       });
     });
 
-    expect(result.current.currentStage).toBe('ASK');
-    expect(result.current.completedItems).toEqual(['non_business_greet', 'established_rapport']);
+    expect(result.current.currentStage).toBe('OBSERVE');
+    expect(result.current.completedItems).toEqual(['warm_greeting', 'establish_credibility']);
   });
 
   it('should reset completedItems and currentStage on disconnect', () => {
@@ -279,19 +279,19 @@ describe('useWebSocket', () => {
     act(() => {
       emitMessage({
         type: 'stage_progress',
-        current_stage: 'SHOW',
-        all_completed_items: ['non_business_greet', 'critical_questions'],
+        current_stage: 'RECOMMEND',
+        all_completed_items: ['warm_greeting', 'needs_discovery'],
       });
     });
 
-    expect(result.current.currentStage).toBe('SHOW');
+    expect(result.current.currentStage).toBe('RECOMMEND');
     expect(result.current.completedItems).toHaveLength(2);
 
     act(() => {
       result.current.disconnect();
     });
 
-    expect(result.current.currentStage).toBe('ENGAGE');
+    expect(result.current.currentStage).toBe('CONNECT');
     expect(result.current.completedItems).toEqual([]);
   });
 });

@@ -35,7 +35,7 @@ const AmbientBackground: React.FC<AmbientBackgroundProps> = ({ mode, audioLevel,
 
       case AppMode.TRAINING:
       default:
-        // Warm Stone/Gold - Luxe Professional
+        // Warm Stone/Gold - Professional
         if (s === 'positive') return ['#FAFAF9', '#FEFCE8', '#FEF08A', '#D4B996']; // Golden Glow
         if (s === 'warning') return ['#FAFAF9', '#FFF7ED', '#FFEDD5', '#D97706']; // Rust warning
         return ['#FAFAF9', '#F5F5F4', '#E7E5E4', '#D4B996']; // Neutral

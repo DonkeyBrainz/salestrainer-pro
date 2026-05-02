@@ -43,30 +43,30 @@ export interface Persona {
 }
 
 // --- EVALUATION TYPES ---
-export type SalesStage = 'ENGAGE' | 'ASK' | 'SHOW' | 'YES' | 'COMPLETE';
+export type SalesStage = 'CONNECT' | 'OBSERVE' | 'RECOMMEND' | 'EXECUTE' | 'COMPLETE';
 
 export interface EvaluationState {
   currentStage: SalesStage;
   checklist: {
-    engage: {
-      nonBusinessGreet: boolean;
-      establishedRapport: boolean;
-      managerMention: boolean;
+    connect: {
+      warmGreeting: boolean;
+      establishCredibility: boolean;
+      createComfort: boolean;
     };
-    ask: {
-      criticalQuestions: boolean;
-      layer2Discovery: boolean;
-      pbmsIdentified: boolean;
+    observe: {
+      needsDiscovery: boolean;
+      goalIdentification: boolean;
+      motivatorMapping: boolean;
     };
-    show: {
-      powerDemo: boolean;
-      featureBenefitPbm: boolean;
-      protectionPlan: boolean;
+    recommend: {
+      solutionPresentation: boolean;
+      valueConnection: boolean;
+      riskMitigation: boolean;
     };
-    yes: {
-      payYourWay: boolean;
-      clearConstraint: boolean;
-      closedSale: boolean;
+    execute: {
+      commitmentRequest: boolean;
+      objectionHandling: boolean;
+      finalizeAgreement: boolean;
     };
   };
   feedback: string | null;

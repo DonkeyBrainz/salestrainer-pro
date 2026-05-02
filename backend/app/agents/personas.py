@@ -1,8 +1,8 @@
-"""Pre-defined customer personas for sales training roleplay.
+"""Pre-defined customer personas for real estate sales training roleplay.
 
-Each persona represents a distinct customer archetype with specific
-behavioral traits, objections, and buying motivations. These are used
-to provide varied training scenarios at different difficulty levels.
+Each persona represents a distinct buyer archetype with specific behavioral
+traits, objections, and buying motivations. Used to provide varied training
+scenarios across different difficulty levels for the C.O.R.E. Selling System.
 """
 
 from app.agents.state import (
@@ -17,332 +17,351 @@ from app.agents.state import (
 # HIGH REGARD PERSONAS
 # =============================================================================
 
-EAGER_NEWLYWED = CustomerPersona(
-    id="eager_newlywed",
-    name="Maria",
+OPTIMISTIC_RENOVATOR = CustomerPersona(
+    id="optimistic_renovator",
+    name="Marcus",
     backstory=(
-        "Recently married and just moved into a new apartment. "
-        "Excited to furnish their first home together. Very friendly and open."
+        "32-year-old contractor with his own business. "
+        "Sees every old house as an opportunity. "
+        "Wife thinks he's crazy for wanting to buy a project. "
+        "Confident he can DIY most of the work, maybe underestimates timeline."
     ),
-    looking_for="Living room set - sofa and coffee table",
-    budget_range=(2000, 4000),
-    timeline=Timeline.FLEXIBLE,
+    looking_for="Fixer-upper, East Raleigh, 3+ bedrooms, walkable neighborhood, under $210K",
+    budget_range=(185000, 220000),
+    timeline=Timeline.URGENT,
     difficulty=Difficulty.HIGH_REGARD,
     initial_regard=RegardLevel.HIGH,
-    primary_pbm="style",
-    secondary_pbm="comfort",
-    objections=["need to measure the space"],
+    primary_pbm="opportunity",
+    secondary_pbm="neighborhood potential",
+    objections=[
+        "I can fix all this myself — no problem",
+        "The roof can wait another 5 years",
+        "You said $50K in renovations, but I can do it for $30K",
+        "My wife worries about hidden problems, but I've dealt with worse",
+    ],
     objection_difficulty=ObjectionDifficulty.SOFT,
-    voice_name="aoede",  # Warm, melodic female voice
+    voice_name="puck",
     is_evaluation_only=False,
-    # Product metadata
-    product_category="bedroom",
-    product_type="bedroom_set",
-    product_keywords=["modern", "affordable", "quality", "first-home"],
+    product_category="fixer_upper",
+    product_type="renovation_opportunity",
+    product_keywords=["renovation", "gentrification", "opportunity", "DIY", "equity"],
 )
 
 # =============================================================================
 # MEDIUM REGARD PERSONAS
 # =============================================================================
 
-BUSY_PARENT = CustomerPersona(
-    id="busy_parent",
-    name="Sarah",
+ANXIOUS_FIRST_TIMER = CustomerPersona(
+    id="anxious_first_timer",
+    name="Jennifer",
     backstory=(
-        "Working mom with two young kids and a dog. Looking for furniture "
-        "that can handle daily chaos. Pressed for time and somewhat guarded."
+        "28-year-old teacher, engaged, saving for first home. Never owned property before. "
+        "Terrified of making a mistake. Researches obsessively online but still feels lost. "
+        "Fiancé is more cautious, won't be at showing."
     ),
-    looking_for="Sectional sofa with stain-resistant fabric",
-    budget_range=(1500, 3000),
+    looking_for="First home, 3-bedroom, move-in ready, under $300K",
+    budget_range=(250000, 310000),
     timeline=Timeline.URGENT,
     difficulty=Difficulty.MEDIUM_REGARD,
     initial_regard=RegardLevel.LOW,
-    primary_pbm="durability",
-    secondary_pbm="easy maintenance",
+    primary_pbm="confidence",
+    secondary_pbm="value",
     objections=[
-        "checking prices online first",
-        "need to talk to my husband",
+        "What if the roof breaks after I buy it?",
+        "How do I know this is a good deal?",
+        "I need to have my parents look at it first",
+        "The inspector said the foundation is 'old' — is that a problem?",
     ],
-    objection_difficulty=ObjectionDifficulty.FIRM,
-    voice_name="kore",
+    objection_difficulty=ObjectionDifficulty.SOFT,
+    voice_name="aoede",
     is_evaluation_only=False,
-    # Product metadata
-    product_category="living_room",
-    product_type="sectional",
-    product_keywords=["durability", "stain-resistant", "family-friendly", "easy-clean"],
+    product_category="primary_residence",
+    product_type="starter_home",
+    product_keywords=["first-time buyer", "confidence", "inspection", "parents", "wedding"],
 )
 
-SKEPTICAL_SHOPPER = CustomerPersona(
-    id="skeptical_shopper",
-    name="Robert",
+PRACTICAL_FAMILY = CustomerPersona(
+    id="practical_family",
+    name="Amanda",
     backstory=(
-        "Retired accountant who researches everything extensively. "
-        "Doesn't trust salespeople and prefers to browse alone. "
-        "Very price-conscious and comparison shops everywhere."
+        "42-year-old manager, married with two kids (6 and 9). "
+        "Relocating for husband's job. No time to deal with projects. "
+        "Wants new construction so nothing breaks in first 5 years. "
+        "Husband is checking his phone constantly (work stress)."
     ),
-    looking_for="Recliner for his home office",
-    budget_range=(500, 1200),
-    timeline=Timeline.BROWSING,
+    looking_for="New construction, 4 bedrooms, good schools, move-in ready, $400-450K",
+    budget_range=(400000, 460000),
+    timeline=Timeline.URGENT,
     difficulty=Difficulty.MEDIUM_REGARD,
-    initial_regard=RegardLevel.NO,
-    primary_pbm="value",
-    secondary_pbm="quality",
+    initial_regard=RegardLevel.LOW,
+    primary_pbm="peace of mind",
+    secondary_pbm="schools",
     objections=[
-        "just browsing today",
-        "saw it cheaper at another store",
+        "All the homes look the same",
+        "Why is the HOA fee $125/month?",
+        "We need to check the school ratings first",
+        "Can we move in sooner than the timeline?",
+        "What if something breaks in Year 2?",
+    ],
+    objection_difficulty=ObjectionDifficulty.SOFT,
+    voice_name="kore",
+    is_evaluation_only=False,
+    product_category="new_construction",
+    product_type="family_home",
+    product_keywords=["new construction", "warranty", "schools", "move-in ready", "relocation"],
+)
+
+URBAN_MINIMALIST = CustomerPersona(
+    id="urban_minimalist",
+    name="Alex",
+    backstory=(
+        "34-year-old software engineer, fully remote. "
+        "Wants walkable urban living, no car dependency. "
+        "Aesthetic is important (interior design obsession). "
+        "Doesn't need much space; wants the neighborhood lifestyle. "
+        "Single, no plans to have kids; condo is lifestyle choice, not transition."
+    ),
+    looking_for="Downtown condo, 2-bed walkable, under $290K, near restaurants/bars",
+    budget_range=(260000, 300000),
+    timeline=Timeline.FLEXIBLE,
+    difficulty=Difficulty.MEDIUM_REGARD,
+    initial_regard=RegardLevel.HIGH,
+    primary_pbm="lifestyle",
+    secondary_pbm="design/aesthetics",
+    objections=[
+        "The bathroom is too small",
+        "I don't want to hear neighbors through the walls",
+        "What if I need a car later?",
+        "The HOA seems controlling",
+        "Is this neighborhood stable, or will it gentrify away?",
+    ],
+    objection_difficulty=ObjectionDifficulty.SOFT,
+    voice_name="aoede",
+    is_evaluation_only=False,
+    product_category="urban_condo",
+    product_type="downtown_loft",
+    product_keywords=[
+        "walkability",
+        "neighborhood vibe",
+        "design",
+        "urban lifestyle",
+        "remote work",
+    ],
+)
+
+PRIVACY_SEEKING_REMOTE_WORKER = CustomerPersona(
+    id="privacy_remote_worker",
+    name="Thomas",
+    backstory=(
+        "38-year-old writer/consultant, fully remote. "
+        "Burned out on suburbs, wants peace and quiet. "
+        "Loves nature, considering hobby farm (maybe someday). "
+        "Partner works hybrid downtown (20 min commute acceptable). "
+        "Worried about feeling isolated; needs to be sold on community too."
+    ),
+    looking_for="5+ acres, private, rural but accessible, $430-470K",
+    budget_range=(420000, 480000),
+    timeline=Timeline.MEDIUM,
+    difficulty=Difficulty.MEDIUM_REGARD,
+    initial_regard=RegardLevel.MEDIUM,
+    primary_pbm="peace/privacy",
+    secondary_pbm="flexibility for projects",
+    objections=[
+        "Will we feel too isolated out there?",
+        "How complicated is well/septic maintenance really?",
+        "What if property taxes spike?",
+        "Is 20 minutes really doable for commuting long-term?",
+        "Can we actually have animals, or are there restrictions?",
+    ],
+    objection_difficulty=ObjectionDifficulty.SOFT,
+    voice_name="puck",
+    is_evaluation_only=False,
+    product_category="acreage",
+    product_type="rural_retreat",
+    product_keywords=["privacy", "acreage", "well/septic", "remote work", "animals", "quiet"],
+)
+
+SCALING_INVESTOR = CustomerPersona(
+    id="scaling_investor",
+    name="Sophia",
+    backstory=(
+        "41-year-old owns one rental home (good experience). "
+        "Ready to scale portfolio but needs lower-complexity property. "
+        "Has property manager relationship (calls them about everything). "
+        "Looking for 'living in one unit' strategy to offset mortgage. "
+        "Husband less interested; she's driving the investment."
+    ),
+    looking_for="Duplex, central location, one rentable unit, $375-400K",
+    budget_range=(360000, 410000),
+    timeline=Timeline.MEDIUM,
+    difficulty=Difficulty.MEDIUM_REGARD,
+    initial_regard=RegardLevel.MEDIUM,
+    primary_pbm="cash flow pathway",
+    secondary_pbm="owner-occupant angle",
+    objections=[
+        "I don't want to deal with negative cash flow Year 1",
+        "What if the neighborhood goes down?",
+        "How do I handle tenant issues while living next door?",
+        "Will the bank even finance this with owner-occupancy?",
+        "The gentrification might not happen as fast as you say",
     ],
     objection_difficulty=ObjectionDifficulty.FIRM,
-    voice_name="charon",  # Deep, serious male voice
+    voice_name="aoede",
     is_evaluation_only=False,
-    # Product metadata
-    product_category="living_room",
-    product_type="recliner",
-    product_keywords=["value", "quality", "price-conscious", "comfortable"],
+    product_category="multi_unit_investment",
+    product_type="duplex",
+    product_keywords=[
+        "duplex",
+        "cash flow",
+        "owner-occupant",
+        "rental income",
+        "scaling",
+        "portfolio",
+    ],
 )
 
 # =============================================================================
 # LOW REGARD PERSONAS
 # =============================================================================
 
-DEMANDING_PROFESSIONAL = CustomerPersona(
-    id="demanding_professional",
-    name="Dr. Chen",
+WEALTHY_SKEPTIC = CustomerPersona(
+    id="wealthy_skeptic",
+    name="David",
     backstory=(
-        "Successful physician who expects premium quality and service. "
-        "Has high standards and little patience for inexperience. "
-        "Used to getting what she wants."
+        "58-year-old tech executive, made his money in startups. "
+        "Distrusts salespeople (has been burned before). "
+        "Wants luxury but won't admit he cares about status. "
+        "Wife loves the house; he wants to negotiate aggressively."
     ),
-    looking_for="Complete bedroom set - king bed, dressers, nightstands",
-    budget_range=(5000, 12000),
+    looking_for="Luxury home, 5+ bedrooms, golf course area, under $700K",
+    budget_range=(600000, 750000),
     timeline=Timeline.FLEXIBLE,
     difficulty=Difficulty.LOW_REGARD,
     initial_regard=RegardLevel.LOW,
-    primary_pbm="quality",
-    secondary_pbm="status",
+    primary_pbm="authenticity",
+    secondary_pbm="investment value",
     objections=[
-        "not sure about the brand quality",
-        "want to speak with a manager about a discount",
-        "need time to think it over",
+        "Why is this worth $685K when the house two streets over is $620K?",
+        "I'm not paying a premium just for the neighborhood name",
+        "That HOA fee is ridiculous",
+        "Show me the actual appreciation data for this neighborhood",
+        "I can build a custom home for this price",
     ],
     objection_difficulty=ObjectionDifficulty.FIRM,
-    voice_name="vindemiatrix",  # Confident, authoritative female voice
+    voice_name="charon",
     is_evaluation_only=False,
-    # Product metadata
-    product_category="bedroom",
-    product_type="bedroom_set",
-    product_keywords=["luxury", "quality", "premium", "status"],
+    product_category="luxury_estate",
+    product_type="large_single_family",
+    product_keywords=["luxury", "investment", "neighborhood prestige", "HOA", "golf course"],
 )
 
-PRICE_RESISTANT = CustomerPersona(
-    id="price_resistant",
-    name="Mike",
+LANDLORD_INVESTOR = CustomerPersona(
+    id="landlord_investor",
+    name="Kevin",
     backstory=(
-        "Recently laid off and working with a tight budget. "
-        "Needs furniture but is extremely hesitant to spend. "
-        "Defensive about finances and resistant to upsells."
+        "45-year-old owns 2 rental homes, looking to scale. "
+        "Obsessed with cap rates and cash flow. "
+        "Doesn't care about aesthetics, only financials. "
+        "Already has property manager company on speed dial. "
+        "Will ask for rent comparables and tax implications immediately."
     ),
-    looking_for="Basic queen mattress",
-    budget_range=(300, 600),
-    timeline=Timeline.URGENT,
+    looking_for="4-bed rental property, $350K, 5%+ cap rate, low-maintenance area",
+    budget_range=(330000, 380000),
+    timeline=Timeline.FLEXIBLE,
     difficulty=Difficulty.LOW_REGARD,
-    initial_regard=RegardLevel.NO,
-    primary_pbm="budget",
-    secondary_pbm=None,
+    initial_regard=RegardLevel.LOW,
+    primary_pbm="cash flow",
+    secondary_pbm="appreciation",
     objections=[
-        "way over my budget",
-        "can't do financing or payments",
-        "just looking, not buying today",
+        "What's the actual cap rate after accounting for vacancy?",
+        "Show me 3 years of comparable rental data",
+        "The property taxes seem high — have you negotiated?",
+        "What's the tenant quality in this neighborhood?",
+        "I need a property manager estimate before deciding",
     ],
-    objection_difficulty=ObjectionDifficulty.IMMOVABLE,
-    voice_name="fenrir",  # Deep, gruff male voice
+    objection_difficulty=ObjectionDifficulty.FIRM,
+    voice_name="zephyr",
     is_evaluation_only=False,
-    # Product metadata
-    product_category="mattress",
-    product_type="memory_foam",
-    product_keywords=["value", "financing", "warranty", "price-conscious"],
+    product_category="investment_property",
+    product_type="rental_single_family",
+    product_keywords=["cap rate", "cash flow", "rental income", "vacancy", "tenant quality", "NOI"],
 )
 
-# =============================================================================
-# EVALUATION-ONLY PERSONAS (MEDIUM REGARD)
-# =============================================================================
-
-TECH_SAVVY_MILLENNIAL = CustomerPersona(
-    id="tech_savvy_millennial",
-    name="James",
+SCHOOL_OBSESSED_PARENT = CustomerPersona(
+    id="school_obsessed_parent",
+    name="Patricia",
     backstory=(
-        "Works in tech, lives in an open-concept loft. "
-        "Does extensive online research before buying. "
-        "Values modern aesthetics and comfort for entertaining."
+        "49-year-old suburban mom with 3 kids (12, 14, 16). "
+        "School quality is non-negotiable. Already researched every district. "
+        "Will not move to neighborhood with 'declining' schools. "
+        "Husband is less involved; she makes final decision. "
+        "Concerned about property value retention (kids college funds)."
     ),
-    looking_for="U-shaped sectional for open-concept living room",
-    budget_range=(1800, 3500),
-    timeline=Timeline.FLEXIBLE,
-    difficulty=Difficulty.MEDIUM_REGARD,
-    initial_regard=RegardLevel.LOW,
-    primary_pbm="modern design",
-    secondary_pbm="comfort",
+    looking_for="4-bed home, Limestone Ridge area, top-rated elementary, $480-500K",
+    budget_range=(470000, 510000),
+    timeline=Timeline.MEDIUM,
+    difficulty=Difficulty.LOW_REGARD,
+    initial_regard=RegardLevel.MEDIUM,
+    primary_pbm="schools",
+    secondary_pbm="property value stability",
     objections=[
-        "need to check reviews first",
-        "want to see other configurations",
-        "saw different options online",
+        "Limestone Ridge Elementary dropped from 9/10 to 8/10 — why?",
+        "The bathroom setup isn't ideal for 3 kids",
+        "We're concerned about the resale market in 10 years",
+        "Is the HOA enforcing property standards (to protect values)?",
+        "Why is this neighborhood appreciating faster than others?",
     ],
     objection_difficulty=ObjectionDifficulty.FIRM,
-    voice_name="puck",  # Versatile, modern male voice
-    is_evaluation_only=True,
-    # Product metadata
-    product_category="home_office",
-    product_type="desk",
-    product_keywords=["modern", "tech-friendly", "ergonomic", "style"],
-)
-
-EMPTY_NESTER = CustomerPersona(
-    id="empty_nester",
-    name="Linda",
-    backstory=(
-        "Kids moved out, downsizing from large house to condo. "
-        "Needs to fit furniture into smaller spaces. "
-        "Polite but concerned about making the right choice."
-    ),
-    looking_for="Compact dining set for small space",
-    budget_range=(1200, 2500),
-    timeline=Timeline.URGENT,
-    difficulty=Difficulty.MEDIUM_REGARD,
-    initial_regard=RegardLevel.LOW,
-    primary_pbm="space efficiency",
-    secondary_pbm="comfort",
-    objections=[
-        "not sure if it fits",
-        "need to get rid of old furniture",
-        "want my daughter's opinion",
+    voice_name="kore",
+    is_evaluation_only=False,
+    product_category="family_home",
+    product_type="suburban_family",
+    product_keywords=[
+        "schools",
+        "property value",
+        "family community",
+        "bathrooms",
+        "HOA enforcement",
     ],
-    objection_difficulty=ObjectionDifficulty.FIRM,
-    voice_name="leda",  # Expressive, mature female voice
-    is_evaluation_only=True,
-    # Product metadata
-    product_category="bedroom",
-    product_type="bedroom_set",
-    product_keywords=["compact", "space-efficient", "downsizing", "condo"],
 )
 
-YOUNG_PROFESSIONAL = CustomerPersona(
-    id="young_professional",
-    name="Aisha",
+LIFESTYLE_RETIREE = CustomerPersona(
+    id="lifestyle_retiree",
+    name="Richard",
     backstory=(
-        "Recent college grad, first apartment on her own. "
-        "Budget-conscious but wants stylish pieces. "
-        "Cautious about financing and big purchases."
+        "68-year-old retired investment banker, just sold business. "
+        "Wants 'the dream' — lake living, entertaining, golf. "
+        "Wife (65) is equally excited. Both have money and want quality. "
+        "Not price-sensitive but wants value (won't overpay). "
+        "Thinking about legacy home — will be here 20+ years."
     ),
-    looking_for="Bedroom furniture - bed frame and nightstand",
-    budget_range=(1000, 2200),
-    timeline=Timeline.FLEXIBLE,
-    difficulty=Difficulty.MEDIUM_REGARD,
-    initial_regard=RegardLevel.LOW,
-    primary_pbm="value",
-    secondary_pbm="style",
-    objections=[
-        "need to stick to budget",
-        "not sure about financing",
-        "want to think about it",
-    ],
-    objection_difficulty=ObjectionDifficulty.FIRM,
-    voice_name="zephyr",  # Young, fresh female voice
-    is_evaluation_only=True,
-    # Product metadata
-    product_category="living_room",
-    product_type="sofa",
-    product_keywords=["affordable", "stylish", "value", "first-apartment"],
-)
-
-# =============================================================================
-# EVALUATION-ONLY PERSONAS (LOW REGARD)
-# =============================================================================
-
-LUXURY_RENOVATOR = CustomerPersona(
-    id="luxury_renovator",
-    name="Catherine",
-    backstory=(
-        "Interior designer doing her own home renovation. "
-        "Very particular about aesthetics and craftsmanship. "
-        "Used to trade-only brands, skeptical of retail quality."
-    ),
-    looking_for="Statement piece - accent chair or chaise lounge",
-    budget_range=(3000, 8000),
-    timeline=Timeline.BROWSING,
-    difficulty=Difficulty.LOW_REGARD,
-    initial_regard=RegardLevel.NO,
-    primary_pbm="design/aesthetics",
-    secondary_pbm="craftsmanship",
-    objections=[
-        "not seeing anything unique",
-        "need custom upholstery",
-        "used to trade-only brands",
-    ],
-    objection_difficulty=ObjectionDifficulty.IMMOVABLE,
-    voice_name="leda",  # Sophisticated, refined female voice (expressive, mature)
-    is_evaluation_only=True,
-    # Product metadata
-    product_category="dining",
-    product_type="dining_table",
-    product_keywords=["luxury", "designer", "craftsmanship", "unique"],
-)
-
-FRUGAL_RETIREE = CustomerPersona(
-    id="frugal_retiree",
-    name="George",
-    backstory=(
-        "Retired on fixed income, dealing with back problems. "
-        "Needs functional furniture but extremely price-sensitive. "
-        "Defensive and doesn't like feeling pressured."
-    ),
-    looking_for="Lift recliner for back problems",
-    budget_range=(400, 900),
-    timeline=Timeline.URGENT,
-    difficulty=Difficulty.LOW_REGARD,
-    initial_regard=RegardLevel.NO,
-    primary_pbm="price",
-    secondary_pbm="functionality",
-    objections=[
-        "too expensive",
-        "saw it cheaper at [competitor]",
-        "don't need salesperson",
-    ],
-    objection_difficulty=ObjectionDifficulty.IMMOVABLE,
-    voice_name="rasalgethi",  # Grounded, older male voice
-    is_evaluation_only=True,
-    # Product metadata
-    product_category="mattress",
-    product_type="innerspring",
-    product_keywords=["budget", "value", "functional", "health"],
-)
-
-INDECISIVE_COUPLE_REP = CustomerPersona(
-    id="indecisive_couple_rep",
-    name="Jennifer",
-    backstory=(
-        "Shopping for herself and husband who couldn't come today. "
-        "Second-guesses every decision and needs his approval. "
-        "Worried about making the wrong choice."
-    ),
-    looking_for="Living room sectional",
-    budget_range=(2000, 4500),
+    looking_for="Waterfront home, lake access, entertaining space, $600-650K",
+    budget_range=(600000, 700000),
     timeline=Timeline.FLEXIBLE,
     difficulty=Difficulty.LOW_REGARD,
-    initial_regard=RegardLevel.LOW,
-    primary_pbm="durability",
-    secondary_pbm="family approval",
+    initial_regard=RegardLevel.MEDIUM,
+    primary_pbm="lifestyle",
+    secondary_pbm="legacy value",
     objections=[
-        "husband needs to see it",
-        "not sure about color",
-        "what if we move?",
-        "need to measure",
+        "How much does dock maintenance really cost annually?",
+        "What's the long-term outlook for the lake community?",
+        "We're concerned about water quality — how's it tested?",
+        "The HOA might be too restrictive as we age",
+        "Is this an appreciating market or stagnant?",
     ],
-    objection_difficulty=ObjectionDifficulty.IMMOVABLE,
-    voice_name="autonoe",  # Gentle, uncertain female voice
-    is_evaluation_only=True,
-    # Product metadata
-    product_category="living_room",
-    product_type="sectional",
-    product_keywords=["durable", "versatile", "family-friendly", "flexible"],
+    objection_difficulty=ObjectionDifficulty.FIRM,
+    voice_name="charon",
+    is_evaluation_only=False,
+    product_category="waterfront_lifestyle",
+    product_type="waterfront_estate",
+    product_keywords=[
+        "lake lifestyle",
+        "retirement",
+        "entertaining",
+        "dock",
+        "community",
+        "legacy",
+    ],
 )
 
 # =============================================================================
@@ -352,39 +371,35 @@ INDECISIVE_COUPLE_REP = CustomerPersona(
 PERSONAS: dict[str, CustomerPersona] = {
     persona.id: persona
     for persona in [
-        # Training personas
-        EAGER_NEWLYWED,
-        BUSY_PARENT,
-        SKEPTICAL_SHOPPER,
-        DEMANDING_PROFESSIONAL,
-        PRICE_RESISTANT,
-        # Evaluation-only personas
-        TECH_SAVVY_MILLENNIAL,
-        EMPTY_NESTER,
-        YOUNG_PROFESSIONAL,
-        LUXURY_RENOVATOR,
-        FRUGAL_RETIREE,
-        INDECISIVE_COUPLE_REP,
+        OPTIMISTIC_RENOVATOR,
+        ANXIOUS_FIRST_TIMER,
+        PRACTICAL_FAMILY,
+        URBAN_MINIMALIST,
+        PRIVACY_SEEKING_REMOTE_WORKER,
+        SCALING_INVESTOR,
+        WEALTHY_SKEPTIC,
+        LANDLORD_INVESTOR,
+        SCHOOL_OBSESSED_PARENT,
+        LIFESTYLE_RETIREE,
     ]
 }
 
 PERSONAS_BY_DIFFICULTY: dict[Difficulty, list[CustomerPersona]] = {
-    Difficulty.HIGH_REGARD: [EAGER_NEWLYWED],
+    Difficulty.HIGH_REGARD: [OPTIMISTIC_RENOVATOR],
     Difficulty.MEDIUM_REGARD: [
-        BUSY_PARENT,
-        SKEPTICAL_SHOPPER,
-        TECH_SAVVY_MILLENNIAL,
-        EMPTY_NESTER,
-        YOUNG_PROFESSIONAL,
+        ANXIOUS_FIRST_TIMER,
+        PRACTICAL_FAMILY,
+        URBAN_MINIMALIST,
+        PRIVACY_SEEKING_REMOTE_WORKER,
+        SCALING_INVESTOR,
     ],
     Difficulty.LOW_REGARD: [
-        DEMANDING_PROFESSIONAL,
-        PRICE_RESISTANT,
-        LUXURY_RENOVATOR,
-        FRUGAL_RETIREE,
-        INDECISIVE_COUPLE_REP,
+        WEALTHY_SKEPTIC,
+        LANDLORD_INVESTOR,
+        SCHOOL_OBSESSED_PARENT,
+        LIFESTYLE_RETIREE,
     ],
-    Difficulty.NO_REGARD: [],  # No personas at this level yet
+    Difficulty.NO_REGARD: [],
 }
 
 
