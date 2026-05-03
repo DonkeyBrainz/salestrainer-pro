@@ -140,7 +140,7 @@ jobs:
             --allow-unauthenticated \
             --service-account=salestrainer-pro-backend-sa@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --set-secrets=GEMINI_API_KEY=gemini-api-key:latest,GOOGLE_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_CLIENT_SECRET=google-oauth-client-secret:latest,SECRET_KEY=jwt-secret-key:latest \
-            --set-env-vars='^||^GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}||ENVIRONMENT=production||LOG_JSON=true||FIRESTORE_DATABASE=(default)||CORS_ORIGINS=["${{ steps.frontend_url.outputs.url }}","http://localhost:3000","http://localhost:5173"]||GOOGLE_REDIRECT_URI=${{ steps.frontend_url.outputs.url }}/auth/callback' \
+            --set-env-vars='^||^GCP_PROJECT_ID=${{ vars.GCP_PROJECT_ID }}||ENVIRONMENT=production||LOG_JSON=true||FIRESTORE_DATABASE=(default)||RAG_ENABLED=true||CORS_ORIGINS=["${{ steps.frontend_url.outputs.url }}","http://localhost:3000","http://localhost:5173"]||GOOGLE_REDIRECT_URI=${{ steps.frontend_url.outputs.url }}/auth/callback' \
             --memory=1Gi \
             --cpu=2 \
             --timeout=300 \

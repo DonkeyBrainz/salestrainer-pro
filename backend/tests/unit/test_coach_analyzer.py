@@ -526,7 +526,7 @@ class TestAnalyzerRAGIntegration:
         sample_messages: list,
         sample_progress: CoreStageProgress,
     ) -> None:
-        """Should forward persona product_category/product_type to RAG retrieval."""
+        """Should forward persona property_id to RAG retrieval with property_listing doc type."""
         mock_response = """{
             "techniques_detected": [],
             "stage_items_completed": {},
@@ -537,9 +537,9 @@ class TestAnalyzerRAGIntegration:
             "suggested_stage": null
         }"""
 
-        # Persona with explicit product metadata
+        # Persona with explicit property_id for RAG filtering
         persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(
-            update={"product_category": "living_room", "product_type": "sectional_1"}
+            update={"property_id": "property_1"}
         )
 
         mock_settings = MagicMock()
@@ -561,14 +561,15 @@ class TestAnalyzerRAGIntegration:
             mock_call.return_value = mock_response
 
             await analyzer.analyze(
-                salesperson_message="Tell me about this sectional",
+                salesperson_message="Tell me about this property",
                 messages=sample_messages,
                 persona=persona_with_product,
                 stage_progress=sample_progress,
             )
 
+            # CONNECT stage → section_type=None (broad context)
             mock_retrieve.assert_called_once_with(
-                "Tell me about this sectional", "living_room", "sectional_1"
+                "Tell me about this property", "property_1", "property_listing", None
             )
 
     @pytest.mark.asyncio
@@ -578,7 +579,7 @@ class TestAnalyzerRAGIntegration:
         sample_messages: list,
         sample_progress: CoreStageProgress,
     ) -> None:
-        """Should forward product filters to hybrid RAG retrieval."""
+        """Should forward property_id to hybrid RAG retrieval."""
         mock_response = """{
             "techniques_detected": [],
             "stage_items_completed": {},
@@ -590,7 +591,7 @@ class TestAnalyzerRAGIntegration:
         }"""
 
         persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(
-            update={"product_category": "bedroom", "product_type": "bedroom_set_1"}
+            update={"property_id": "property_6"}
         )
 
         mock_settings = MagicMock()
@@ -612,13 +613,14 @@ class TestAnalyzerRAGIntegration:
             mock_call.return_value = mock_response
 
             await analyzer.analyze(
-                salesperson_message="Show me bedroom sets",
+                salesperson_message="Show me this condo",
                 messages=sample_messages,
                 persona=persona_with_product,
                 stage_progress=sample_progress,
             )
 
-            mock_hybrid.assert_called_once_with("Show me bedroom sets", "bedroom", "bedroom_set_1")
+            # CONNECT stage → section_type=None
+            mock_hybrid.assert_called_once_with("Show me this condo", "property_6", "property_listing", None)
 
     @pytest.mark.asyncio
     async def test_rag_forwards_persona_product_fields(
@@ -663,8 +665,8 @@ class TestAnalyzerRAGIntegration:
                 stage_progress=sample_progress,
             )
 
-            # ANXIOUS_FIRST_TIMER has product_category="primary_residence", product_type="starter_home"
-            mock_retrieve.assert_called_once_with("Hello", "primary_residence", "starter_home")
+            # ANXIOUS_FIRST_TIMER has property_id="property_1"; CONNECT stage → section_type=None
+            mock_retrieve.assert_called_once_with("Hello", "property_1", "property_listing", None)
 
     @pytest.mark.asyncio
     async def test_conversation_aware_retrieval(

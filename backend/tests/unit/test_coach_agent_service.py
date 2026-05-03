@@ -22,6 +22,7 @@ def mock_settings() -> Settings:
     """Create mock settings."""
     settings = MagicMock(spec=Settings)
     settings.coach_model = "gemini-2.0-flash"
+    settings.rag_enabled = False  # disable RAG in unit tests to avoid live service calls
     return settings
 
 

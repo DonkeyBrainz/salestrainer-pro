@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # RAG Configuration
     rag_enabled: bool = False
     rag_collection_name: str = "knowledge_chunks"
-    rag_embedding_model: str = "gemini-embedding-001"
+    rag_embedding_model: str = "gemini-embedding-2"
     rag_top_k: int = 3
     rag_use_hybrid_search: bool = False
     rag_use_reranking: bool = False

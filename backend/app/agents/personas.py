@@ -45,6 +45,7 @@ OPTIMISTIC_RENOVATOR = CustomerPersona(
     product_category="fixer_upper",
     product_type="renovation_opportunity",
     product_keywords=["renovation", "gentrification", "opportunity", "DIY", "equity"],
+    property_id="property_3",
 )
 
 # =============================================================================
@@ -78,6 +79,7 @@ ANXIOUS_FIRST_TIMER = CustomerPersona(
     product_category="primary_residence",
     product_type="starter_home",
     product_keywords=["first-time buyer", "confidence", "inspection", "parents", "wedding"],
+    property_id="property_1",
 )
 
 PRACTICAL_FAMILY = CustomerPersona(
@@ -109,6 +111,7 @@ PRACTICAL_FAMILY = CustomerPersona(
     product_category="new_construction",
     product_type="family_home",
     product_keywords=["new construction", "warranty", "schools", "move-in ready", "relocation"],
+    property_id="property_4",
 )
 
 URBAN_MINIMALIST = CustomerPersona(
@@ -147,6 +150,7 @@ URBAN_MINIMALIST = CustomerPersona(
         "urban lifestyle",
         "remote work",
     ],
+    property_id="property_6",
 )
 
 PRIVACY_SEEKING_REMOTE_WORKER = CustomerPersona(
@@ -179,6 +183,7 @@ PRIVACY_SEEKING_REMOTE_WORKER = CustomerPersona(
     product_category="acreage",
     product_type="rural_retreat",
     product_keywords=["privacy", "acreage", "well/septic", "remote work", "animals", "quiet"],
+    property_id="property_9",
 )
 
 SCALING_INVESTOR = CustomerPersona(
@@ -218,6 +223,7 @@ SCALING_INVESTOR = CustomerPersona(
         "scaling",
         "portfolio",
     ],
+    property_id="property_10",
 )
 
 # =============================================================================
@@ -253,6 +259,7 @@ WEALTHY_SKEPTIC = CustomerPersona(
     product_category="luxury_estate",
     product_type="large_single_family",
     product_keywords=["luxury", "investment", "neighborhood prestige", "HOA", "golf course"],
+    property_id="property_2",
 )
 
 LANDLORD_INVESTOR = CustomerPersona(
@@ -285,6 +292,7 @@ LANDLORD_INVESTOR = CustomerPersona(
     product_category="investment_property",
     product_type="rental_single_family",
     product_keywords=["cap rate", "cash flow", "rental income", "vacancy", "tenant quality", "NOI"],
+    property_id="property_5",
 )
 
 SCHOOL_OBSESSED_PARENT = CustomerPersona(
@@ -323,6 +331,7 @@ SCHOOL_OBSESSED_PARENT = CustomerPersona(
         "bathrooms",
         "HOA enforcement",
     ],
+    property_id="property_7",
 )
 
 LIFESTYLE_RETIREE = CustomerPersona(
@@ -362,6 +371,7 @@ LIFESTYLE_RETIREE = CustomerPersona(
         "community",
         "legacy",
     ],
+    property_id="property_8",
 )
 
 # =============================================================================

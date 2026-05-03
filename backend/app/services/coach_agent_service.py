@@ -4,12 +4,18 @@ This module provides the main service layer for the coach agent,
 coordinating analysis, scoring, and intervention generation.
 """
 
+import asyncio
+import json
 import logging
+
+from google import genai
+from google.genai import types
+from langchain_core.messages import BaseMessage
 
 from app.agents.coach.analyzer import CoachAnalyzer
 from app.agents.coach.hints import get_example_phrase_fallback
 from app.agents.coach.scorer import calculate_score
-from app.agents.state import CoreStageProgress, CustomerAgentState, SalesStage
+from app.agents.state import CoreStageProgress, CustomerAgentState, CustomerPersona, SalesStage
 from app.config import Settings
 from app.models.coach import CoachAnalysis, CoachHint, InterventionLevel
 from app.models.evaluation import (
@@ -250,8 +256,17 @@ class CoachAgentService:
             grade=grade,
         )
 
-        # Generate feedback
-        strengths, improvements = self._generate_feedback(stage_progress, scorecard)
+        # Generate feedback — RAG-enhanced LLM feedback when enabled, else templates
+        persona = state["persona"]
+        if self.settings.rag_enabled and persona.property_id:
+            strengths, improvements = await self._generate_llm_feedback(
+                persona=persona,
+                stage_progress=stage_progress,
+                scorecard=scorecard,
+                messages=list(state.get("messages", [])),
+            )
+        else:
+            strengths, improvements = self._generate_feedback(stage_progress, scorecard)
 
         # Create evaluation
         evaluation_create = EvaluationCreate(
@@ -382,6 +397,111 @@ class CoachAgentService:
             final_score=final_score,
             grade=grade,
         )
+
+    async def _generate_llm_feedback(
+        self,
+        persona: CustomerPersona,
+        stage_progress: CoreStageProgress,
+        scorecard: EvaluationScorecard,
+        messages: list[BaseMessage],
+    ) -> tuple[list[str], list[str]]:
+        """Generate specific, property-aware feedback using RAG context + Gemini.
+
+        Fetches the property's objection handlers and agent talking points from
+        Firestore, then asks Gemini to produce targeted strengths and improvement
+        areas that reference the actual property scripts.
+
+        Falls back to template feedback on any failure.
+        """
+        from app.services.rag_service import get_rag_service
+
+        try:
+            rag = get_rag_service()
+            objection_context, talking_points_context = await asyncio.gather(
+                rag.retrieve(
+                    query="objection handling scripts and responses",
+                    product_category=persona.property_id,
+                    product_type="property_listing",
+                    section_type="objection_handlers",
+                    top_k=1,
+                ),
+                rag.retrieve(
+                    query="agent talking points and memorizable scripts",
+                    product_category=persona.property_id,
+                    product_type="property_listing",
+                    section_type="agent_talking_points",
+                    top_k=1,
+                ),
+            )
+        except Exception as e:
+            logger.warning(f"RAG fetch for evaluation feedback failed: {e}")
+            return self._generate_feedback(stage_progress, scorecard)
+
+        if not objection_context and not talking_points_context:
+            return self._generate_feedback(stage_progress, scorecard)
+
+        property_context = ""
+        if objection_context:
+            property_context += f"OBJECTION HANDLERS:\n{objection_context}\n\n"
+        if talking_points_context:
+            property_context += f"AGENT TALKING POINTS:\n{talking_points_context}"
+
+        # Summarise conversation for context (last 10 salesperson turns)
+        from langchain_core.messages import HumanMessage
+
+        sp_turns = [str(m.content) for m in messages if isinstance(m, HumanMessage)][-10:]
+        conversation_summary = "\n".join(f"- {t}" for t in sp_turns) or "(no messages recorded)"
+
+        prompt = f"""You are evaluating a real estate sales training session.
+The trainee was practicing selling {persona.name}'s property scenario.
+
+## Session Scorecard
+- CONNECT:    {scorecard.stage_scores["CONNECT"].score:.0f}%  (items: {", ".join(scorecard.stage_scores["CONNECT"].items_completed) or "none"})
+- OBSERVE:    {scorecard.stage_scores["OBSERVE"].score:.0f}%  (items: {", ".join(scorecard.stage_scores["OBSERVE"].items_completed) or "none"})
+- RECOMMEND:  {scorecard.stage_scores["RECOMMEND"].score:.0f}%  (items: {", ".join(scorecard.stage_scores["RECOMMEND"].items_completed) or "none"})
+- EXECUTE:    {scorecard.stage_scores["EXECUTE"].score:.0f}%  (items: {", ".join(scorecard.stage_scores["EXECUTE"].items_completed) or "none"})
+- Objections raised: {len(scorecard.objections_raised)}, resolved: {len(scorecard.objections_resolved)}
+- Customer motivators expressed: {", ".join(scorecard.pbms_expressed) or "none"}
+- Customer motivators acknowledged: {", ".join(scorecard.pbms_acknowledged) or "none"}
+- Final score: {scorecard.final_score:.0f} / 100  (grade: {scorecard.grade})
+
+## What the Trainee Said (salesperson turns)
+{conversation_summary}
+
+## Property Reference Material
+{property_context}
+
+## Your Task
+Generate 3-4 specific strengths and 3-4 specific improvement areas.
+Reference specific property details where relevant (e.g. "You correctly addressed the roof objection" or "You missed the opportunity to mention the 2020 HVAC replacement").
+Be direct, concrete, and actionable — avoid generic coaching clichés.
+
+Respond with ONLY valid JSON:
+{{"strengths": ["...", "..."], "improvements": ["...", "..."]}}"""
+
+        try:
+            client = genai.Client(api_key=self.settings.gemini_api_key)
+            response = await client.aio.models.generate_content(
+                model=self.settings.coach_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=1024,
+                ),
+            )
+            if response.text:
+                cleaned = response.text.strip()
+                if cleaned.startswith("```"):
+                    cleaned = "\n".join(cleaned.split("\n")[1:-1])
+                data = json.loads(cleaned)
+                strengths = data.get("strengths", [])
+                improvements = data.get("improvements", [])
+                if strengths or improvements:
+                    return strengths, improvements
+        except Exception as e:
+            logger.warning(f"LLM feedback generation failed, using templates: {e}")
+
+        return self._generate_feedback(stage_progress, scorecard)
 
     def _generate_feedback(
         self,
