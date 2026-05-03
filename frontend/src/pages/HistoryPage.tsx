@@ -7,7 +7,7 @@ import { SessionSummary, SessionType } from '@/types';
 import SessionCard from '@/components/SessionCard';
 import SessionDetailModal from '@/components/SessionDetailModal';
 import UserMenu from '@/components/UserMenu';
-import AmbientBackground from '@/components/AmbientBackground';
+import { AT } from '@/styles/tokens';
 
 const HistoryPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -76,137 +76,160 @@ const HistoryPage: React.FC = () => {
     setOffset(0);
   };
 
+  const filterBtn = (label: string, value: SessionType | null, icon?: React.ReactNode) => (
+    <button
+      onClick={() => handleFilterChange(value)}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        padding: '7px 14px', borderRadius: 8,
+        background: filter === value ? AT.surface2 : 'transparent',
+        border: `1px solid ${filter === value ? AT.hair : AT.hairSoft}`,
+        color: filter === value ? AT.ink : AT.inkSoft,
+        fontFamily: AT.mono, fontSize: 11,
+        letterSpacing: '0.1em', textTransform: 'uppercase',
+        cursor: 'pointer',
+        transition: 'background 0.15s, border-color 0.15s',
+      }}
+    >
+      {icon}{label}
+    </button>
+  );
+
   return (
-    <div className="flex h-screen bg-[#F9F8F6] text-[#2C2825] font-sans overflow-hidden relative">
-      <AmbientBackground mode={null} audioLevel={0} sentiment="neutral" />
-
-      <div className="absolute inset-0 flex flex-col z-20 overflow-y-auto custom-scrollbar">
-        <header className="px-10 py-8 flex justify-between items-start animate-fade-in">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/')}
-              className="p-2 rounded-lg hover:bg-white/80 transition-colors"
-              aria-label="Back to home"
-            >
-              <ArrowLeft className="w-6 h-6 text-stone-600" />
-            </button>
-            <div className="flex items-center gap-3">
-              <div className="bg-[#2C2825] p-2.5 rounded-lg shadow-lg">
-                <History className="w-6 h-6 text-[#F9F8F6]" />
-              </div>
-              <h1 className="text-4xl font-serif-display font-medium text-[#2C2825]">
-                Session History
-              </h1>
-            </div>
-          </div>
-          <UserMenu />
-        </header>
-
-        <div className="flex-1 px-10 pb-10">
-          {/* Filter Bar */}
-          <div className="flex items-center gap-3 mb-6">
-            <Filter className="w-4 h-4 text-stone-400" />
-            <span className="text-sm text-stone-500 uppercase tracking-wider font-bold">
-              Type:
+    <div style={{ minHeight: '100vh', background: AT.bg, color: AT.ink, fontFamily: AT.sans }}>
+      {/* Nav */}
+      <div style={{
+        height: 60, padding: '0 28px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: `1px solid ${AT.hair}`,
+        background: AT.surface,
+        position: 'sticky', top: 0, zIndex: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'transparent', border: `1px solid ${AT.hair}`,
+              color: AT.ink, cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+            }}
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: AT.butter, marginRight: 2,
+            }} />
+            <span style={{ fontFamily: AT.display, fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}>
+              Session History
             </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleFilterChange(null)}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  filter === null
-                    ? 'bg-stone-800 text-white'
-                    : 'bg-white/80 text-stone-600 hover:bg-white'
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => handleFilterChange('training')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  filter === 'training'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-white/80 text-amber-700 hover:bg-white'
-                }`}
-              >
-                <Dumbbell className="w-3 h-3" />
-                Practice
-              </button>
-              <button
-                onClick={() => handleFilterChange('evaluation')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  filter === 'evaluation'
-                    ? 'bg-red-600 text-white'
-                    : 'bg-white/80 text-red-600 hover:bg-white'
-                }`}
-              >
-                <Trophy className="w-3 h-3" />
-                Evaluation
-              </button>
-            </div>
           </div>
-
-          {/* Error State */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
-              <p className="text-red-700">{error}</p>
-            </div>
-          )}
-
-          {/* Loading State */}
-          {loading && sessions.length === 0 && (
-            <div className="flex items-center justify-center py-20">
-              <p className="text-stone-500 text-lg">Loading sessions...</p>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {!loading && sessions.length === 0 && !error && (
-            <div className="flex flex-col items-center justify-center py-20 opacity-50">
-              <History className="w-20 h-20 text-stone-300 mb-4" />
-              <p className="font-serif-display text-2xl text-stone-400 mb-2">
-                No sessions yet
-              </p>
-              <p className="text-stone-500">
-                Start your first practice session to see your history here
-              </p>
-            </div>
-          )}
-
-          {/* Session Grid */}
-          {sessions.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {sessions.map((session) => (
-                <SessionCard
-                  key={session.sessionId}
-                  session={session}
-                  onClick={handleSessionClick}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Load More Button */}
-          {hasMore && !loading && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={handleLoadMore}
-                className="px-8 py-3 bg-white/80 backdrop-blur-md rounded-full border border-stone-200 shadow-sm hover:shadow-lg transition-all text-sm font-bold uppercase tracking-widest text-stone-700 hover:-translate-y-0.5"
-              >
-                Load More
-              </button>
-            </div>
-          )}
-
-          {/* Loading More Indicator */}
-          {loading && sessions.length > 0 && (
-            <div className="flex justify-center mt-8">
-              <p className="text-stone-500">Loading more...</p>
-            </div>
-          )}
         </div>
+        <UserMenu />
       </div>
 
-      {/* Session Detail Modal */}
+      {/* Body */}
+      <div style={{ padding: '28px 40px 48px' }}>
+        {/* Filter bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+          <Filter size={14} style={{ color: AT.inkMuted }} />
+          <span style={{ fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Filter:
+          </span>
+          {filterBtn('All', null)}
+          {filterBtn('Practice', 'training', <Dumbbell size={12} />)}
+          {filterBtn('Evaluation', 'evaluation', <Trophy size={12} />)}
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div style={{
+            padding: '14px 18px', borderRadius: 10, marginBottom: 20,
+            background: AT.terra + '18', border: `1px solid ${AT.terra}40`,
+            color: AT.terra, fontSize: 14,
+          }}>
+            {error}
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && sessions.length === 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '80px 0',
+            fontFamily: AT.mono, fontSize: 11,
+            color: AT.inkMuted, letterSpacing: '0.12em', textTransform: 'uppercase',
+          }}>
+            Loading sessions...
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && sessions.length === 0 && !error && (
+          <div style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '80px 0', opacity: 0.5, textAlign: 'center',
+          }}>
+            <History size={48} style={{ color: AT.inkMuted, marginBottom: 16 }} />
+            <p style={{ fontFamily: AT.display, fontSize: 22, fontWeight: 600, color: AT.ink, marginBottom: 8 }}>
+              No sessions yet
+            </p>
+            <p style={{ color: AT.inkSoft, fontSize: 14 }}>
+              Start your first practice session to see your history here
+            </p>
+          </div>
+        )}
+
+        {/* Grid */}
+        {sessions.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: 16,
+          }}>
+            {sessions.map(session => (
+              <SessionCard
+                key={session.sessionId}
+                session={session}
+                onClick={handleSessionClick}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Load more */}
+        {hasMore && !loading && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
+            <button
+              onClick={handleLoadMore}
+              style={{
+                padding: '10px 28px', borderRadius: 8,
+                background: AT.surface2, color: AT.ink,
+                border: `1px solid ${AT.hair}`,
+                fontFamily: AT.mono, fontSize: 11,
+                letterSpacing: '0.12em', textTransform: 'uppercase',
+                cursor: 'pointer',
+              }}
+            >
+              Load More
+            </button>
+          </div>
+        )}
+
+        {loading && sessions.length > 0 && (
+          <div style={{
+            display: 'flex', justifyContent: 'center', marginTop: 32,
+            fontFamily: AT.mono, fontSize: 11,
+            color: AT.inkMuted, letterSpacing: '0.1em', textTransform: 'uppercase',
+          }}>
+            Loading more...
+          </div>
+        )}
+      </div>
+
       {sessionId && (
         <SessionDetailModal
           sessionId={sessionId}

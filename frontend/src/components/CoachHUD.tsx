@@ -1,147 +1,136 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { X, Info, Lightbulb, AlertTriangle, AlertOctagon, Target, ArrowRight } from 'lucide-react';
+import { X } from 'lucide-react';
 import { CoachHint } from '@/types';
+import { AT } from '@/styles/tokens';
 
 interface CoachHUDProps {
   hint: CoachHint | null;
   onDismiss: () => void;
 }
 
+function HUDPanel({
+  title,
+  accent,
+  flash,
+  children,
+}: {
+  title: string;
+  accent: string;
+  flash?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      background: 'rgba(22,29,24,0.92)',
+      border: `1px solid ${AT.hair}`,
+      borderTop: `2px solid ${accent}`,
+      borderRadius: 10,
+      padding: '12px 14px',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div
+            className={flash ? 'pulse-dot' : ''}
+            style={{
+              width: 5, height: 5, borderRadius: '50%',
+              background: accent,
+              boxShadow: flash ? `0 0 10px ${accent}` : 'none',
+            }}
+          />
+          <div style={{
+            fontFamily: AT.mono, fontSize: 10,
+            letterSpacing: '0.18em', color: accent,
+            fontWeight: 600, textTransform: 'uppercase',
+          }}>
+            {title}
+          </div>
+        </div>
+        <div style={{ fontFamily: AT.mono, fontSize: 9, color: AT.inkMuted, letterSpacing: '0.1em' }}>live</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 const CoachHUD: React.FC<CoachHUDProps> = ({ hint, onDismiss }) => {
   const [isVisible, setIsVisible] = useState(false);
   const autoDismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Show/hide with animation
   useEffect(() => {
     if (hint) {
       setIsVisible(true);
-
-      // Clear existing timer
-      if (autoDismissTimerRef.current) {
-        clearTimeout(autoDismissTimerRef.current);
-      }
-
-      // Set new auto-dismiss timer (15 seconds)
+      if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
       autoDismissTimerRef.current = setTimeout(() => {
         setIsVisible(false);
-        setTimeout(() => onDismiss(), 300); // Wait for fade-out animation
-      }, 15000);
+        setTimeout(() => onDismiss(), 200);
+      }, 12000);
     } else {
       setIsVisible(false);
     }
-
     return () => {
-      if (autoDismissTimerRef.current) {
-        clearTimeout(autoDismissTimerRef.current);
-      }
+      if (autoDismissTimerRef.current) clearTimeout(autoDismissTimerRef.current);
     };
   }, [hint, onDismiss]);
 
-  if (!hint) {
-    return null;
-  }
-
-  // Get color scheme by intervention level
-  const colorSchemes = {
-    info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-800',
-      icon: Info,
-    },
-    suggestion: {
-      bg: 'bg-emerald-50',
-      border: 'border-emerald-200',
-      text: 'text-emerald-800',
-      icon: Lightbulb,
-    },
-    warning: {
-      bg: 'bg-amber-50',
-      border: 'border-amber-300',
-      text: 'text-amber-900',
-      icon: AlertTriangle,
-    },
-    critical: {
-      bg: 'bg-red-50',
-      border: 'border-red-300',
-      text: 'text-red-900',
-      icon: AlertOctagon,
-    },
-    none: {
-      bg: 'bg-stone-50',
-      border: 'border-stone-200',
-      text: 'text-stone-700',
-      icon: Info,
-    },
-  };
-
-  const scheme = colorSchemes[hint.level];
-  const IconComponent = scheme.icon;
+  if (!hint) return null;
 
   return (
     <div
-      className={`
-        absolute top-20 right-6 w-80 transition-all duration-500 z-50
-        ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
-      `}
+      className={isVisible ? 'slide-in-right' : ''}
+      style={{
+        position: 'absolute',
+        top: 24,
+        right: 24,
+        width: 280,
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 0.2s',
+        pointerEvents: isVisible ? 'auto' : 'none',
+        zIndex: 20,
+      }}
     >
-      <div className={`${scheme.bg} ${scheme.border} border rounded-lg shadow-xl backdrop-blur-md bg-opacity-90 overflow-hidden`}>
-        {/* Header */}
-        <div className={`px-4 py-3 flex items-center justify-between border-b ${scheme.border}`}>
-          <div className="flex items-center gap-2">
-            <Target className={`w-4 h-4 ${scheme.text}`} />
-            <span className={`text-xs font-bold uppercase tracking-widest ${scheme.text}`}>
-              {hint.stage} Stage
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              setIsVisible(false);
-              setTimeout(() => onDismiss(), 300);
-            }}
-            className={`p-1 rounded hover:bg-white/50 transition-colors ${scheme.text}`}
-            title="Dismiss hint"
-          >
-            <X className="w-4 h-4" />
-          </button>
+      <HUDPanel title="Coach tip" accent={AT.sage} flash>
+        <button
+          onClick={() => { setIsVisible(false); setTimeout(() => onDismiss(), 200); }}
+          style={{
+            position: 'absolute', top: 10, right: 10,
+            background: 'none', border: 'none',
+            color: AT.inkMuted, cursor: 'pointer',
+            padding: 2,
+          }}
+        >
+          <X size={12} />
+        </button>
+
+        <div style={{ fontSize: 13.5, lineHeight: 1.45, color: AT.ink, marginTop: 8 }}>
+          {hint.example_phrase ? (
+            <>
+              {hint.hint}{' '}
+              <span style={{ color: AT.sage, fontStyle: 'italic' }}>Try: &ldquo;{hint.example_phrase}&rdquo;</span>
+            </>
+          ) : (
+            hint.hint
+          )}
         </div>
 
-        {/* Hint Content */}
-        <div className={`px-4 py-3 ${hint.example_phrase || hint.ready_for_next_stage ? 'border-b border-inherit' : ''}`}>
-          <div className="flex items-start gap-3">
-            <IconComponent className={`w-5 h-5 ${scheme.text} flex-shrink-0 mt-0.5`} />
-            <p className={`text-sm ${scheme.text} leading-relaxed`}>
-              {hint.hint}
-            </p>
-          </div>
-        </div>
-
-        {/* Example Phrase */}
-        {hint.example_phrase && (
-          <div className={`px-4 py-3 ${hint.ready_for_next_stage ? 'border-b border-inherit' : ''}`}>
-            <p className={`text-xs font-bold uppercase tracking-widest ${scheme.text} mb-1.5`}>
-              Try saying
-            </p>
-            <p className={`text-sm ${scheme.text} italic bg-white/50 rounded px-3 py-2 leading-relaxed`}>
-              &ldquo;{hint.example_phrase}&rdquo;
-            </p>
-          </div>
-        )}
-
-        {/* Ready for Next Stage */}
         {hint.ready_for_next_stage && (
-          <div className="px-4 py-3">
-            <div className="flex items-center gap-2">
-              <ArrowRight className={`w-4 h-4 ${scheme.text} flex-shrink-0`} />
-              <p className={`text-xs font-bold uppercase tracking-widest ${scheme.text}`}>
-                Ready for next stage
-              </p>
-            </div>
+          <div style={{
+            marginTop: 8,
+            fontFamily: AT.mono, fontSize: 10,
+            color: AT.sage, letterSpacing: '0.1em', textTransform: 'uppercase',
+          }}>
+            ✓ Ready for next stage
           </div>
         )}
-      </div>
+
+        <div style={{ marginTop: 6, fontFamily: AT.mono, fontSize: 9.5, color: AT.inkMuted, letterSpacing: '0.1em' }}>
+          {hint.stage} stage
+        </div>
+      </HUDPanel>
     </div>
   );
 };
 
 export default CoachHUD;
+export { HUDPanel };
