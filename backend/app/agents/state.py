@@ -139,14 +139,17 @@ class CustomerPersona(BaseModel):
 
     # Product metadata (for RAG filtering and analytics)
     product_category: str | None = Field(
-        None, description="Product category (e.g., 'living_room', 'bedroom', 'mattress')"
+        None, description="Product category (e.g., 'fixer_upper', 'luxury_estate')"
     )
     product_type: str | None = Field(
-        None, description="Specific product type (e.g., 'sectional', 'bedroom_set')"
+        None, description="Specific product type (e.g., 'starter_home', 'duplex')"
     )
     product_keywords: list[str] = Field(
         default_factory=list,
         description="Product-related keywords (e.g., ['durability', 'family-friendly'])",
+    )
+    property_id: str | None = Field(
+        None, description="Firestore property ID for RAG retrieval (e.g., 'property_3')"
     )
 
     model_config = {"frozen": True}

@@ -1,8 +1,12 @@
-"""Ingest product PDFs from GCS into Firestore vector index.
+"""Ingest product PDFs and property markdown files from GCS into Firestore vector index.
 
-Reads PDFs from the GCS knowledge bucket, extracts text via Gemini,
+Reads PDFs and .md files from the GCS knowledge bucket, extracts/parses text,
 chunks, generates embeddings, and stores in Firestore knowledge_chunks
 collection for RAG retrieval.
+
+PDFs: text extracted via Gemini Flash, fixed-size chunks (800 chars, 200 overlap).
+.md files: parsed by ## section headers — each section becomes one chunk with
+           rich property metadata (section_type, price_range, property_type, etc.).
 
 Current approach: Gemini Flash (Part.from_bytes) for PDF text extraction.
 This works well for a small corpus (10-20 PDFs) with minimal setup.
@@ -62,7 +66,7 @@ Automating with Cloud Function (GCS trigger):
     To replace manual runs with automatic ingestion on GCS upload:
 
     1. Create a Cloud Function (Gen 2) triggered by google.cloud.storage.object.v1.finalized
-       on the sales-coach-knowledge bucket.
+       on the sales-trainer-knowledge bucket.
     2. The function receives the event with bucket/object name, downloads the PDF,
        and runs the same extract -> chunk -> embed -> store pipeline for that single file.
     3. Delete old chunks for the file first (delete_chunks_for_file pattern).
@@ -83,7 +87,7 @@ Automating with Cloud Function (GCS trigger):
           event_trigger {
             event_type   = "google.cloud.storage.object.v1.finalized"
             trigger_region = "us-central1"
-            event_filters { attribute = "bucket"; value = "sales-coach-knowledge" }
+            event_filters { attribute = "bucket"; value = "sales-trainer-knowledge" }
           }
         }
 """
@@ -118,12 +122,12 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-DEFAULT_BUCKET = "sales-coach-knowledge"
+DEFAULT_BUCKET = "sales-trainer-knowledge"
 GCS_PREFIX = "products/"
 FIRESTORE_COLLECTION = "knowledge_chunks"
 
-EMBEDDING_MODEL = "gemini-embedding-001"
-EMBEDDING_DIMENSIONS = 768  # Must match Firestore vector index dimension
+EMBEDDING_MODEL = "gemini-embedding-2"
+EMBEDDING_DIMENSIONS = 2048  # Must match Firestore vector index dimension (max 2048)
 EXTRACTION_MODEL = "gemini-2.0-flash"
 
 CHUNK_SIZE = 800
@@ -143,6 +147,98 @@ COLLECTION_MAP: dict[str, tuple[str, str]] = {
 DOC_TYPE_MAP: dict[str, str] = {
     "Training Guide": "training_guide",
     "Selling Sheet": "selling_sheet",
+}
+
+# Property .md file metadata: filename key substring -> property metadata dict
+PROPERTY_MAP: dict[str, dict[str, str]] = {
+    "Property_1": {
+        "property_id": "property_1",
+        "property_name": "Maple Grove Starter Home",
+        "price_range": "budget",
+        "property_type": "single_family",
+    },
+    "Property_2": {
+        "property_id": "property_2",
+        "property_name": "Ridgmont Luxury Estate",
+        "price_range": "premium",
+        "property_type": "single_family",
+    },
+    "Property_3": {
+        "property_id": "property_3",
+        "property_name": "Elm Street Fixer-Upper",
+        "price_range": "budget",
+        "property_type": "single_family",
+    },
+    "Property_4": {
+        "property_id": "property_4",
+        "property_name": "Innovation Park New Construction",
+        "price_range": "mid_market",
+        "property_type": "single_family",
+    },
+    "Property_5": {
+        "property_id": "property_5",
+        "property_name": "Park Avenue Investment Property",
+        "price_range": "mid_market",
+        "property_type": "single_family",
+    },
+    "Property_6": {
+        "property_id": "property_6",
+        "property_name": "Urban Lofts Condo",
+        "price_range": "budget",
+        "property_type": "condo",
+    },
+    "Property_7": {
+        "property_id": "property_7",
+        "property_name": "Clearwater Family Home",
+        "price_range": "premium",
+        "property_type": "single_family",
+    },
+    "Property_8": {
+        "property_id": "property_8",
+        "property_name": "Lakeside Waterfront Estate",
+        "price_range": "premium",
+        "property_type": "waterfront",
+    },
+    "Property_9": {
+        "property_id": "property_9",
+        "property_name": "Rolling Meadows Acreage",
+        "price_range": "mid_market",
+        "property_type": "acreage",
+    },
+    "Property_10": {
+        "property_id": "property_10",
+        "property_name": "Commerce Street Duplex",
+        "price_range": "mid_market",
+        "property_type": "duplex",
+    },
+    "Property_Index": {
+        "property_id": "property_index",
+        "property_name": "Property Index Summary",
+        "price_range": "",
+        "property_type": "index",
+    },
+}
+
+# Markdown section header -> section_type slug for metadata
+SECTION_TYPE_MAP: dict[str, str] = {
+    "PROPERTY IDENTITY": "property_identity",
+    "NEIGHBORHOOD PROFILE": "neighborhood_profile",
+    "PROPERTY DESCRIPTION": "property_description",
+    "KEY FEATURES & SELLING POINTS": "key_features",
+    "SCHOOL INFORMATION": "school_information",
+    "NEARBY AMENITIES & FEATURES": "amenities",
+    "BUYER PERSONALITY FIT": "buyer_fit",
+    "OBJECTION HANDLERS & TALKING POINTS": "objection_handlers",
+    "COMPARABLE HOMES (Light Comps)": "comparable_homes",
+    "COMPARABLE HOMES": "comparable_homes",
+    "AGENT TALKING POINTS (Memorize These)": "agent_talking_points",
+    "AGENT TALKING POINTS": "agent_talking_points",
+    "INSPECTION RED FLAGS TO EXPECT": "inspection_flags",
+    "FINANCING TALKING POINTS": "financing",
+    "TIMELINE & URGENCY": "timeline",
+    "FOLLOW-UP QUESTIONS FOR BUYERS (If they go quiet)": "followup_questions",
+    "FOLLOW-UP QUESTIONS FOR BUYERS": "followup_questions",
+    "CLOSING NOTES": "closing_notes",
 }
 
 
@@ -192,17 +288,53 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
     return chunks
 
 
+def chunk_by_sections(text: str) -> list[tuple[str, str]]:
+    """Split markdown into (section_title, section_content) pairs on ## headers.
+
+    Each ## header starts a new chunk. Content before the first ## is grouped
+    under the document's # title (or "Introduction" if no title found).
+
+    Args:
+        text: Full markdown text
+
+    Returns:
+        List of (section_title, section_content) tuples, empty sections excluded
+    """
+    sections: list[tuple[str, str]] = []
+    current_title = "Introduction"
+    current_lines: list[str] = []
+
+    for line in text.splitlines():
+        if line.startswith("## "):
+            content = "\n".join(current_lines).strip()
+            if content:
+                sections.append((current_title, content))
+            current_title = line[3:].strip()
+            current_lines = [line]
+        elif line.startswith("# ") and not current_lines:
+            current_title = line[2:].strip()
+            current_lines = [line]
+        else:
+            current_lines.append(line)
+
+    content = "\n".join(current_lines).strip()
+    if content:
+        sections.append((current_title, content))
+
+    return sections
+
+
 # ---------------------------------------------------------------------------
 # GCS helpers
 # ---------------------------------------------------------------------------
 
 
-def list_pdfs(bucket_name: str, prefix: str = GCS_PREFIX) -> list[storage.Blob]:
-    """List all PDF blobs in the GCS bucket under the given prefix."""
+def list_knowledge_files(bucket_name: str, prefix: str = GCS_PREFIX) -> list[storage.Blob]:
+    """List all PDF and markdown blobs in the GCS bucket under the given prefix."""
     client = storage.Client()
     bucket = client.bucket(bucket_name)
     blobs = list(bucket.list_blobs(prefix=prefix))
-    return [b for b in blobs if b.name.lower().endswith(".pdf")]
+    return [b for b in blobs if b.name.lower().endswith((".pdf", ".md"))]
 
 
 def download_pdf_bytes(blob: storage.Blob) -> bytes:
@@ -459,17 +591,109 @@ async def ingest_pdf(
     return stored
 
 
+async def ingest_md(
+    gemini_client: genai.Client,
+    db: firestore.AsyncClient,
+    blob: storage.Blob,
+    dry_run: bool = False,
+) -> int:
+    """Ingest a markdown property file: parse sections, embed, store.
+
+    Unlike PDFs, no text extraction is needed — the file is read directly.
+    Chunking is section-based (## headers) rather than fixed-size, preserving
+    the semantic structure of each property document.
+
+    Args:
+        gemini_client: Gemini client for embedding generation
+        db: Async Firestore client
+        blob: GCS blob to process
+        dry_run: If True, skip Firestore writes
+
+    Returns:
+        Number of section chunks stored
+    """
+    filename = blob.name.split("/")[-1]
+
+    # Resolve property metadata from filename
+    property_meta: dict[str, str] = {}
+    # Sort by key length descending so Property_10 matches before Property_1
+    for key, meta in sorted(PROPERTY_MAP.items(), key=lambda x: len(x[0]), reverse=True):
+        if key.lower() in filename.lower():
+            property_meta = meta
+            break
+
+    if not property_meta:
+        property_meta = {
+            "property_id": "unknown",
+            "property_name": filename.replace(".md", ""),
+            "price_range": "",
+            "property_type": "unknown",
+        }
+
+    collection_id = property_meta["property_id"]
+    logger.info(f"Processing: {filename}")
+    logger.info(f"  Property: {property_meta['property_name']} ({collection_id})")
+
+    # Download and decode markdown text directly (no Gemini extraction needed)
+    text = blob.download_as_text(encoding="utf-8")
+
+    sections = chunk_by_sections(text)
+    logger.info(f"  Created {len(sections)} section chunks")
+
+    if dry_run:
+        for title, content in sections:
+            logger.info(f"  Section '{title}': {len(content)} chars")
+        return len(sections)
+
+    stored = 0
+    for i, (section_title, section_content) in enumerate(sections):
+        section_slug = SECTION_TYPE_MAP.get(
+            section_title,
+            re.sub(r"[^a-z0-9]+", "_", section_title.lower()).strip("_"),
+        )
+        chunk_id = f"{collection_id}_{section_slug}"
+
+        if i > 0 and i % 50 == 0:
+            logger.info(f"  Rate limit pause at chunk {i}...")
+            await asyncio.sleep(5)
+
+        try:
+            embedding = await generate_embedding(gemini_client, section_content)
+
+            metadata: dict[str, str | int] = {
+                "source_file": filename,
+                "category": collection_id,
+                "doc_type": "property_listing",
+                "section_type": section_slug,
+                "section_title": section_title,
+                "property_id": property_meta["property_id"],
+                "property_name": property_meta["property_name"],
+                "price_range": property_meta["price_range"],
+                "property_type": property_meta["property_type"],
+                "chunk_index": i,
+                "created_at": datetime.now(UTC).isoformat(),
+            }
+
+            await store_chunk(db, chunk_id, section_content, embedding, metadata)
+            stored += 1
+        except Exception as e:
+            logger.error(f"  Failed to process section '{section_title}': {e}")
+            continue
+
+    logger.info(f"  Stored {stored}/{len(sections)} sections for {filename}")
+    return stored
+
+
 async def run(args: argparse.Namespace) -> None:
     """Run the ingestion pipeline."""
-    # List PDFs in GCS
     logger.info(f"Scanning gs://{args.bucket}/{GCS_PREFIX}")
-    blobs = list_pdfs(args.bucket)
+    blobs = list_knowledge_files(args.bucket)
 
     if not blobs:
-        logger.error("No PDFs found in bucket")
+        logger.error("No knowledge files (PDF or .md) found in bucket")
         sys.exit(1)
 
-    logger.info(f"Found {len(blobs)} PDFs:")
+    logger.info(f"Found {len(blobs)} files:")
     for b in blobs:
         logger.info(f"  - {b.name}")
 
@@ -477,9 +701,9 @@ async def run(args: argparse.Namespace) -> None:
     if args.collection:
         blobs = [b for b in blobs if args.collection.lower() in b.name.lower()]
         if not blobs:
-            logger.error(f"No PDFs found matching collection '{args.collection}'")
+            logger.error(f"No files found matching collection '{args.collection}'")
             sys.exit(1)
-        logger.info(f"Filtered to {len(blobs)} PDFs for collection '{args.collection}'")
+        logger.info(f"Filtered to {len(blobs)} files for collection '{args.collection}'")
 
     # Initialize clients
     api_key = os.environ.get("GEMINI_API_KEY", "")
@@ -503,7 +727,6 @@ async def run(args: argparse.Namespace) -> None:
         logger.info("Checking for already-indexed files...")
         indexed_timestamps = await get_indexed_timestamps(db, FIRESTORE_COLLECTION)
 
-    # Process each PDF
     total_chunks = 0
     skipped = 0
     start = time.time()
@@ -526,24 +749,29 @@ async def run(args: argparse.Namespace) -> None:
                 deleted = await delete_chunks_for_file(db, FIRESTORE_COLLECTION, filename)
                 logger.info(f"  Deleted {deleted} old chunks")
 
-        chunks = await ingest_pdf(gemini_client, db, blob, dry_run=args.dry_run)
+        if filename.lower().endswith(".md"):
+            chunks = await ingest_md(gemini_client, db, blob, dry_run=args.dry_run)
+        else:
+            chunks = await ingest_pdf(gemini_client, db, blob, dry_run=args.dry_run)
+
         total_chunks += chunks
-        # Pause between PDFs to stay under Gemini rate limits
         if i < len(blobs) - 1:
-            logger.info("  Pausing 10s between PDFs for rate limits...")
+            logger.info("  Pausing 10s between files for rate limits...")
             await asyncio.sleep(10)
 
     elapsed = time.time() - start
     mode = "DRY RUN" if args.dry_run else "COMPLETE"
     logger.info(
-        f"\n{mode}: {total_chunks} chunks from {len(blobs) - skipped} PDFs in {elapsed:.1f}s"
+        f"\n{mode}: {total_chunks} chunks from {len(blobs) - skipped} files in {elapsed:.1f}s"
     )
     if skipped:
-        logger.info(f"Skipped {skipped} unchanged PDFs")
+        logger.info(f"Skipped {skipped} unchanged files")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ingest product PDFs into Firestore vector index")
+    parser = argparse.ArgumentParser(
+        description="Ingest product PDFs and property .md files into Firestore vector index"
+    )
     parser.add_argument(
         "--bucket",
         default=DEFAULT_BUCKET,
@@ -552,7 +780,7 @@ def main() -> None:
     parser.add_argument(
         "--collection",
         default=None,
-        help="Only ingest PDFs for a specific collection (e.g., 'calden')",
+        help="Only ingest files for a specific collection (e.g., 'calden', 'property_1')",
     )
     parser.add_argument(
         "--dry-run",

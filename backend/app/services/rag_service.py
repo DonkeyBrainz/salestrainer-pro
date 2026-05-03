@@ -28,6 +28,7 @@ class RAGService(Protocol):
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         top_k: int = 3,
     ) -> str:
         """Retrieve relevant product context from vector search."""
@@ -91,7 +92,7 @@ class FirestoreRAGService:
         response = await self.client.aio.models.embed_content(
             model=self._embedding_model,
             contents=text,
-            config=types.EmbedContentConfig(output_dimensionality=768),
+            config=types.EmbedContentConfig(output_dimensionality=2048),
         )
         if not response.embeddings:
             raise ValueError("No embeddings returned from API")
@@ -105,14 +106,17 @@ class FirestoreRAGService:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         top_k: int = 3,
     ) -> str:
         """Retrieve relevant product context with metadata filtering.
 
         Args:
             query: The search query (e.g., "Is this durable for kids?")
-            product_category: Filter by category (e.g., "living_room", "bedroom")
-            product_type: Filter by specific type (e.g., "sectional", "mattress")
+            product_category: Filter by category (e.g., "property_1", "calden")
+            product_type: Filter by doc type (e.g., "training_guide", "property_listing")
+            section_type: Filter by section type for property chunks
+                          (e.g., "objection_handlers", "neighborhood_profile")
             top_k: Number of results to retrieve
 
         Returns:
@@ -126,7 +130,10 @@ class FirestoreRAGService:
             collection_ref = collection_ref.where("metadata.category", "==", product_category)
 
         if product_type:
-            collection_ref = collection_ref.where("metadata.product_type", "==", product_type)
+            collection_ref = collection_ref.where("metadata.doc_type", "==", product_type)
+
+        if section_type:
+            collection_ref = collection_ref.where("metadata.section_type", "==", section_type)
 
         results = await collection_ref.find_nearest(
             vector_field="embedding",
@@ -146,6 +153,7 @@ class FirestoreRAGService:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         top_k: int = 3,
     ) -> list[dict[str, Any]]:
         """Perform vector-based semantic search.
@@ -153,7 +161,8 @@ class FirestoreRAGService:
         Args:
             query: Search query text
             product_category: Optional category filter
-            product_type: Optional type filter
+            product_type: Optional doc_type filter
+            section_type: Optional section_type filter for property chunks
             top_k: Number of results
 
         Returns:
@@ -166,7 +175,9 @@ class FirestoreRAGService:
         if product_category:
             collection_ref = collection_ref.where("metadata.category", "==", product_category)
         if product_type:
-            collection_ref = collection_ref.where("metadata.product_type", "==", product_type)
+            collection_ref = collection_ref.where("metadata.doc_type", "==", product_type)
+        if section_type:
+            collection_ref = collection_ref.where("metadata.section_type", "==", section_type)
 
         results = await collection_ref.find_nearest(
             vector_field="embedding",
@@ -182,6 +193,7 @@ class FirestoreRAGService:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         top_k: int = 3,
     ) -> list[dict[str, Any]]:
         """Perform in-memory BM25-style keyword search.
@@ -192,7 +204,8 @@ class FirestoreRAGService:
         Args:
             query: Search query text
             product_category: Optional category filter
-            product_type: Optional type filter
+            product_type: Optional doc_type filter
+            section_type: Optional section_type filter for property chunks
             top_k: Number of results
 
         Returns:
@@ -207,7 +220,9 @@ class FirestoreRAGService:
         if product_category:
             collection_ref = collection_ref.where("metadata.category", "==", product_category)
         if product_type:
-            collection_ref = collection_ref.where("metadata.product_type", "==", product_type)
+            collection_ref = collection_ref.where("metadata.doc_type", "==", product_type)
+        if section_type:
+            collection_ref = collection_ref.where("metadata.section_type", "==", section_type)
 
         docs = await collection_ref.get()
         if not docs:
@@ -288,6 +303,7 @@ class FirestoreRAGService:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         top_k: int = 3,
     ) -> str:
         """Retrieve using hybrid search (semantic + keyword with RRF fusion).
@@ -298,15 +314,16 @@ class FirestoreRAGService:
         Args:
             query: Search query text
             product_category: Optional category filter
-            product_type: Optional type filter
+            product_type: Optional doc_type filter
+            section_type: Optional section_type filter for property chunks
             top_k: Number of results
 
         Returns:
             Concatenated context string from fused results
         """
         semantic_results, keyword_results = await asyncio.gather(
-            self._semantic_search(query, product_category, product_type, top_k),
-            self._keyword_search(query, product_category, product_type, top_k),
+            self._semantic_search(query, product_category, product_type, section_type, top_k),
+            self._keyword_search(query, product_category, product_type, section_type, top_k),
         )
 
         fused = self._reciprocal_rank_fusion(semantic_results, keyword_results, top_k=top_k)
@@ -371,6 +388,7 @@ class FirestoreRAGService:
         conversation_history: list[tuple[str, str]],
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         top_k: int = 3,
     ) -> str:
         """Retrieve with conversation-aware query enhancement.
@@ -381,7 +399,8 @@ class FirestoreRAGService:
             query: The salesperson message
             conversation_history: List of (role, content) tuples
             product_category: Optional category filter
-            product_type: Optional type filter
+            product_type: Optional doc_type filter
+            section_type: Optional section_type filter for property chunks
             top_k: Number of results to retrieve
 
         Returns:
@@ -392,6 +411,7 @@ class FirestoreRAGService:
             query=enhanced,
             product_category=product_category,
             product_type=product_type,
+            section_type=section_type,
             top_k=top_k,
         )
 
@@ -464,6 +484,7 @@ class FirestoreRAGService:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
         initial_k: int = 10,
         final_k: int = 3,
         use_hybrid: bool = False,
@@ -477,7 +498,8 @@ class FirestoreRAGService:
         Args:
             query: Search query
             product_category: Optional category filter
-            product_type: Optional type filter
+            product_type: Optional doc_type filter
+            section_type: Optional section_type filter for property chunks
             initial_k: Number of candidates to retrieve before re-ranking
             final_k: Number of results after re-ranking
             use_hybrid: Whether to use hybrid search for initial retrieval
@@ -489,15 +511,19 @@ class FirestoreRAGService:
         # Get initial candidates
         if use_hybrid:
             semantic_results, keyword_results = await asyncio.gather(
-                self._semantic_search(query, product_category, product_type, initial_k),
-                self._keyword_search(query, product_category, product_type, initial_k),
+                self._semantic_search(
+                    query, product_category, product_type, section_type, initial_k
+                ),
+                self._keyword_search(
+                    query, product_category, product_type, section_type, initial_k
+                ),
             )
             candidates = self._reciprocal_rank_fusion(
                 semantic_results, keyword_results, top_k=initial_k
             )
         else:
             candidates = await self._semantic_search(
-                query, product_category, product_type, initial_k
+                query, product_category, product_type, section_type, initial_k
             )
 
         if not candidates:

@@ -78,27 +78,36 @@ class CoachAnalyzer:
         if settings.rag_use_objection_lookup:
             objection_context = self._get_objection_context(messages)
 
-        # Retrieve product context via RAG (non-blocking on failure)
-        # Priority: re-ranking > conversation-aware > hybrid > semantic-only
+        # Retrieve property context via RAG (non-blocking on failure)
+        # Filter by property_id so we only retrieve chunks for this specific property.
+        # section_type narrows retrieval by stage: objection handlers in EXECUTE,
+        # talking points in RECOMMEND, broad context otherwise.
         product_context = ""
-        p_category = persona.product_category
-        p_type = persona.product_type
-        if settings.rag_enabled:
+        if settings.rag_enabled and persona.property_id:
+            p_category = persona.property_id
+            p_type = "property_listing"
+            current_stage = stage_progress.current_stage.value
+            section_type: str | None = None
+            if current_stage == "EXECUTE":
+                section_type = "objection_handlers"
+            elif current_stage == "RECOMMEND":
+                section_type = "agent_talking_points"
+
             if settings.rag_use_reranking:
                 product_context = await self._get_reranked_product_context(
                     salesperson_message, settings, p_category, p_type
                 )
             elif settings.rag_use_conversation_context:
                 product_context = await self._get_product_context_with_history(
-                    salesperson_message, history_tuples, p_category, p_type
+                    salesperson_message, history_tuples, p_category, p_type, section_type
                 )
             elif settings.rag_use_hybrid_search:
                 product_context = await self._get_hybrid_product_context(
-                    salesperson_message, p_category, p_type
+                    salesperson_message, p_category, p_type, section_type
                 )
             else:
                 product_context = await self._get_product_context(
-                    salesperson_message, p_category, p_type
+                    salesperson_message, p_category, p_type, section_type
                 )
 
         # Build the analysis prompt
@@ -206,18 +215,9 @@ class CoachAnalyzer:
         conversation_history: list[tuple[str, str]],
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
     ) -> str:
-        """Retrieve product context using conversation-aware query enhancement.
-
-        Args:
-            query: The salesperson message
-            conversation_history: List of (role, content) tuples
-            product_category: Optional category filter for RAG retrieval
-            product_type: Optional type filter for RAG retrieval
-
-        Returns:
-            Product context string, or empty string on failure
-        """
+        """Retrieve product context using conversation-aware query enhancement."""
         try:
             from app.services.rag_service import get_rag_service
 
@@ -227,6 +227,7 @@ class CoachAnalyzer:
                 conversation_history=conversation_history,
                 product_category=product_category,
                 product_type=product_type,
+                section_type=section_type,
             )
         except Exception as e:
             logger.warning(f"Conversation-aware RAG retrieval failed (non-blocking): {e}")
@@ -237,17 +238,9 @@ class CoachAnalyzer:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
     ) -> str:
-        """Retrieve product context using hybrid search (semantic + keyword).
-
-        Args:
-            query: The salesperson message
-            product_category: Optional category filter for RAG retrieval
-            product_type: Optional type filter for RAG retrieval
-
-        Returns:
-            Product context string, or empty string on failure
-        """
+        """Retrieve product context using hybrid search (semantic + keyword)."""
         try:
             from app.services.rag_service import get_rag_service
 
@@ -256,6 +249,7 @@ class CoachAnalyzer:
                 query=query,
                 product_category=product_category,
                 product_type=product_type,
+                section_type=section_type,
             )
         except Exception as e:
             logger.warning(f"Hybrid RAG retrieval failed (non-blocking): {e}")
@@ -266,17 +260,9 @@ class CoachAnalyzer:
         query: str,
         product_category: str | None = None,
         product_type: str | None = None,
+        section_type: str | None = None,
     ) -> str:
-        """Retrieve product context via RAG service.
-
-        Args:
-            query: The salesperson message to use as search query
-            product_category: Optional category filter for RAG retrieval
-            product_type: Optional type filter for RAG retrieval
-
-        Returns:
-            Product context string, or empty string on failure
-        """
+        """Retrieve product context via RAG service."""
         try:
             from app.services.rag_service import get_rag_service
 
@@ -285,6 +271,7 @@ class CoachAnalyzer:
                 query=query,
                 product_category=product_category,
                 product_type=product_type,
+                section_type=section_type,
             )
         except Exception as e:
             logger.warning(f"RAG retrieval failed (non-blocking): {e}")

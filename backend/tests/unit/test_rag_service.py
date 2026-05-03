@@ -21,7 +21,7 @@ def mock_settings() -> MagicMock:
     """Create mock Settings for RAG service."""
     settings = MagicMock()
     settings.rag_collection_name = "knowledge_chunks"
-    settings.rag_embedding_model = "gemini-embedding-001"
+    settings.rag_embedding_model = "gemini-embedding-2"
     settings.gemini_api_key = "test-api-key"
     return settings
 
@@ -54,7 +54,7 @@ class TestFirestoreRAGServiceInit:
 
         assert service.db is mock_db
         assert service.collection_name == "knowledge_chunks"
-        assert service._embedding_model == "gemini-embedding-001"
+        assert service._embedding_model == "gemini-embedding-2"
         assert service._api_key == "test-api-key"
 
     def test_client_not_created_on_init(self, rag_service: FirestoreRAGService) -> None:
@@ -149,9 +149,9 @@ class TestEmbedText:
         from google.genai import types as genai_types
 
         mock_embed.assert_called_once_with(
-            model="gemini-embedding-001",
+            model="gemini-embedding-2",
             contents="test text",
-            config=genai_types.EmbedContentConfig(output_dimensionality=768),
+            config=genai_types.EmbedContentConfig(output_dimensionality=2048),
         )
         assert result == [0.1, 0.2, 0.3]
 
@@ -289,7 +289,7 @@ class TestRetrieve:
                 "metadata.category", "==", "living_room"
             )
             mock_cat_filtered.where.assert_called_once_with(
-                "metadata.product_type", "==", "sectional"
+                "metadata.doc_type", "==", "sectional"
             )
 
 
@@ -568,6 +568,7 @@ class TestRetrieveWithContext:
                 query="enhanced query",
                 product_category="living_room",
                 product_type=None,
+                section_type=None,
                 top_k=3,
             )
             assert result == "Product context result"

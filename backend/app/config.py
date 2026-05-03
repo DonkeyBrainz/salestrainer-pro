@@ -78,9 +78,9 @@ class Settings(BaseSettings):
     websocket_timeout_minutes: int = 30
 
     # RAG Configuration
-    rag_enabled: bool = False
+    rag_enabled: bool = True
     rag_collection_name: str = "knowledge_chunks"
-    rag_embedding_model: str = "gemini-embedding-001"
+    rag_embedding_model: str = "gemini-embedding-2"
     rag_top_k: int = 3
     rag_use_hybrid_search: bool = False
     rag_use_reranking: bool = False
