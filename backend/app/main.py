@@ -53,11 +53,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     init_objection_service()
     logger.info("Objection service initialized")
 
-    # Initialize RAG service if enabled
+    # Initialize RAG service if enabled (skipped when GCP credentials are unavailable)
     if settings.rag_enabled:
-        db = get_firestore_client()
-        init_rag_service(db, settings)
-        logger.info("RAG service initialized")
+        try:
+            db = get_firestore_client()
+            init_rag_service(db, settings)
+            logger.info("RAG service initialized")
+        except Exception as e:
+            logger.warning(
+                "RAG service initialization failed — running without RAG",
+                extra={"error": str(e)},
+            )
 
     yield
     # Shutdown
