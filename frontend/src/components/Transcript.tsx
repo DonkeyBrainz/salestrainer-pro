@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Message } from '@/types';
-import { Sparkles, UserCheck, MessageSquare } from 'lucide-react';
+import { AT } from '@/styles/tokens';
 
 interface TranscriptProps {
   messages: Message[];
@@ -19,60 +19,76 @@ const Transcript: React.FC<TranscriptProps> = ({ messages, currentInput = '', re
 
   if (messages.length === 0 && !currentInput && !readOnly) {
     return (
-      <div className="flex-1 flex items-center justify-center opacity-30 select-none pointer-events-none">
-          <div className="flex flex-col items-center gap-4">
-              <MessageSquare className="w-16 h-16 text-stone-300" />
-              <p className="font-serif-display text-2xl text-stone-400">Transcript will appear here...</p>
-          </div>
+      <div style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: 0.4, userSelect: 'none', pointerEvents: 'none',
+      }}>
+        <div style={{
+          fontFamily: AT.mono, fontSize: 11,
+          color: AT.inkMuted, letterSpacing: '0.14em', textTransform: 'uppercase',
+          textAlign: 'center',
+        }}>
+          Your turn — speak naturally
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full flex flex-col relative">
-      <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-[#F9F8F6] to-transparent z-10 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#F9F8F6] to-transparent z-10 pointer-events-none" />
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 40,
+        background: `linear-gradient(to bottom, ${AT.bg}, transparent)`,
+        zIndex: 2, pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+        background: `linear-gradient(to top, ${AT.bg}, transparent)`,
+        zIndex: 2, pointerEvents: 'none',
+      }} />
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 py-12 flex flex-col gap-8 scroll-smooth custom-scrollbar"
+        style={{
+          flex: 1, overflowY: 'auto',
+          padding: '32px 40px',
+          display: 'flex', flexDirection: 'column', gap: 24,
+        }}
       >
-        {messages.map((msg) => {
+        {messages.map(msg => {
           const isCoach = msg.text.includes('[COACH MODE ACTIVE]');
-          const isResuming = msg.text.includes('[RESUMING SCENARIO]');
-
-          let speakerName = 'Guest';
-          if (msg.role === 'user') speakerName = 'You';
-          if (isCoach) speakerName = 'Coach Intervention';
-
           const displayText = msg.text
             .replace(/\[COACH MODE ACTIVE\]/g, '')
             .replace(/\[RESUMING SCENARIO\]/g, '')
             .trim();
 
+          const isUser = msg.role === 'user';
+
           return (
             <div
               key={msg.id}
-              className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}
+              className="animate-fade-in"
+              style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}
             >
-              <div className="flex items-center gap-1.5 mb-2 ml-1">
-                {isCoach && <Sparkles className="w-3.5 h-3.5 text-amber-600" />}
-                {isResuming && !isCoach && <UserCheck className="w-3.5 h-3.5 text-stone-400" />}
-                <span className={`text-[10px] uppercase font-bold tracking-[0.15em] ${isCoach ? 'text-amber-600' : 'text-stone-400'}`}>
-                  {speakerName}
-                </span>
+              <div style={{
+                fontFamily: AT.mono, fontSize: 9.5,
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                color: isCoach ? AT.butter : isUser ? AT.inkMuted : AT.terra,
+                marginBottom: 6,
+              }}>
+                {isCoach ? 'Coach' : isUser ? 'You' : 'Guest'}
               </div>
-              <div
-                className={`
-                  max-w-[85%] font-serif-display text-xl leading-relaxed
-                  ${msg.role === 'user'
-                    ? 'text-stone-500 text-right'
-                    : isCoach
-                        ? 'text-amber-900 text-left bg-amber-50 p-6 rounded-3xl border border-amber-200 shadow-sm'
-                        : 'text-stone-800 text-left'
-                  }
-                `}
-              >
+              <div style={{
+                maxWidth: '70%',
+                fontFamily: AT.display,
+                fontSize: 20, lineHeight: 1.45, fontWeight: 500,
+                color: isUser ? AT.inkSoft : isCoach ? AT.butter : AT.ink,
+                textAlign: isUser ? 'right' : 'left',
+                padding: isCoach ? '12px 16px' : undefined,
+                background: isCoach ? AT.butter + '14' : undefined,
+                border: isCoach ? `1px solid ${AT.butter}33` : undefined,
+                borderRadius: isCoach ? 10 : undefined,
+              }}>
                 {displayText}
               </div>
             </div>
@@ -80,15 +96,23 @@ const Transcript: React.FC<TranscriptProps> = ({ messages, currentInput = '', re
         })}
 
         {!readOnly && currentInput && (
-          <div className="flex flex-col items-end animate-pulse opacity-60">
-            <span className="text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2 ml-1">You</span>
-            <p className="max-w-[85%] font-serif-display text-xl leading-relaxed text-stone-400 text-right italic">
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', opacity: 0.6 }}>
+            <div style={{
+              fontFamily: AT.mono, fontSize: 9.5,
+              letterSpacing: '0.16em', textTransform: 'uppercase',
+              color: AT.inkMuted, marginBottom: 6,
+            }}>You</div>
+            <div style={{
+              maxWidth: '70%',
+              fontFamily: AT.display, fontSize: 20, lineHeight: 1.45,
+              fontStyle: 'italic', color: AT.inkMuted, textAlign: 'right',
+            }}>
               {currentInput}
-            </p>
+            </div>
           </div>
         )}
 
-        <div className="h-24 shrink-0" />
+        <div style={{ height: 48, flexShrink: 0 }} />
       </div>
     </div>
   );

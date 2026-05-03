@@ -1,19 +1,170 @@
 import React, { useEffect, useState } from 'react';
 import { Persona, Difficulty } from '@/types';
 import { fetchPersonas } from '@/services/personaService';
-import { Loader2, AlertCircle, ChevronRight } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { AT } from '@/styles/tokens';
 
 interface PersonaSelectorProps {
   onSelect: (persona: Persona) => void;
   onCancel: () => void;
 }
 
-const DIFFICULTY_COLORS: Record<Difficulty, { bg: string; text: string; label: string }> = {
-  high_regard: { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'High Regard' },
-  medium_regard: { bg: 'bg-amber-50', text: 'text-amber-600', label: 'Medium Regard' },
-  low_regard: { bg: 'bg-red-50', text: 'text-red-600', label: 'Low Regard' },
-  no_regard: { bg: 'bg-stone-50', text: 'text-stone-600', label: 'No Regard' },
+const TIER_CONFIG: Record<Difficulty, {
+  code: string;
+  label: string;
+  sub: string;
+  color: string;
+  pips: number;
+}> = {
+  high_regard: {
+    code: 'EASY',
+    label: 'High regard',
+    sub: 'Friendlier reception. Build confidence and momentum.',
+    color: AT.sage,
+    pips: 1,
+  },
+  medium_regard: {
+    code: 'STANDARD',
+    label: 'Medium regard',
+    sub: 'Real-world default. Earned trust gets results.',
+    color: AT.butter,
+    pips: 2,
+  },
+  low_regard: {
+    code: 'HARD',
+    label: 'Low regard',
+    sub: 'Skeptical, tested, hard-won. The biggest growth lives here.',
+    color: AT.terra,
+    pips: 3,
+  },
+  no_regard: {
+    code: 'LOCKED',
+    label: 'No regard',
+    sub: 'Maximum difficulty.',
+    color: AT.inkMuted,
+    pips: 3,
+  },
 };
+
+const DIFFICULTY_ORDER: Difficulty[] = ['high_regard', 'medium_regard', 'low_regard', 'no_regard'];
+
+function TierHeader({ difficulty, count }: { difficulty: Difficulty; count: number }) {
+  const cfg = TIER_CONFIG[difficulty];
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      padding: '14px 18px',
+      borderRadius: 12,
+      background: cfg.color + '0e',
+      border: `1px solid ${cfg.color}33`,
+      marginBottom: 12,
+    }}>
+      <div style={{ fontFamily: AT.display, fontSize: 20, fontWeight: 700, color: cfg.color, letterSpacing: '0.04em' }}>{cfg.code}</div>
+      <div style={{ width: 1, height: 24, background: AT.hair }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.ink, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{cfg.label}</div>
+        <div style={{ fontSize: 12, color: AT.inkSoft, marginTop: 2 }}>{cfg.sub}</div>
+      </div>
+      <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.inkMuted, letterSpacing: '0.12em' }}>
+        {count} scenario{count !== 1 ? 's' : ''}
+      </div>
+    </div>
+  );
+}
+
+function PersonaCard({ persona, difficulty, onClick }: { persona: Persona; difficulty: Difficulty; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  const cfg = TIER_CONFIG[difficulty];
+  const hideDetails = difficulty === 'low_regard' || difficulty === 'no_regard' || !persona.name;
+
+  const initial = persona.name ? persona.name[0] : '?';
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: AT.surface,
+        border: `1px solid ${hovered ? cfg.color + '66' : AT.hair}`,
+        borderRadius: 12,
+        padding: 16,
+        cursor: 'pointer',
+        minHeight: 168,
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'border-color 0.15s',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 8,
+          background: cfg.color + '20', color: cfg.color,
+          fontFamily: AT.display, fontSize: 16, fontWeight: 700,
+          display: 'grid', placeItems: 'center',
+        }}>
+          {initial}
+        </div>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} style={{
+              width: 5, height: 12, borderRadius: 1,
+              background: i < cfg.pips ? cfg.color : AT.hair,
+            }} />
+          ))}
+        </div>
+      </div>
+
+      {hideDetails ? (
+        <div style={{ fontSize: 12.5, color: AT.inkSoft, lineHeight: 1.5, flex: 1 }}>{persona.backstory}</div>
+      ) : (
+        <>
+          <div style={{ fontFamily: AT.display, fontSize: 18, fontWeight: 600, color: AT.ink }}>{persona.name}</div>
+          <div style={{ fontFamily: AT.mono, fontSize: 10.5, color: AT.inkMuted, letterSpacing: '0.06em', marginTop: 2 }}>
+            {persona.backstory.slice(0, 40)}&hellip;
+          </div>
+          <div style={{ marginTop: 10, fontSize: 12.5, color: AT.inkSoft, lineHeight: 1.5, flex: 1 }}>{persona.backstory}</div>
+        </>
+      )}
+
+      <div style={{
+        marginTop: 12,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        paddingTop: 10,
+        borderTop: `1px solid ${AT.hair}`,
+      }}>
+        <div style={{ fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted, letterSpacing: '0.1em' }}>
+          {cfg.label}
+        </div>
+        <div style={{ fontFamily: AT.mono, fontSize: 11, color: hovered ? cfg.color : AT.inkMuted, fontWeight: 600, transition: 'color 0.15s' }}>›</div>
+      </div>
+    </div>
+  );
+}
+
+function FilterChip({ active, children, onClick }: { active?: boolean; children: React.ReactNode; onClick?: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '7px 12px',
+        borderRadius: 8,
+        background: active ? AT.surface2 : 'transparent',
+        border: `1px solid ${active ? AT.hair : AT.hairSoft}`,
+        color: active ? AT.ink : AT.inkSoft,
+        fontSize: 12,
+        fontFamily: AT.mono,
+        letterSpacing: '0.08em',
+        cursor: 'pointer',
+        transition: 'background 0.15s, border-color 0.15s',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 const PersonaSelector: React.FC<PersonaSelectorProps> = ({ onSelect, onCancel }) => {
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -27,39 +178,47 @@ const PersonaSelector: React.FC<PersonaSelectorProps> = ({ onSelect, onCancel })
         setError(null);
         const data = await fetchPersonas();
         setPersonas(data);
-      } catch (err) {
-        setError('Failed to load guest scenarios');
+      } catch {
+        setError('Failed to load customer scenarios');
       } finally {
         setIsLoading(false);
       }
     };
-
     loadPersonas();
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-[#8B5E3C] animate-spin mx-auto mb-4" />
-          <p className="text-stone-500">Loading scenarios...</p>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: AT.bg }}>
+        <div style={{ textAlign: 'center' }}>
+          <Loader2 style={{ width: 32, height: 32, color: AT.terra, margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontFamily: AT.mono, fontSize: 12, color: AT.inkMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Loading scenarios...
+          </p>
         </div>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-xl font-serif-display text-[#2C2825] mb-3">
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: AT.bg, padding: 24 }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <AlertCircle style={{ width: 48, height: 48, color: AT.terra, margin: '0 auto 16px' }} />
+          <h3 style={{ fontFamily: AT.display, fontSize: 22, fontWeight: 600, color: AT.ink, marginBottom: 8 }}>
             Unable to Load Scenarios
           </h3>
-          <p className="text-stone-500 mb-6">{error}</p>
+          <p style={{ color: AT.inkSoft, fontSize: 14, marginBottom: 24 }}>{error}</p>
           <button
             onClick={onCancel}
-            className="px-6 py-2 bg-stone-200 hover:bg-stone-300 rounded-full text-sm font-bold uppercase tracking-wider text-stone-600 transition-colors"
+            style={{
+              padding: '10px 24px', borderRadius: 8,
+              background: AT.surface2, color: AT.ink,
+              border: `1px solid ${AT.hair}`,
+              fontFamily: AT.mono, fontSize: 12,
+              letterSpacing: '0.1em', cursor: 'pointer',
+            }}
           >
             Go Back
           </button>
@@ -68,98 +227,69 @@ const PersonaSelector: React.FC<PersonaSelectorProps> = ({ onSelect, onCancel })
     );
   }
 
-  // Group personas by difficulty
-  const groupedPersonas = {
-    high_regard: personas.filter((p) => p.difficulty === 'high_regard'),
-    medium_regard: personas.filter((p) => p.difficulty === 'medium_regard'),
-    low_regard: personas.filter((p) => p.difficulty === 'low_regard'),
-    no_regard: personas.filter((p) => p.difficulty === 'no_regard'),
+  const grouped: Record<Difficulty, Persona[]> = {
+    high_regard:   personas.filter(p => p.difficulty === 'high_regard'),
+    medium_regard: personas.filter(p => p.difficulty === 'medium_regard'),
+    low_regard:    personas.filter(p => p.difficulty === 'low_regard'),
+    no_regard:     personas.filter(p => p.difficulty === 'no_regard'),
   };
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h3 className="text-2xl font-serif-display text-[#2C2825] mb-2">
-            Choose Your Guest
-          </h3>
-          <p className="text-stone-500">
-            Select a guest scenario to practice with. Each has different challenges and objections.
-          </p>
+    <div style={{ flex: 1, overflow: 'auto', background: AT.bg, padding: '28px 40px 48px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 28 }}>
+        <div>
+          <div style={{ fontFamily: AT.display, fontSize: 40, fontWeight: 600, letterSpacing: '-0.025em', lineHeight: 1, color: AT.ink }}>
+            Pick your <span style={{ color: AT.terra, fontStyle: 'italic' }}>customer</span>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 14, color: AT.inkSoft, maxWidth: 540 }}>
+            Each persona has their own goals, objections, and a regard level — how warm they are toward your pitch.
+          </div>
         </div>
-
-        <div className="space-y-6">
-          {(['high_regard', 'medium_regard', 'low_regard', 'no_regard'] as Difficulty[]).map((difficulty) => {
-            const group = groupedPersonas[difficulty];
-            if (group.length === 0) return null;
-
-            const colors = DIFFICULTY_COLORS[difficulty];
-
-            return (
-              <div key={difficulty}>
-                <div className="flex items-center gap-2 mb-3">
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${colors.bg} ${colors.text}`}
-                  >
-                    {colors.label}
-                  </span>
-                  <span className="text-xs text-stone-400">
-                    {group.length} scenario{group.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {group.map((persona) => {
-                    // Hide details for low/no regard OR if name is missing (evaluation mode)
-                    const hideDetails =
-                      difficulty === 'low_regard' ||
-                      difficulty === 'no_regard' ||
-                      !persona.name;
-
-                    return (
-                      <button
-                        key={persona.id}
-                        onClick={() => onSelect(persona)}
-                        className="w-full text-left bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-stone-200 hover:border-stone-300 hover:shadow-lg transition-all group"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="flex-1 min-w-0">
-                            {hideDetails ? (
-                              <>
-                                <p className="text-sm text-stone-500 mb-2">
-                                  {persona.backstory}
-                                </p>
-                              </>
-                            ) : (
-                              <>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-medium text-[#2C2825]">{persona.name}</h4>
-                                </div>
-                                <p className="text-sm text-stone-500 mb-2 line-clamp-2">
-                                  {persona.backstory}
-                                </p>
-                              </>
-                            )}
-                          </div>
-                          <ChevronRight className="w-5 h-5 text-stone-300 group-hover:text-stone-500 flex-shrink-0 mt-1 transition-colors" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <FilterChip active>All regards</FilterChip>
+          <FilterChip>New only</FilterChip>
+          <FilterChip>Unbeaten</FilterChip>
         </div>
+      </div>
 
-        <div className="mt-8 text-center">
-          <button
-            onClick={onCancel}
-            className="px-6 py-2 text-stone-500 hover:text-stone-700 text-sm font-bold uppercase tracking-wider transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+      {/* Tiers */}
+      {DIFFICULTY_ORDER.map(difficulty => {
+        const group = grouped[difficulty];
+        if (group.length === 0) return null;
+        return (
+          <div key={difficulty} style={{ marginBottom: 28 }}>
+            <TierHeader difficulty={difficulty} count={group.length} />
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+              gap: 10,
+            }}>
+              {group.map(persona => (
+                <PersonaCard
+                  key={persona.id}
+                  persona={persona}
+                  difficulty={difficulty}
+                  onClick={() => onSelect(persona)}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <div style={{ textAlign: 'center', marginTop: 8 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            background: 'none', border: 'none',
+            fontFamily: AT.mono, fontSize: 11,
+            color: AT.inkMuted, letterSpacing: '0.12em',
+            textTransform: 'uppercase', cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
