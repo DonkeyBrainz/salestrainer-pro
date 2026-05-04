@@ -16,6 +16,7 @@ from app.api.health import router as health_router
 from app.api.personas import router as personas_router
 from app.api.products import router as products_router
 from app.api.sessions import router as sessions_router
+from app.api.users import router as users_router
 from app.api.websocket import router as websocket_router
 from app.config import get_settings
 from app.core.exceptions import AppError
@@ -242,6 +243,7 @@ app.include_router(gemini_router, prefix="/api/v1", tags=["Gemini"])
 app.include_router(personas_router, tags=["Personas"])
 app.include_router(products_router, tags=["Products"])
 app.include_router(sessions_router, tags=["Sessions"])
+app.include_router(users_router, tags=["Users"])
 app.include_router(websocket_router, tags=["WebSocket"])
 
 
