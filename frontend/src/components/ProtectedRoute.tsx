@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
-import AmbientBackground from '@/components/AmbientBackground';
+import { AT } from '@/styles/tokens';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -13,12 +13,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen bg-[#F9F8F6] text-[#2C2825] font-sans overflow-hidden relative">
-        <AmbientBackground mode={null} audioLevel={0} sentiment="neutral" />
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-          <Loader2 className="w-12 h-12 text-[#8B5E3C] animate-spin mb-4" />
-          <p className="text-stone-500 text-lg">Loading...</p>
-        </div>
+      <div style={{
+        height: '100vh', background: AT.bg,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        fontFamily: AT.sans,
+      }}>
+        <Loader2 style={{ width: 32, height: 32, color: AT.terra, marginBottom: 16, animation: 'spin 1s linear infinite' }} />
+        <p style={{ fontFamily: AT.mono, fontSize: 12, color: AT.inkMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          Loading...
+        </p>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }

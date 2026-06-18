@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SessionSummary } from '@/types';
 import { Dumbbell, Trophy, Clock, User, MessageSquare } from 'lucide-react';
+import { AT } from '@/styles/tokens';
 
 interface SessionCardProps {
   session: SessionSummary;
@@ -8,6 +9,7 @@ interface SessionCardProps {
 }
 
 const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
+  const [hovered, setHovered] = useState(false);
   const isEvaluation = session.sessionType === 'evaluation';
 
   const formatDate = (dateString: string) => {
@@ -17,125 +19,141 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 60) {
-      return diffMins <= 1 ? 'Just now' : `${diffMins} minutes ago`;
-    } else if (diffHours < 24) {
-      return diffHours === 1 ? '1 hour ago' : `${diffHours} hours ago`;
-    } else if (diffDays < 7) {
-      return diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
+    if (diffMins < 60) return diffMins <= 1 ? 'Just now' : `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const formatDuration = (seconds: number | null) => {
-    if (!seconds) return 'N/A';
+    if (!seconds) return '—';
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getGradeColor = (grade: string | null) => {
-    if (!grade) return 'text-stone-400';
+  const gradeColor = (grade: string | null) => {
+    if (!grade) return AT.inkMuted;
     switch (grade) {
-      case 'A': return 'text-emerald-600';
-      case 'B': return 'text-blue-600';
-      case 'C': return 'text-amber-600';
-      case 'D': return 'text-orange-600';
-      case 'F': return 'text-red-600';
-      default: return 'text-stone-400';
+      case 'A': return AT.sage;
+      case 'B': return AT.sage;
+      case 'C': return AT.butter;
+      case 'D': return AT.terra;
+      case 'F': return AT.terra;
+      default: return AT.inkMuted;
+    }
+  };
+
+  const diffColor = () => {
+    switch (session.difficulty) {
+      case 'high_regard': return AT.sage;
+      case 'medium_regard': return AT.butter;
+      case 'low_regard': return AT.terra;
+      default: return AT.inkMuted;
+    }
+  };
+
+  const diffLabel = () => {
+    switch (session.difficulty) {
+      case 'high_regard': return 'High regard';
+      case 'medium_regard': return 'Med regard';
+      case 'low_regard': return 'Low regard';
+      default: return 'Unknown';
     }
   };
 
   return (
     <div
       onClick={() => onClick(session.sessionId)}
-      className="group bg-white/80 backdrop-blur-md rounded-xl p-6 border border-stone-200 shadow-sm hover:shadow-xl transition-all cursor-pointer hover:-translate-y-0.5"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: AT.surface,
+        border: `1px solid ${hovered ? AT.hair : AT.hairSoft}`,
+        borderRadius: 12, padding: '18px 20px',
+        cursor: 'pointer',
+        transition: 'border-color 0.15s, transform 0.15s',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+      }}
     >
-      {/* Header: Type Badge + Date */}
-      <div className="flex items-center justify-between mb-4">
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-          isEvaluation
-            ? 'bg-red-50 text-red-600'
-            : 'bg-amber-50 text-amber-700'
-        }`}>
-          {isEvaluation ? <Trophy className="w-3 h-3" /> : <Dumbbell className="w-3 h-3" />}
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '4px 10px', borderRadius: 6,
+          background: isEvaluation ? AT.terra + '18' : AT.sage + '18',
+          color: isEvaluation ? AT.terra : AT.sage,
+          fontFamily: AT.mono, fontSize: 10,
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+        }}>
+          {isEvaluation ? <Trophy size={10} /> : <Dumbbell size={10} />}
           {session.sessionType}
         </div>
-        <span className="text-xs text-stone-400 uppercase tracking-wider">
+        <span style={{ fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted, letterSpacing: '0.08em' }}>
           {formatDate(session.startedAt)}
         </span>
       </div>
 
-      {/* Persona Name */}
-      <div className="flex items-center gap-2 mb-3">
-        <User className="w-4 h-4 text-stone-400" />
-        <h3 className="font-serif-display text-lg text-stone-800">
+      {/* Persona */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 6,
+          background: AT.surface2, color: AT.inkSoft,
+          display: 'grid', placeItems: 'center',
+        }}>
+          <User size={14} />
+        </div>
+        <div style={{ fontFamily: AT.display, fontSize: 16, fontWeight: 500, color: AT.ink }}>
           {session.selectedPersona || 'Unknown Persona'}
-        </h3>
-      </div>
-
-      {/* Metadata Grid */}
-      <div className="grid grid-cols-3 gap-3 mb-4 text-sm">
-        <div className="flex items-center gap-1.5 text-stone-500">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{formatDuration(session.duration)}</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-stone-500">
-          <MessageSquare className="w-3.5 h-3.5" />
-          <span>{session.messageCount} msgs</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-stone-500">
-          <span className={`w-2 h-2 rounded-full ${
-            session.difficulty === 'high_regard' ? 'bg-emerald-500' :
-            session.difficulty === 'medium_regard' ? 'bg-amber-500' :
-            session.difficulty === 'low_regard' ? 'bg-red-500' :
-            'bg-stone-500'
-          }`} />
-          <span className="text-xs">{
-            session.difficulty === 'high_regard' ? 'High Regard' :
-            session.difficulty === 'medium_regard' ? 'Medium Regard' :
-            session.difficulty === 'low_regard' ? 'Low Regard' :
-            'No Regard'
-          }</span>
         </div>
       </div>
 
-      {/* Grade/Score Display */}
+      {/* Meta row */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted }}>
+          <Clock size={11} />{formatDuration(session.duration)}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted }}>
+          <MessageSquare size={11} />{session.messageCount} msgs
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: AT.mono, fontSize: 10 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', background: diffColor() }} />
+          <span style={{ color: AT.inkMuted }}>{diffLabel()}</span>
+        </div>
+      </div>
+
+      {/* Score / grade */}
       {(session.score !== null || (session.hasEvaluation && session.grade)) && (
-        <div className="pt-3 border-t border-stone-200">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs text-stone-400 uppercase tracking-wider">
-                {session.hasEvaluation ? 'Grade' : 'Score'}
+        <div style={{ paddingTop: 12, borderTop: `1px solid ${AT.hair}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {session.score !== null && (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontFamily: AT.display, fontSize: 28, fontWeight: 700, color: AT.ink }}>
+                {session.score}
               </span>
-              {session.score !== null && (
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-stone-700">
-                    {session.score}
-                  </span>
-                  <span className="text-sm text-stone-400">/100</span>
-                </div>
-              )}
+              <span style={{ fontFamily: AT.mono, fontSize: 11, color: AT.inkMuted }}>/100</span>
             </div>
-            {session.hasEvaluation && session.grade && (
-              <span className={`text-4xl font-serif-display font-bold ${getGradeColor(session.grade)}`}>
-                {session.grade}
-              </span>
-            )}
-          </div>
+          )}
+          {session.hasEvaluation && session.grade && (
+            <div style={{
+              fontFamily: AT.display, fontSize: 28, fontWeight: 700,
+              color: gradeColor(session.grade),
+            }}>
+              {session.grade}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Status Badge (if not completed) */}
+      {/* Status chip */}
       {session.status !== 'completed' && (
-        <div className="pt-3 border-t border-stone-200">
-          <span className={`text-xs px-2 py-1 rounded-full uppercase tracking-wider font-bold ${
-            session.status === 'active' ? 'bg-blue-50 text-blue-600' :
-            session.status === 'paused' ? 'bg-amber-50 text-amber-600' :
-            'bg-stone-100 text-stone-500'
-          }`}>
+        <div style={{ paddingTop: 10, borderTop: `1px solid ${AT.hair}` }}>
+          <span style={{
+            display: 'inline-block',
+            padding: '3px 10px', borderRadius: 999,
+            fontFamily: AT.mono, fontSize: 10,
+            letterSpacing: '0.1em', textTransform: 'uppercase',
+            background: AT.surface2, color: AT.inkMuted,
+          }}>
             {session.status}
           </span>
         </div>

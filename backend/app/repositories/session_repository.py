@@ -103,6 +103,23 @@ class SessionRepository(BaseRepository):
             if doc.to_dict().get("status") != SessionStatus.ABANDONED.value
         ]
 
+    async def list_all_completed_by_user(self, user_id: str) -> list[Session]:
+        """List all completed sessions for a user, sorted newest-first.
+
+        Used for streak and dashboard stats computation. Fetches everything in
+        Python to avoid composite Firestore index requirements.
+        """
+        query = self.collection.where("user_id", "==", user_id)
+        docs = await query.get()
+        sessions = [
+            self._doc_to_session(doc.id, doc.to_dict())
+            for doc in docs
+            if not doc.to_dict().get("is_deleted", False)
+            and doc.to_dict().get("status") == SessionStatus.COMPLETED.value
+        ]
+        sessions.sort(key=lambda s: s.started_at, reverse=True)
+        return sessions
+
     async def list_by_user_with_pagination(
         self,
         user_id: str,

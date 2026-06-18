@@ -4,55 +4,76 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SalesTrainer Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=Montserrat:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root {
-        --color-stone-50: #F9F8F6;
-        --color-stone-100: #F0EFEA;
-        --color-stone-800: #2C2825;
-        --color-stone-900: #1A1816;
-        --color-accent: #8B5E3C;
+        --bg:         #0e1410;
+        --surface:    #161d18;
+        --surface-2:  #1d2620;
+        --hair:       #2a342c;
+        --hair-soft:  #202a23;
+        --ink:        #eef2ec;
+        --ink-soft:   #a9b3a8;
+        --ink-muted:  #6a7569;
+        --terra:      #ff7a48;
+        --terra-dim:  #5a3424;
+        --sage:       #9bd07c;
+        --sage-dim:   #3e5a3a;
+        --butter:     #f0c14a;
+        --off:        #f1ebe0;
       }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: 'Montserrat', sans-serif;
-        background-color: var(--color-stone-50);
-        color: var(--color-stone-900);
+        font-family: 'Inter', system-ui, sans-serif;
+        background-color: var(--bg);
+        color: var(--ink);
         margin: 0;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
-      h1, h2, h3, h4, h5, h6 {
-        font-family: 'Cormorant Garamond', serif;
-      }
-      .font-serif-display {
-        font-family: 'Cormorant Garamond', serif;
-      }
+
       ::-webkit-scrollbar {
-        width: 6px;
+        width: 4px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #d6d3d1;
-        border-radius: 3px;
+        background: var(--hair);
+        border-radius: 2px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #a8a29e;
+        background: var(--ink-muted);
       }
 
-      .fade-in {
-        animation: fadeIn 0.8s ease-out forwards;
-        opacity: 0;
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
       }
-      .fade-in-delay-1 { animation-delay: 0.2s; }
-      .fade-in-delay-2 { animation-delay: 0.4s; }
+      .animate-fade-in {
+        animation: fadeInUp 0.4s ease-out forwards;
+      }
 
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+      @keyframes pulse-dot {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
+      }
+      .pulse-dot {
+        animation: pulse-dot 1.4s ease-in-out infinite;
+      }
+
+      @keyframes slide-in-right {
+        from { opacity: 0; transform: translateX(12px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      .slide-in-right {
+        animation: slide-in-right 0.2s ease-out forwards;
       }
     </style>
   </head>

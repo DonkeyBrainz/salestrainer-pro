@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { CheckCircle2, Circle, ChevronDown, ChevronRight } from 'lucide-react';
+import React, { useMemo } from 'react';
 import { SalesStage } from '@/types';
+import { AT } from '@/styles/tokens';
 
 interface CoreChecklistProps {
   currentStage: SalesStage;
@@ -8,209 +8,107 @@ interface CoreChecklistProps {
   className?: string;
 }
 
-interface ChecklistItem {
-  id: string;
-  label: string;
-}
-
-interface StageConfig {
-  name: SalesStage;
-  title: string;
-  items: ChecklistItem[];
-}
-
-const STAGE_CONFIGS: StageConfig[] = [
+const STAGE_CONFIGS = [
   {
-    name: 'CONNECT',
+    name: 'CONNECT' as SalesStage,
+    letter: 'C',
     title: 'Connect',
-    items: [
-      { id: 'warm_greeting', label: 'Warm Greeting' },
-      { id: 'establish_credibility', label: 'Establish Credibility' },
-      { id: 'create_comfort', label: 'Create Comfort' },
-    ],
+    items: ['warm_greeting', 'establish_credibility', 'create_comfort'],
   },
   {
-    name: 'OBSERVE',
+    name: 'OBSERVE' as SalesStage,
+    letter: 'O',
     title: 'Observe',
-    items: [
-      { id: 'needs_discovery', label: 'Needs Discovery' },
-      { id: 'goal_identification', label: 'Goal Identification' },
-      { id: 'motivator_mapping', label: 'Motivator Mapping' },
-    ],
+    items: ['needs_discovery', 'goal_identification', 'motivator_mapping'],
   },
   {
-    name: 'RECOMMEND',
+    name: 'RECOMMEND' as SalesStage,
+    letter: 'R',
     title: 'Recommend',
-    items: [
-      { id: 'solution_presentation', label: 'Solution Presentation' },
-      { id: 'value_connection', label: 'Value Connection' },
-      { id: 'risk_mitigation', label: 'Risk Mitigation' },
-    ],
+    items: ['solution_presentation', 'value_connection', 'risk_mitigation'],
   },
   {
-    name: 'EXECUTE',
+    name: 'EXECUTE' as SalesStage,
+    letter: 'E',
     title: 'Execute',
-    items: [
-      { id: 'commitment_request', label: 'Commitment Request' },
-      { id: 'objection_handling', label: 'Objection Handling' },
-      { id: 'finalize_agreement', label: 'Finalize Agreement' },
-    ],
+    items: ['commitment_request', 'objection_handling', 'finalize_agreement'],
   },
 ];
 
-const CoreChecklist: React.FC<CoreChecklistProps> = ({
-  currentStage,
-  completedItems,
-  className = '',
-}) => {
-  // Track which stages are expanded (current stage expanded by default)
-  const [expandedStages, setExpandedStages] = useState<Set<SalesStage>>(
-    new Set([currentStage])
-  );
+const STAGE_ORDER: SalesStage[] = ['CONNECT', 'OBSERVE', 'RECOMMEND', 'EXECUTE'];
 
-  // Update expanded stages when currentStage changes
-  React.useEffect(() => {
-    setExpandedStages((prev) => new Set([...prev, currentStage]));
-  }, [currentStage]);
-
-  const toggleStage = (stageName: SalesStage) => {
-    setExpandedStages((prev) => {
-      const next = new Set(prev);
-      if (next.has(stageName)) {
-        next.delete(stageName);
-      } else {
-        next.add(stageName);
-      }
-      return next;
-    });
-  };
-
-  // Calculate stage completion stats
+const CoreChecklist: React.FC<CoreChecklistProps> = ({ currentStage, completedItems }) => {
   const stageStats = useMemo(() => {
-    return STAGE_CONFIGS.map((stage) => {
-      const totalItems = stage.items.length;
-      const completedCount = stage.items.filter((item) =>
-        completedItems.includes(item.id)
-      ).length;
-      return {
-        name: stage.name,
-        completedCount,
-        totalItems,
-        isComplete: completedCount === totalItems,
-      };
+    return STAGE_CONFIGS.map(stage => {
+      const completed = stage.items.filter(id => completedItems.includes(id)).length;
+      return { name: stage.name, completed, total: stage.items.length };
     });
   }, [completedItems]);
 
+  const currentIdx = STAGE_ORDER.indexOf(currentStage);
+
   return (
-    <div
-      className={`bg-gray-900 border border-gray-700 rounded-lg shadow-lg overflow-hidden ${className}`}
-    >
-      {/* Header */}
-      <div className="px-4 py-3 bg-gray-800 border-b border-gray-700">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-100">
-          C.O.R.E. Selling System
-        </h3>
-      </div>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: 0,
+      borderBottom: `1px solid ${AT.hair}`,
+      background: AT.bg,
+    }}>
+      {STAGE_CONFIGS.map((stage, i) => {
+        const stats = stageStats[i];
+        const isActive = stage.name === currentStage;
+        const isDone = currentIdx > i;
+        const isPending = currentIdx < i;
+        const pct = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
 
-      {/* Stages List */}
-      <div className="divide-y divide-gray-700">
-        {STAGE_CONFIGS.map((stage, stageIndex) => {
-          const isExpanded = expandedStages.has(stage.name);
-          const isCurrent = currentStage === stage.name;
-          const stats = stageStats[stageIndex];
-
-          return (
-            <div key={stage.name} className="group">
-              {/* Stage Header - Clickable */}
-              <button
-                onClick={() => toggleStage(stage.name)}
-                className={`
-                  w-full px-4 py-3 flex items-center justify-between
-                  transition-colors hover:bg-gray-800
-                  ${isCurrent ? 'bg-gray-800' : 'bg-gray-900'}
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  {/* Expand/Collapse Icon */}
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  )}
-
-                  {/* Stage Title */}
-                  <span
-                    className={`
-                      text-sm font-bold uppercase tracking-wider
-                      ${isCurrent ? 'text-emerald-400' : 'text-gray-300'}
-                    `}
-                  >
-                    {stage.title}
-                  </span>
+        return (
+          <div
+            key={stage.name}
+            style={{
+              padding: '12px 14px',
+              borderBottom: isActive ? `2px solid ${AT.terra}` : '2px solid transparent',
+              borderRight: i < 3 ? `1px solid ${AT.hair}` : 'none',
+              opacity: isPending ? 0.45 : 1,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: 6,
+                background: isActive ? AT.terra : isDone ? AT.sage + '22' : AT.surface2,
+                color: isActive ? AT.bg : isDone ? AT.sage : AT.inkSoft,
+                fontFamily: AT.display, fontSize: 13, fontWeight: 700,
+                display: 'grid', placeItems: 'center',
+                transition: 'background 0.2s, color 0.2s',
+              }}>
+                {stage.letter}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{
+                  fontFamily: AT.mono, fontSize: 10.5,
+                  letterSpacing: '0.16em',
+                  color: isActive ? AT.ink : AT.inkSoft,
+                  textTransform: 'uppercase',
+                }}>
+                  {stage.title}
                 </div>
-
-                {/* Progress Badge */}
-                <div
-                  className={`
-                    flex items-center gap-2 text-xs font-bold
-                    ${
-                      stats.isComplete
-                        ? 'text-emerald-400'
-                        : isCurrent
-                        ? 'text-amber-400'
-                        : 'text-gray-500'
-                    }
-                  `}
-                >
-                  <span>
-                    {stats.completedCount}/{stats.totalItems}
-                  </span>
-                  {stats.isComplete && (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
+                <div style={{ height: 3, background: AT.hair, borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${pct}%`,
+                    height: '100%',
+                    background: isDone ? AT.sage : AT.terra,
+                    transition: 'width 0.3s ease-out',
+                  }} />
                 </div>
-              </button>
-
-              {/* Checklist Items - Collapsible */}
-              {isExpanded && (
-                <div className="px-4 py-2 bg-gray-900/50 space-y-2">
-                  {stage.items.map((item) => {
-                    const isCompleted = completedItems.includes(item.id);
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-start gap-3 px-2 py-1.5"
-                      >
-                        {/* Checkbox Icon */}
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5" />
-                        )}
-
-                        {/* Item Label */}
-                        <span
-                          className={`
-                            text-sm leading-snug
-                            ${
-                              isCompleted
-                                ? 'text-gray-400 line-through'
-                                : 'text-gray-300'
-                            }
-                          `}
-                        >
-                          {item.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
+              <div style={{ fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted, letterSpacing: '0.1em' }}>
+                {stats.completed}/{stats.total}
+              </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 };

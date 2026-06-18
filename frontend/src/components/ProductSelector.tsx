@@ -1,11 +1,42 @@
 import React, { useEffect, useState } from 'react';
 import { fetchProducts, ProductCategory } from '@/services/productService';
-import { Loader2, AlertCircle, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react';
+import { AT } from '@/styles/tokens';
 
 interface ProductSelectorProps {
   onSelect: (categoryId: string, typeId: string | null) => void;
   onSkip: () => void;
   onBack: () => void;
+}
+
+function CategoryRow({ category, onSelect }: { category: ProductCategory; onSelect: (id: string, typeId: string | null) => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={() => onSelect(category.id, null)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        textAlign: 'left', width: '100%',
+        background: AT.surface,
+        border: `1px solid ${hovered ? AT.terra + '60' : AT.hair}`,
+        borderRadius: 12, padding: '16px 18px',
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        transition: 'border-color 0.15s',
+      }}
+    >
+      <div>
+        <div style={{ fontFamily: AT.display, fontSize: 16, fontWeight: 600, color: AT.ink, marginBottom: 4 }}>
+          {category.name}
+        </div>
+        <div style={{ fontSize: 13, color: AT.inkSoft }}>{category.description}</div>
+      </div>
+      <div style={{ fontFamily: AT.mono, fontSize: 14, color: hovered ? AT.terra : AT.inkMuted, transition: 'color 0.15s', marginLeft: 16 }}>
+        ›
+      </div>
+    </button>
+  );
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({ onSelect, onSkip, onBack }) => {
@@ -26,33 +57,41 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({ onSelect, onSkip, onB
         setIsLoading(false);
       }
     };
-
     loadProducts();
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 text-[#8B5E3C] animate-spin mx-auto mb-4" />
-          <p className="text-stone-500">Loading collections...</p>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: AT.bg }}>
+        <div style={{ textAlign: 'center' }}>
+          <Loader2 style={{ width: 32, height: 32, color: AT.terra, margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
+          <p style={{ fontFamily: AT.mono, fontSize: 12, color: AT.inkMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Loading collections...
+          </p>
         </div>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h3 className="text-xl font-serif-display text-[#2C2825] mb-3">
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: AT.bg, padding: 24 }}>
+        <div style={{ textAlign: 'center', maxWidth: 400 }}>
+          <AlertCircle style={{ width: 48, height: 48, color: AT.terra, margin: '0 auto 16px' }} />
+          <h3 style={{ fontFamily: AT.display, fontSize: 22, fontWeight: 600, color: AT.ink, marginBottom: 8 }}>
             Unable to Load Collections
           </h3>
-          <p className="text-stone-500 mb-6">{error}</p>
+          <p style={{ color: AT.inkSoft, fontSize: 14, marginBottom: 24 }}>{error}</p>
           <button
             onClick={onBack}
-            className="px-6 py-2 bg-stone-200 hover:bg-stone-300 rounded-full text-sm font-bold uppercase tracking-wider text-stone-600 transition-colors"
+            style={{
+              padding: '10px 24px', borderRadius: 8,
+              background: AT.surface2, color: AT.ink,
+              border: `1px solid ${AT.hair}`,
+              fontFamily: AT.mono, fontSize: 12,
+              letterSpacing: '0.1em', cursor: 'pointer',
+            }}
           >
             Go Back
           </button>
@@ -62,46 +101,46 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({ onSelect, onSkip, onB
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h3 className="text-2xl font-serif-display text-[#2C2825] mb-2">
-            Choose a Collection
-          </h3>
-          <p className="text-stone-500">
-            Select a product collection to focus the conversation, or skip to practice without a specific product.
-          </p>
+    <div style={{ flex: 1, overflow: 'auto', background: AT.bg, padding: '28px 40px 48px' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontFamily: AT.display, fontSize: 36, fontWeight: 600, letterSpacing: '-0.02em', color: AT.ink, lineHeight: 1 }}>
+            Choose a <span style={{ color: AT.terra, fontStyle: 'italic' }}>collection</span>
+          </div>
+          <div style={{ marginTop: 10, fontSize: 14, color: AT.inkSoft, lineHeight: 1.5 }}>
+            Focus the conversation on a specific product, or skip to practice any scenario.
+          </div>
         </div>
 
-        <div className="space-y-3">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => onSelect(category.id, null)}
-              className="w-full text-left bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-stone-200 hover:border-stone-300 hover:shadow-lg transition-all group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-[#2C2825] mb-1">{category.name}</h4>
-                  <p className="text-sm text-stone-500">{category.description}</p>
-                </div>
-                <ChevronRight className="w-5 h-5 text-stone-300 group-hover:text-stone-500 flex-shrink-0 transition-colors" />
-              </div>
-            </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {categories.map((category: ProductCategory) => (
+            <CategoryRow key={category.id} category={category} onSelect={onSelect} />
           ))}
         </div>
 
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div style={{ marginTop: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
           <button
             onClick={onBack}
-            className="flex items-center gap-1 px-6 py-2 text-stone-500 hover:text-stone-700 text-sm font-bold uppercase tracking-wider transition-colors"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'none', border: 'none',
+              fontFamily: AT.mono, fontSize: 11,
+              color: AT.inkMuted, letterSpacing: '0.12em',
+              textTransform: 'uppercase', cursor: 'pointer',
+            }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back
+            <ArrowLeft size={12} /> Back
           </button>
           <button
             onClick={onSkip}
-            className="px-6 py-2 bg-stone-200 hover:bg-stone-300 rounded-full text-sm font-bold uppercase tracking-wider text-stone-600 transition-colors"
+            style={{
+              padding: '8px 20px', borderRadius: 8,
+              background: AT.surface2, color: AT.inkSoft,
+              border: `1px solid ${AT.hair}`,
+              fontFamily: AT.mono, fontSize: 11,
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
           >
             Skip
           </button>

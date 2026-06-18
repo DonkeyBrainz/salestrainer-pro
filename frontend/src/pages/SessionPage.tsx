@@ -1,14 +1,13 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import VoiceSession from '@/components/VoiceSession';
-import AmbientBackground from '@/components/AmbientBackground';
 import { AppMode } from '@/types';
+import { AT } from '@/styles/tokens';
 
 const SessionPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Map URL path to AppMode
   const appMode = location.pathname === '/training' ? AppMode.TRAINING : AppMode.EVALUATION;
 
   const handleBack = () => {
@@ -16,8 +15,12 @@ const SessionPage: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#F9F8F6] text-[#2C2825] font-sans overflow-hidden relative">
-      <AmbientBackground mode={appMode} audioLevel={0} sentiment="neutral" />
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: AT.bg, color: AT.ink,
+      fontFamily: AT.sans,
+      overflow: 'hidden',
+    }}>
       <VoiceSession mode={appMode} onBack={handleBack} />
     </div>
   );
