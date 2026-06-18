@@ -1,7 +1,8 @@
 # ---------------------------------------------------------------------------
 # Secret Manager
 #
-# Terraform creates the secret "containers" only. Populate values manually:
+# Terraform creates the secret "containers" only. Secret VALUES (versions) are
+# populated and rotated manually / out of band - Terraform does not track them:
 #
 #   echo -n "value" | gcloud secrets versions add SECRET_NAME --data-file=-
 #
@@ -48,26 +49,6 @@ resource "google_secret_manager_secret" "jwt_secret_key" {
   depends_on = [google_project_service.apis]
 }
 
-# ---------------------------------------------------------------------------
-# Initial empty secret versions (so Cloud Run can start)
-# ---------------------------------------------------------------------------
-
-resource "google_secret_manager_secret_version" "gemini_api_key_placeholder" {
-  secret      = google_secret_manager_secret.gemini_api_key.id
-  secret_data = "placeholder-update-me"
-}
-
-resource "google_secret_manager_secret_version" "google_oauth_client_id_placeholder" {
-  secret      = google_secret_manager_secret.google_oauth_client_id.id
-  secret_data = "placeholder-update-me"
-}
-
-resource "google_secret_manager_secret_version" "google_oauth_client_secret_placeholder" {
-  secret      = google_secret_manager_secret.google_oauth_client_secret.id
-  secret_data = "placeholder-update-me"
-}
-
-resource "google_secret_manager_secret_version" "jwt_secret_key_placeholder" {
-  secret      = google_secret_manager_secret.jwt_secret_key.id
-  secret_data = "placeholder-update-me-with-random-string"
-}
+# NOTE: The initial "placeholder-update-me" bootstrap versions that used to live
+# here have been removed. Real secret values are managed manually (versions 2+),
+# so Terraform no longer tracks secret versions - only the containers above.

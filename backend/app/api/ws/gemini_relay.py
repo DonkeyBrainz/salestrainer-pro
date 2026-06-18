@@ -176,22 +176,19 @@ class GeminiWebSocketRelay:
             },
         )
 
-        # Create session in Firestore
-        try:
-            session_create = SessionCreate(
-                user_id=user_id,
-                session_type=session_mode,
-                difficulty=Difficulty(persona.difficulty),
-                selected_persona=persona_id,
-                product_category=persona.product_category,
-                product_type=persona.product_type,
-            )
-            session = await self.session_service.start_session(session_create)
-            self._session_id = session.session_id
-            logger.info(f"Created session {session.session_id} for user {user_id}")
-        except Exception as e:
-            logger.error(f"Failed to create session: {e}", exc_info=True)
-            # Continue anyway - session creation failure shouldn't block WebSocket
+        # Create session in Firestore. Fired as a background task rather than
+        # awaited here so the write overlaps with the Gemini Live handshake below
+        # instead of stacking in front of it - resolved in _run_with_reconnection
+        # right after the (slower) Gemini connection completes.
+        session_create = SessionCreate(
+            user_id=user_id,
+            session_type=session_mode,
+            difficulty=Difficulty(persona.difficulty),
+            selected_persona=persona_id,
+            product_category=persona.product_category,
+            product_type=persona.product_type,
+        )
+        session_task = asyncio.create_task(self.session_service.start_session(session_create))
 
         # Initialize customer agent with persona
         try:
@@ -220,6 +217,7 @@ class GeminiWebSocketRelay:
                 user_id=user_id,
                 system_instruction=system_instruction,
                 voice_name=persona.voice_name,
+                session_task=session_task,
             )
 
         except WebSocketDisconnect:
@@ -274,6 +272,16 @@ class GeminiWebSocketRelay:
                 pass
 
         finally:
+            # Resolve the session-create task if a Gemini connection failure (or
+            # other error) happened before _run_with_reconnection reached it, so
+            # the background write isn't left unawaited.
+            if not session_task.done():
+                try:
+                    session = await session_task
+                    self._session_id = self._session_id or session.session_id
+                except Exception as e:
+                    logger.error(f"Failed to create session: {e}", exc_info=True)
+
             # Persist conversation
             if self._session_id and self._message_buffer:
                 try:
@@ -289,6 +297,7 @@ class GeminiWebSocketRelay:
         user_id: str,
         system_instruction: str | None,
         voice_name: str | None = None,
+        session_task: "asyncio.Task[Any] | None" = None,
     ) -> None:
         """Run relay loop with automatic reconnection on Gemini disconnect.
 
@@ -302,6 +311,9 @@ class GeminiWebSocketRelay:
             user_id: User ID for logging
             system_instruction: System instruction for Gemini session
             voice_name: Optional Gemini voice identifier
+            session_task: Pending Firestore session-create task, if any. Resolved
+                here (after the Gemini handshake) so the write overlaps with the
+                handshake instead of blocking it.
 
         Raises:
             WebSocketDisconnect: When client disconnects
@@ -322,6 +334,20 @@ class GeminiWebSocketRelay:
                 ) as live_session:
                     # Reset attempts on successful connect
                     self._reconnect_attempts = 0
+
+                    # Resolve the Firestore session-create task. By now the Gemini
+                    # handshake above has already given the event loop time to run
+                    # it, so this normally returns immediately.
+                    if session_task is not None and self._session_id is None:
+                        try:
+                            session = await session_task
+                            self._session_id = session.session_id
+                            if self._agent_state:
+                                self._agent_state["session_id"] = session.session_id
+                            logger.info(f"Created session {session.session_id} for user {user_id}")
+                        except Exception as e:
+                            logger.error(f"Failed to create session: {e}", exc_info=True)
+                            # Continue anyway - session creation failure shouldn't block the relay
 
                     # Notify client of connection status
                     if resumption_handle:

@@ -230,10 +230,10 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
       setError(null);
       try {
         const wsMode = mode === AppMode.TRAINING ? 'training' : 'evaluation';
-        await connect(selectedPersona?.id, wsMode);
-        await startMic();
+        await Promise.all([connect(selectedPersona?.id, wsMode), startMic()]);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to start session');
+        stopMic();
         disconnect();
       }
     }
@@ -243,10 +243,10 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
     stopMic(); disconnect(); setError(null);
     try {
       const wsMode = mode === AppMode.TRAINING ? 'training' : 'evaluation';
-      await connect(selectedPersona?.id, wsMode);
-      await startMic();
+      await Promise.all([connect(selectedPersona?.id, wsMode), startMic()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to restart');
+      stopMic();
       disconnect();
     }
   }, [connect, disconnect, startMic, stopMic, selectedPersona, mode]);
