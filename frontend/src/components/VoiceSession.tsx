@@ -130,11 +130,14 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
       setError(null);
       try {
         const wsMode = mode === AppMode.TRAINING ? 'training' : 'evaluation';
-        await connect(selectedPersona?.id, wsMode, selectedProductCategory ?? undefined, selectedProductType ?? undefined);
-        await startMic();
+        await Promise.all([
+          connect(selectedPersona?.id, wsMode, selectedProductCategory ?? undefined, selectedProductType ?? undefined),
+          startMic(),
+        ]);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to start session';
         setError(errorMessage);
+        stopMic();
         disconnect();
       }
     }
@@ -147,11 +150,14 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
     setError(null);
     try {
       const wsMode = mode === AppMode.TRAINING ? 'training' : 'evaluation';
-      await connect(selectedPersona?.id, wsMode, selectedProductCategory ?? undefined, selectedProductType ?? undefined);
-      await startMic();
+      await Promise.all([
+        connect(selectedPersona?.id, wsMode, selectedProductCategory ?? undefined, selectedProductType ?? undefined),
+        startMic(),
+      ]);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to restart session';
       setError(errorMessage);
+      stopMic();
       disconnect();
     }
   }, [connect, disconnect, startMic, stopMic, selectedPersona, selectedProductCategory, selectedProductType, mode]);
