@@ -12,6 +12,7 @@ locals {
     "cloudresourcemanager.googleapis.com",
     "firestore.googleapis.com",
     "storage.googleapis.com",
+    "cloudscheduler.googleapis.com",
   ]
 }
 
@@ -150,6 +151,21 @@ resource "google_cloud_run_v2_service" "backend" {
     }
   }
 
+  # The live service is deployed by CI (gcloud run deploy in backend-deploy.yml),
+  # which owns the container image, env vars/secrets, and (via the Cloud Scheduler
+  # jobs in scheduler.tf) the min-instance count. Terraform only bootstraps the
+  # service shell + IAM, so ignore those deploy-/runtime-managed fields to stop it
+  # reverting them to the placeholder image on every apply.
+  lifecycle {
+    ignore_changes = [
+      client,
+      client_version,
+      template[0].containers[0].image,
+      template[0].containers[0].env,
+      template[0].scaling[0].min_instance_count,
+    ]
+  }
+
   depends_on = [
     google_project_service.apis,
     google_secret_manager_secret.gemini_api_key,
@@ -211,6 +227,15 @@ resource "google_cloud_run_v2_service" "frontend" {
         failure_threshold     = 3
       }
     }
+  }
+
+  # Deployed by CI (gcloud run deploy); Terraform owns the shell + IAM only.
+  lifecycle {
+    ignore_changes = [
+      client,
+      client_version,
+      template[0].containers[0].image,
+    ]
   }
 
   depends_on = [google_project_service.apis]
