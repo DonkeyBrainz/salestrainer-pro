@@ -17,6 +17,7 @@ class PersonaResponse(BaseModel):
     backstory: str
     looking_for: str
     difficulty: str
+    property_id: str | None = None
 
 
 class EvaluationPersonaResponse(BaseModel):
@@ -40,13 +41,20 @@ class EvaluationPersonaListResponse(BaseModel):
 
 
 def _persona_to_response(persona: CustomerPersona) -> PersonaResponse:
-    """Convert CustomerPersona to API response."""
+    """Convert CustomerPersona to API response.
+
+    LOW_REGARD personas withhold their matched property: the trainee must
+    discover the buyer's needs through CORE and recommend a property
+    themselves, rather than being told upfront which one to pitch.
+    """
+    reveals_property = persona.difficulty != Difficulty.LOW_REGARD
     return PersonaResponse(
         id=persona.id,
         name=persona.name,
         backstory=persona.backstory,
         looking_for=persona.looking_for,
         difficulty=persona.difficulty.value,
+        property_id=persona.property_id if reveals_property else None,
     )
 
 

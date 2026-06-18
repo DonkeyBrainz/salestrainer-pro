@@ -47,6 +47,20 @@ class TestListPersonasEndpoint:
         assert "backstory" in persona
         assert "looking_for" in persona
         assert "difficulty" in persona
+        assert "property_id" in persona
+
+    async def test_low_regard_personas_withhold_property_id(self, client: AsyncClient) -> None:
+        """LOW_REGARD personas must require CORE-based discovery, not a given property."""
+        response = await client.get("/api/v1/personas")
+
+        assert response.status_code == status.HTTP_200_OK
+        personas = response.json()["personas"]
+
+        for persona in personas:
+            if persona["difficulty"] == "low_regard":
+                assert persona["property_id"] is None
+            else:
+                assert persona["property_id"] is not None
 
 
 class TestListEvaluationPersonasEndpoint:
