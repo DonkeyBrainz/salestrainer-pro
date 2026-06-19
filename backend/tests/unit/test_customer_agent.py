@@ -28,7 +28,7 @@ from app.services.customer_agent_service import CustomerAgentService
 def mock_settings() -> MagicMock:
     """Mock settings for testing."""
     settings = MagicMock()
-    settings.gemini_model = "gemini-2.0-flash"
+    settings.gemini_model = "gemini-2.5-flash"
     settings.gemini_api_key = "test-key"
     settings.gemini_temperature = 0.7
     settings.gemini_max_tokens = 1024
