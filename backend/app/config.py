@@ -48,13 +48,16 @@ class Settings(BaseSettings):
 
     # Gemini API
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-2.5-flash"
     gemini_live_model: str = "gemini-2.5-flash-native-audio-preview-12-2025"
     gemini_temperature: float = 0.7
+    # Lower temperature for the live voice persona to tighten instruction
+    # adherence (stay in character / in scene) and reduce off-script drift.
+    gemini_live_temperature: float = 0.5
     gemini_max_tokens: int = 1024
 
     # Coach Agent
-    coach_model: str = "gemini-2.0-flash"
+    coach_model: str = "gemini-2.5-flash"
 
     # Database (Firestore)
     gcp_project_id: str = ""
@@ -86,7 +89,7 @@ class Settings(BaseSettings):
     rag_use_reranking: bool = False
     rag_use_conversation_context: bool = False
     rag_use_objection_lookup: bool = True
-    rag_reranking_model: str = "gemini-2.0-flash"
+    rag_reranking_model: str = "gemini-2.5-flash"
     rag_reranking_initial_k: int = 10
     rag_reranking_final_k: int = 3
 

@@ -18,7 +18,7 @@ from app.models.coach import InterventionLevel
 @pytest.fixture
 def analyzer() -> CoachAnalyzer:
     """Create a CoachAnalyzer instance."""
-    return CoachAnalyzer(model="gemini-2.0-flash")
+    return CoachAnalyzer(model="gemini-2.5-flash")
 
 
 @pytest.fixture

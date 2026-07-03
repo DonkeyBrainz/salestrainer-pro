@@ -21,13 +21,13 @@ from app.models.coach import CoachAnalysis, InterventionLevel, StageItemUpdate
 logger = logging.getLogger(__name__)
 
 # Default model for coach analysis
-DEFAULT_COACH_MODEL = "gemini-2.0-flash"
+DEFAULT_COACH_MODEL = "gemini-2.5-flash"
 
 
 class CoachAnalyzer:
     """LLM-based analyzer for salesperson messages.
 
-    Uses Gemini 2.0 Flash to analyze salesperson messages and detect
+    Uses Gemini 2.5 Flash to analyze salesperson messages and detect
     E.A.S.Y. selling techniques, deviations, and determine interventions.
     """
 
@@ -35,7 +35,7 @@ class CoachAnalyzer:
         """Initialize the coach analyzer.
 
         Args:
-            model: Gemini model to use. Defaults to gemini-2.0-flash.
+            model: Gemini model to use. Defaults to gemini-2.5-flash.
         """
         settings = get_settings()
         self._model = model or settings.coach_model or DEFAULT_COACH_MODEL
