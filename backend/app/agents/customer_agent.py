@@ -6,6 +6,7 @@ realistic conversational behavior based on the selected persona.
 """
 
 import random
+import re
 from typing import Any, Literal, cast
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
@@ -21,6 +22,53 @@ from app.agents.state import (
     RegardLevel,
 )
 from app.config import Settings
+
+# Words/phrases that signal the salesperson is being disrespectful toward the
+# customer. Single words are matched against the message's word set (so benign
+# text like "hello" containing "hell", or "class" containing "ass", never trips
+# the flag); phrases are matched as substrings.
+_INSULT_WORDS: frozenset[str] = frozenset(
+    {
+        "stupid",
+        "idiot",
+        "idiotic",
+        "idiots",
+        "moron",
+        "moronic",
+        "dumb",
+        "dumbass",
+        "useless",
+        "incompetent",
+        "pathetic",
+        "clueless",
+        "loser",
+        "jerk",
+        "crap",
+        "suck",
+        "sucks",
+        "sucked",
+        "lame",
+        "trash",
+        "garbage",
+        "asshole",
+        "bitch",
+        "bastard",
+        "fuck",
+        "fucking",
+        "shit",
+        "shitty",
+        "bullshit",
+        "wtf",
+    }
+)
+_INSULT_PHRASES: tuple[str, ...] = (
+    "shut up",
+    "shut it",
+    "waste of time",
+    "wasting my time",
+    "don't care what you think",
+    "dont care what you think",
+)
 
 
 class CustomerAgentGraph:
@@ -111,6 +159,8 @@ class CustomerAgentGraph:
             return {}
 
         content = last_msg.content.lower() if isinstance(last_msg.content, str) else ""
+        # Whole-word set for insult matching (avoids substring false positives).
+        words = set(re.findall(r"[a-z']+", content))
 
         # Simple keyword-based analysis
         analysis = {
@@ -125,6 +175,8 @@ class CustomerAgentGraph:
                 a in content
                 for a in ["understand", "hear you", "makes sense", "i see", "that's fair"]
             ),
+            "is_disrespectful": bool(words & _INSULT_WORDS)
+            or any(p in content for p in _INSULT_PHRASES),
         }
 
         return {"_analysis": analysis}
@@ -160,8 +212,16 @@ class CustomerAgentGraph:
             positive_action = True
             new_regard = self._improve_regard(current_regard)
 
-        # Negative behavior worsens mood
-        if analysis.get("is_pushy"):
+        # Disrespect/insults hit hardest and override baseline warmth and any
+        # concurrent positive signal: a sharp two-step mood drop plus a regard
+        # hit, so even a high-regard customer visibly sours when insulted.
+        if analysis.get("is_disrespectful"):
+            negative_action = True
+            new_mood = self._worsen_mood(self._worsen_mood(current_mood, difficulty), difficulty)
+            new_regard = self._worsen_regard(current_regard)
+
+        # Pushiness is a milder negative
+        elif analysis.get("is_pushy"):
             negative_action = True
             new_mood = self._worsen_mood(current_mood, difficulty)
 
@@ -410,6 +470,19 @@ class CustomerAgentGraph:
         progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.HIGH]
         idx = progression.index(regard)
         return progression[min(idx + 1, len(progression) - 1)]
+
+    def _worsen_regard(self, regard: RegardLevel) -> RegardLevel:
+        """Move regard in negative direction.
+
+        Args:
+            regard: Current regard level.
+
+        Returns:
+            Worsened regard (or same if already at min).
+        """
+        progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.HIGH]
+        idx = progression.index(regard)
+        return progression[max(idx - 1, 0)]
 
     # --- Public API ---
 

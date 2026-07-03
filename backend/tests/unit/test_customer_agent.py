@@ -28,7 +28,7 @@ from app.services.customer_agent_service import CustomerAgentService
 def mock_settings() -> MagicMock:
     """Mock settings for testing."""
     settings = MagicMock()
-    settings.gemini_model = "gemini-2.0-flash"
+    settings.gemini_model = "gemini-2.5-flash"
     settings.gemini_api_key = "test-key"
     settings.gemini_temperature = 0.7
     settings.gemini_max_tokens = 1024
@@ -117,6 +117,19 @@ class TestBuildCustomerPrompt:
         result = build_customer_prompt(sample_state["persona"], sample_state)
         assert sample_state["objections_available"][0] in result
 
+    def test_includes_scope_guardrail(self, sample_state: CustomerAgentState) -> None:
+        """Should instruct the persona to refuse off-topic / out-of-scene requests."""
+        result = build_customer_prompt(sample_state["persona"], sample_state).lower()
+        # Off-topic refusal examples and the explicit non-compliance instruction.
+        assert "recipes" in result
+        assert "do not comply" in result
+
+    def test_includes_disrespect_reaction_rule(self, sample_state: CustomerAgentState) -> None:
+        """Should tell the persona to react emotionally to insults/disrespect."""
+        result = build_customer_prompt(sample_state["persona"], sample_state).lower()
+        assert "insults" in result
+        assert "offended" in result
+
 
 # =============================================================================
 # CustomerAgentGraph Node Tests
@@ -177,6 +190,48 @@ class TestAnalyzeInput:
         result = agent._analyze_input(sample_state)
 
         assert result.get("_analysis", {}).get("has_question") is True
+
+    def test_detects_disrespect_insult_word(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Should flag a message containing an insult word."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+            agent = CustomerAgentGraph(mock_settings)
+
+        sample_state["messages"] = [HumanMessage(content="You're an idiot, this is stupid.")]
+
+        result = agent._analyze_input(sample_state)
+
+        assert result.get("_analysis", {}).get("is_disrespectful") is True
+
+    def test_detects_disrespect_phrase(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Should flag a dismissive phrase like 'shut up' / 'waste of time'."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+            agent = CustomerAgentGraph(mock_settings)
+
+        sample_state["messages"] = [HumanMessage(content="Just shut up, this is a waste of time.")]
+
+        result = agent._analyze_input(sample_state)
+
+        assert result.get("_analysis", {}).get("is_disrespectful") is True
+
+    def test_no_disrespect_false_positive_on_benign_substrings(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Benign words containing insult substrings must NOT trip the flag."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+            agent = CustomerAgentGraph(mock_settings)
+
+        # "hello" contains "hell", "class" contains "ass", "pass" contains "ass".
+        sample_state["messages"] = [
+            HumanMessage(content="Hello, can you pass me the brochure for this class of homes?")
+        ]
+
+        result = agent._analyze_input(sample_state)
+
+        assert result.get("_analysis", {}).get("is_disrespectful") is False
 
     def test_empty_messages_returns_empty(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
@@ -264,6 +319,57 @@ class TestUpdateMood:
         result = agent._update_mood(sample_state)
 
         assert result["regard_level"] == RegardLevel.HIGH
+
+    def test_disrespect_sharply_drops_mood_and_regard_even_high_regard(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Insults should sour even a warm (high-regard) customer: 2-step mood drop + regard hit."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+            agent = CustomerAgentGraph(mock_settings)
+
+        # OPTIMISTIC_RENOVATOR is high_regard (1 worsen step) -> insult worsens 2 steps.
+        sample_state["mood"] = Mood.INTERESTED
+        sample_state["regard_level"] = RegardLevel.HIGH
+        sample_state["_analysis"] = {"is_disrespectful": True}
+
+        result = agent._update_mood(sample_state)
+
+        assert result["mood"] == Mood.SKEPTICAL  # INTERESTED -> NEUTRAL -> SKEPTICAL
+        assert result["regard_level"] == RegardLevel.LOW  # HIGH -> LOW
+
+    def test_disrespect_overrides_concurrent_acknowledgment(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Disrespect must dominate even if the message also acknowledges a concern."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+            agent = CustomerAgentGraph(mock_settings)
+
+        sample_state["mood"] = Mood.NEUTRAL
+        sample_state["regard_level"] = RegardLevel.HIGH
+        sample_state["_analysis"] = {"acknowledges_concern": True, "is_disrespectful": True}
+
+        result = agent._update_mood(sample_state)
+
+        # Worsens from the original NEUTRAL (not the improved mood): NEUTRAL -> SKEPTICAL -> FRUSTRATED.
+        assert result["mood"] == Mood.FRUSTRATED
+        assert result["regard_level"] == RegardLevel.LOW
+
+    def test_disrespect_overrides_mood_decay(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Disrespect counts as a negative action, so the no-op decay path must not run."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+            agent = CustomerAgentGraph(mock_settings)
+
+        sample_state["mood"] = Mood.INTERESTED
+        sample_state["regard_level"] = RegardLevel.HIGH
+        sample_state["_analysis"] = {"is_disrespectful": True}
+
+        # _worsen_mood is deterministic; patch random to prove decay branch is skipped.
+        with patch("app.agents.customer_agent.random.random", return_value=0.0):
+            result = agent._update_mood(sample_state)
+
+        assert result["mood"] == Mood.SKEPTICAL
 
 
 class TestObjectionRouting:

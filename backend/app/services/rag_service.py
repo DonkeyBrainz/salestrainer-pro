@@ -368,7 +368,7 @@ class FirestoreRAGService:
 
         try:
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
@@ -419,7 +419,7 @@ class FirestoreRAGService:
         self,
         query: str,
         candidates: list[dict[str, Any]],
-        model: str = "gemini-2.0-flash",
+        model: str = "gemini-2.5-flash",
         top_k: int = 3,
     ) -> list[dict[str, Any]]:
         """Re-rank candidate chunks using Gemini Flash.
@@ -488,7 +488,7 @@ class FirestoreRAGService:
         initial_k: int = 10,
         final_k: int = 3,
         use_hybrid: bool = False,
-        reranking_model: str = "gemini-2.0-flash",
+        reranking_model: str = "gemini-2.5-flash",
     ) -> str:
         """Retrieve with LLM re-ranking as the final precision layer.
 

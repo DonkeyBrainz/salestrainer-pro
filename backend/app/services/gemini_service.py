@@ -246,6 +246,7 @@ class GeminiService:
             output_audio_transcription=types.AudioTranscriptionConfig(),
             session_resumption=session_resumption_cfg,
             system_instruction=system_instruction,
+            temperature=self.settings.gemini_live_temperature,
         )
 
         try:
