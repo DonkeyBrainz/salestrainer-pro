@@ -9,7 +9,7 @@ from app.repositories.session_repository import SessionRepository
 
 CORE_STAGES = ["CONNECT", "OBSERVE", "RECOMMEND", "EXECUTE"]
 WEEKLY_GOAL = 7
-RECENT_ACTIVITY_LIMIT = 4
+RECENT_ACTIVITY_LIMIT = 5
 MASTERY_WINDOW_DAYS = 30
 
 
