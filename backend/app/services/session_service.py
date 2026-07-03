@@ -13,6 +13,7 @@ from app.models.transcript import (
 )
 from app.repositories.session_repository import SessionRepository
 from app.repositories.transcript_repository import TranscriptRepository
+from app.repositories.user_repository import UserRepository
 
 
 class SessionService:
@@ -22,13 +23,21 @@ class SessionService:
         self,
         session_repository: SessionRepository,
         transcript_repository: TranscriptRepository,
+        user_repository: UserRepository,
     ) -> None:
         self.session_repo = session_repository
         self.transcript_repo = transcript_repository
+        self.user_repo = user_repository
 
     async def start_session(self, session_create: SessionCreate) -> Session:
-        """Create new session and return session object."""
-        session = await self.session_repo.create(session_create)
+        """Create new session and return session object.
+
+        Looks up the creating user's store_id so it can be denormalized onto
+        the session doc for store/regional/national rollup queries.
+        """
+        user = await self.user_repo.get_by_id(session_create.user_id)
+        store_id = user.store_id if user else None
+        session = await self.session_repo.create(session_create, store_id=store_id)
         return session
 
     async def end_session(

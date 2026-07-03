@@ -14,6 +14,7 @@ from app.core.session import StateManager, get_state_manager
 from app.models.user import User
 from app.repositories.evaluation_repository import EvaluationRepository
 from app.repositories.session_repository import SessionRepository
+from app.repositories.store_repository import StoreRepository
 from app.repositories.token_repository import TokenRepository
 from app.repositories.transcript_repository import TranscriptRepository
 from app.repositories.user_repository import UserRepository
@@ -97,6 +98,11 @@ def get_evaluation_repository() -> EvaluationRepository:
     return EvaluationRepository()
 
 
+def get_store_repository() -> StoreRepository:
+    """Get store repository instance."""
+    return StoreRepository()
+
+
 # Service dependencies
 def get_auth_service(
     settings: Annotated[Settings, Depends(get_settings)],
@@ -121,11 +127,13 @@ def get_gemini_service(
 def get_session_service(
     session_repository: Annotated[SessionRepository, Depends(get_session_repository)],
     transcript_repository: Annotated[TranscriptRepository, Depends(get_transcript_repository)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> SessionService:
     """Get session service instance with injected dependencies."""
     return SessionService(
         session_repository=session_repository,
         transcript_repository=transcript_repository,
+        user_repository=user_repository,
     )
 
 
@@ -180,6 +188,7 @@ TokenRepositoryDep = Annotated[TokenRepository, Depends(get_token_repository)]
 SessionRepositoryDep = Annotated[SessionRepository, Depends(get_session_repository)]
 TranscriptRepositoryDep = Annotated[TranscriptRepository, Depends(get_transcript_repository)]
 EvaluationRepositoryDep = Annotated[EvaluationRepository, Depends(get_evaluation_repository)]
+StoreRepositoryDep = Annotated[StoreRepository, Depends(get_store_repository)]
 AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 GeminiServiceDep = Annotated[GeminiService, Depends(get_gemini_service)]
 SessionServiceDep = Annotated[SessionService, Depends(get_session_service)]

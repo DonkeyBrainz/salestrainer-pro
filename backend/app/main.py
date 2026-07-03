@@ -13,6 +13,7 @@ from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.api.gemini import router as gemini_router
 from app.api.health import router as health_router
+from app.api.organizations import router as organizations_router
 from app.api.personas import router as personas_router
 from app.api.products import router as products_router
 from app.api.sessions import router as sessions_router
@@ -244,6 +245,7 @@ app.include_router(personas_router, tags=["Personas"])
 app.include_router(products_router, tags=["Products"])
 app.include_router(sessions_router, tags=["Sessions"])
 app.include_router(users_router, tags=["Users"])
+app.include_router(organizations_router, tags=["Organizations"])
 app.include_router(websocket_router, tags=["WebSocket"])
 
 
