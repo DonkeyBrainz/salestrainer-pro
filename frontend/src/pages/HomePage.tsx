@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchUserStats } from '@/services/statsService';
 import type { UserStatsResponse, COREStageStats } from '@/types/stats';
 import { AT } from '@/styles/tokens';
+import UserMenu from '@/components/UserMenu';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -252,7 +253,6 @@ const HomePage: React.FC = () => {
   const sessionsLeft   = Math.max(0, weeklyGoal - sessionsWeek);
 
   const userName = user?.name ?? 'there';
-  const userInitial = userName[0]?.toUpperCase() ?? '?';
 
   const streakFoot = longestStreak > 0 && currentStreak >= longestStreak
     ? `Your longest streak ever. Keep it going.`
@@ -319,19 +319,7 @@ const HomePage: React.FC = () => {
               <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.ink }}>{currentStreak} day{currentStreak !== 1 ? 's' : ''}</div>
             </div>
           )}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '4px 12px 4px 4px',
-            borderRadius: 999, background: AT.surface, border: `1px solid ${AT.hair}`,
-          }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: AT.terra, color: AT.bg,
-              display: 'grid', placeItems: 'center',
-              fontSize: 11, fontWeight: 700,
-            }}>{userInitial}</div>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>{userName.split(' ')[0]}</div>
-          </div>
+          <UserMenu />
         </div>
       </div>
 

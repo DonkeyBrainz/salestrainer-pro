@@ -204,9 +204,9 @@ class TestGetUserStats:
         assert result.recent_activity[0].grade == "A"
         assert result.recent_activity[0].persona_name == "Jennifer"
 
-    async def test_recent_activity_limited_to_four(self) -> None:
+    async def test_recent_activity_limited_to_five(self) -> None:
         now = datetime.now(UTC)
-        sessions = [MockSession(f"s{i}", now - timedelta(hours=i), f"Persona{i}") for i in range(6)]
-        evals = [MockEvaluation(f"s{i}", now - timedelta(hours=i), 75.0, "C") for i in range(6)]
+        sessions = [MockSession(f"s{i}", now - timedelta(hours=i), f"Persona{i}") for i in range(7)]
+        evals = [MockEvaluation(f"s{i}", now - timedelta(hours=i), 75.0, "C") for i in range(7)]
         result = await get_user_stats("u1", MockSessionRepo(sessions), MockEvalRepo(evals))  # type: ignore[arg-type]
-        assert len(result.recent_activity) == 4
+        assert len(result.recent_activity) == 5
