@@ -156,6 +156,32 @@ resource "google_firestore_index" "knowledge_chunks_filtered" {
 }
 
 # ---------------------------------------------------------------------------
+# Composite index for evaluations collection
+# ---------------------------------------------------------------------------
+# Required by EvaluationRepository.list_by_user (used by the dashboard stats
+# endpoint), which filters .where("user_id", "==", ...) and
+# .order_by("created_at", direction=DESCENDING) — Firestore requires a
+# composite index whenever an equality filter and an order_by target
+# different fields.
+resource "google_firestore_index" "evaluations_user_created" {
+  project    = var.project_id
+  collection = "evaluations"
+  database   = google_firestore_database.database.name
+
+  fields {
+    field_path = "user_id"
+    order      = "ASCENDING"
+  }
+
+  fields {
+    field_path = "created_at"
+    order      = "DESCENDING"
+  }
+
+  query_scope = "COLLECTION"
+}
+
+# ---------------------------------------------------------------------------
 # Expected Firestore document structure:
 # ---------------------------------------------------------------------------
 # Collection: knowledge_chunks
