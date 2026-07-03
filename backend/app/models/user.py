@@ -40,6 +40,9 @@ class User(UserBase):
     microsoft_id: str | None = None
     picture_url: str | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
+    role: Literal["agent", "manager", "regional_director"] = "agent"
+    store_id: str | None = None  # required for agent/manager
+    region: str | None = None  # required for regional_director
     created_at: datetime
     updated_at: datetime | None = None
 
@@ -52,6 +55,9 @@ class UserResponse(BaseModel):
     name: str
     created_at: str = Field(serialization_alias="createdAt")
     preferences: dict[str, Any]
+    role: str
+    store_id: str | None = Field(default=None, serialization_alias="storeId")
+    region: str | None = None
 
     model_config = {"populate_by_name": True}
 
@@ -64,4 +70,7 @@ class UserResponse(BaseModel):
             name=user.name,
             created_at=user.created_at.isoformat(),
             preferences=user.preferences.model_dump(by_alias=True),
+            role=user.role,
+            store_id=user.store_id,
+            region=user.region,
         )

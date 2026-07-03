@@ -1,9 +1,14 @@
+export type UserRole = 'agent' | 'manager' | 'regional_director';
+
 export interface User {
   userId: string;
   email: string;
   name: string;
   createdAt?: string;
   preferences?: UserPreferences;
+  role?: UserRole;
+  storeId?: string | null;
+  region?: string | null;
 }
 
 export interface UserPreferences {

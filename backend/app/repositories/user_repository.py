@@ -55,6 +55,9 @@ class UserRepository(BaseRepository):
             "microsoft_id": user_data.microsoft_id,
             "picture_url": user_data.picture_url,
             "preferences": UserPreferences().model_dump(),
+            "role": "agent",
+            "store_id": None,
+            "region": None,
             "created_at": now,
             "updated_at": None,
         }
@@ -69,6 +72,9 @@ class UserRepository(BaseRepository):
             microsoft_id=user_data.microsoft_id,
             picture_url=user_data.picture_url,
             preferences=UserPreferences(),
+            role="agent",
+            store_id=None,
+            region=None,
             created_at=now,
             updated_at=None,
         )
@@ -164,6 +170,23 @@ class UserRepository(BaseRepository):
             )
         )
 
+    async def list_by_store_ids(self, store_ids: list[str]) -> list[User]:
+        """List users assigned to any of the given store_ids.
+
+        Chunks the query into batches of 30 to respect Firestore's `in`
+        filter limit (relevant for regional/national rollups with many stores).
+        """
+        if not store_ids:
+            return []
+
+        users: list[User] = []
+        for i in range(0, len(store_ids), 30):
+            chunk = store_ids[i : i + 30]
+            query = self.collection.where("store_id", "in", chunk)
+            docs = await query.get()
+            users.extend(self._doc_to_user(doc.id, doc.to_dict()) for doc in docs)
+        return users
+
     def _doc_to_user(self, user_id: str, data: dict[str, Any] | None) -> User:
         """Convert Firestore document to User model."""
         if data is None:
@@ -180,6 +203,9 @@ class UserRepository(BaseRepository):
             microsoft_id=data.get("microsoft_id"),
             picture_url=data.get("picture_url"),
             preferences=preferences,
+            role=data.get("role", "agent"),
+            store_id=data.get("store_id"),
+            region=data.get("region"),
             created_at=data["created_at"],
             updated_at=data.get("updated_at"),
         )

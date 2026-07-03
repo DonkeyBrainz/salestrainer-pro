@@ -34,11 +34,20 @@ def mock_transcript_repo():
 
 
 @pytest.fixture
-def session_service(mock_session_repo, mock_transcript_repo):
+def mock_user_repo():
+    """Mock UserRepository."""
+    repo = AsyncMock()
+    repo.get_by_id.return_value = None
+    return repo
+
+
+@pytest.fixture
+def session_service(mock_session_repo, mock_transcript_repo, mock_user_repo):
     """SessionService with mocked repositories."""
     return SessionService(
         session_repository=mock_session_repo,
         transcript_repository=mock_transcript_repo,
+        user_repository=mock_user_repo,
     )
 
 
@@ -92,7 +101,7 @@ class TestStartSession:
 
         result = await session_service.start_session(session_create)
 
-        mock_session_repo.create.assert_called_once_with(session_create)
+        mock_session_repo.create.assert_called_once_with(session_create, store_id=None)
         assert result == sample_session
 
     async def test_returns_session_with_id(

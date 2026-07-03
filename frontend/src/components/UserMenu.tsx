@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, User, Shield } from 'lucide-react';
+import { LogOut, User, Shield, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -21,6 +21,8 @@ const UserMenu: React.FC = () => {
     email.toLowerCase() === user.email?.toLowerCase()
   );
 
+  const hasTeamAccess = user && (isAdmin || user.role === 'manager' || user.role === 'regional_director');
+
   // Debug logging
   React.useEffect(() => {
     if (user) {
@@ -41,6 +43,15 @@ const UserMenu: React.FC = () => {
         <User className="w-4 h-4 text-stone-500" />
         <span className="text-sm text-stone-600">{user.name}</span>
       </div>
+      {hasTeamAccess && (
+        <button
+          onClick={() => navigate('/team')}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-800 transition-all"
+        >
+          <Users className="w-4 h-4" />
+          Team
+        </button>
+      )}
       {isAdmin && (
         <button
           onClick={() => navigate('/admin')}

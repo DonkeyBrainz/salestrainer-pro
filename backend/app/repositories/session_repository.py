@@ -25,8 +25,14 @@ class SessionRepository(BaseRepository):
 
     _collection_name = "sessions"
 
-    async def create(self, session_create: SessionCreate) -> Session:
-        """Create new session."""
+    async def create(self, session_create: SessionCreate, store_id: str | None = None) -> Session:
+        """Create new session.
+
+        Args:
+            session_create: Session creation payload.
+            store_id: The creating user's store, denormalized onto the session
+                doc so store/region rollups can query sessions directly.
+        """
         session_id = str(uuid4())
         now = datetime.now(UTC)
 
@@ -40,6 +46,7 @@ class SessionRepository(BaseRepository):
             "system_instruction": session_create.system_instruction,
             "product_category": session_create.product_category,
             "product_type": session_create.product_type,
+            "store_id": store_id,
             "started_at": now,
             "ended_at": None,
             "duration": None,
@@ -183,6 +190,7 @@ class SessionRepository(BaseRepository):
             system_instruction=data.get("system_instruction"),
             product_category=data.get("product_category"),
             product_type=data.get("product_type"),
+            store_id=data.get("store_id"),
             started_at=data["started_at"],
             ended_at=data.get("ended_at"),
             duration=data.get("duration"),

@@ -36,6 +36,8 @@ class Session(BaseModel):
     # Product context (for RAG filtering and analytics)
     product_category: str | None = None
     product_type: str | None = None
+    # Denormalized from the creating user's profile, for store/region rollups
+    store_id: str | None = None
     started_at: datetime
     ended_at: datetime | None = None
     duration: int | None = None
