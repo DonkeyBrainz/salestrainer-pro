@@ -2,7 +2,6 @@
 
 from app.agents.coach.prompts import (
     COACH_ANALYSIS_PROMPT,
-    COACH_ANALYSIS_SCHEMA,
     build_coach_prompt,
     format_conversation_history,
 )
@@ -24,7 +23,7 @@ class TestCoachAnalysisPrompt:
         assert "Technique IDs to Detect" in COACH_ANALYSIS_PROMPT
         assert "Deviation IDs to Detect" in COACH_ANALYSIS_PROMPT
         assert "Intervention Levels" in COACH_ANALYSIS_PROMPT
-        assert "Response Format" in COACH_ANALYSIS_PROMPT
+        assert "Output Guidance" in COACH_ANALYSIS_PROMPT
 
     def test_prompt_contains_stage_techniques(self) -> None:
         """Should list techniques for all C.O.R.E. stages."""
@@ -74,19 +73,24 @@ class TestCoachAnalysisPrompt:
 
 
 class TestCoachAnalysisSchema:
-    """Tests for the response schema."""
+    """Tests for the structured-output response schema (CoachAnalysisResponse)."""
 
-    def test_schema_contains_required_fields(self) -> None:
-        """Should contain all required response fields."""
-        assert "techniques_detected" in COACH_ANALYSIS_SCHEMA
-        assert "stage_items_completed" in COACH_ANALYSIS_SCHEMA
-        assert "pbms_acknowledged" in COACH_ANALYSIS_SCHEMA
-        assert "deviations" in COACH_ANALYSIS_SCHEMA
-        assert "intervention_level" in COACH_ANALYSIS_SCHEMA
-        assert "hint" in COACH_ANALYSIS_SCHEMA
-        assert "example_phrase" in COACH_ANALYSIS_SCHEMA
-        assert "ready_for_next_stage" in COACH_ANALYSIS_SCHEMA
-        assert "suggested_stage" in COACH_ANALYSIS_SCHEMA
+    def test_response_model_contains_required_fields(self) -> None:
+        """The wire model should expose all response fields the coach relies on."""
+        from app.models.coach import CoachAnalysisResponse
+
+        fields = CoachAnalysisResponse.model_fields
+        assert "techniques_detected" in fields
+        assert "stage_items_completed" in fields
+        assert "pbms_acknowledged" in fields
+        assert "deviations" in fields
+        assert "intervention_level" in fields
+        assert "hint" in fields
+        assert "example_phrase" in fields
+        assert "ready_for_next_stage" in fields
+        assert "suggested_stage" in fields
+        # confidence is code-owned and must NOT be LLM-emitted
+        assert "confidence" not in fields
 
     def test_prompt_contains_example_phrase_guidelines(self) -> None:
         """Should contain example phrase instructions."""

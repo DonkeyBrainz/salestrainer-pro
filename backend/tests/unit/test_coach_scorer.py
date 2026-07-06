@@ -161,7 +161,12 @@ class TestCalculateDeviationPenalty:
 
     def test_multiple_deviations_capped(self) -> None:
         """Should cap penalty at -15."""
-        deviations = ["skipped_connect", "skipped_observe", "recommended_too_early", "no_motivator_connection"]
+        deviations = [
+            "skipped_connect",
+            "skipped_observe",
+            "recommended_too_early",
+            "no_motivator_connection",
+        ]
         penalty = calculate_deviation_penalty(deviations)
         assert penalty == -15.0
 

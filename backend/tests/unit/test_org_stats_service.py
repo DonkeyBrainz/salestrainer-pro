@@ -76,7 +76,9 @@ class MockUserRepo:
 
 @pytest.fixture(autouse=True)
 def patch_get_user_stats(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_get_user_stats(user_id: str, session_repository: object, evaluation_repository: object) -> UserStatsResponse:
+    async def fake_get_user_stats(
+        user_id: str, session_repository: object, evaluation_repository: object
+    ) -> UserStatsResponse:
         return STATS_BY_USER[user_id]
 
     monkeypatch.setattr(org_stats_service, "get_user_stats", fake_get_user_stats)
@@ -85,7 +87,11 @@ def patch_get_user_stats(monkeypatch: pytest.MonkeyPatch) -> None:
 class TestGetStoreStats:
     async def test_leaderboard_sorted_by_avg_score(self) -> None:
         result = await org_stats_service.get_store_stats(
-            "houston", MockStoreRepo(), MockUserRepo(), object(), object()  # type: ignore[arg-type]
+            "houston",
+            MockStoreRepo(),
+            MockUserRepo(),
+            object(),
+            object(),  # type: ignore[arg-type]
         )
         assert result.store_name == "Houston"
         assert result.region == "TX"
@@ -93,7 +99,11 @@ class TestGetStoreStats:
 
     async def test_rollup_aggregates_sessions_and_active_count(self) -> None:
         result = await org_stats_service.get_store_stats(
-            "houston", MockStoreRepo(), MockUserRepo(), object(), object()  # type: ignore[arg-type]
+            "houston",
+            MockStoreRepo(),
+            MockUserRepo(),
+            object(),
+            object(),  # type: ignore[arg-type]
         )
         assert result.rollup.total_sessions == 5
         assert result.rollup.avg_score == 90.0  # only u1 has a score; u2 excluded
@@ -102,14 +112,22 @@ class TestGetStoreStats:
     async def test_unknown_store_raises_not_found(self) -> None:
         with pytest.raises(NotFoundError):
             await org_stats_service.get_store_stats(
-                "nope", MockStoreRepo(), MockUserRepo(), object(), object()  # type: ignore[arg-type]
+                "nope",
+                MockStoreRepo(),
+                MockUserRepo(),
+                object(),
+                object(),  # type: ignore[arg-type]
             )
 
 
 class TestGetRegionStats:
     async def test_combines_stores_in_region(self) -> None:
         result = await org_stats_service.get_region_stats(
-            "TX", MockStoreRepo(), MockUserRepo(), object(), object()  # type: ignore[arg-type]
+            "TX",
+            MockStoreRepo(),
+            MockUserRepo(),
+            object(),
+            object(),  # type: ignore[arg-type]
         )
         assert {s.store_id for s in result.stores} == {"houston", "dallas"}
         assert result.rollup.total_sessions == 5 + 2
@@ -119,14 +137,21 @@ class TestGetRegionStats:
     async def test_unknown_region_raises_not_found(self) -> None:
         with pytest.raises(NotFoundError):
             await org_stats_service.get_region_stats(
-                "ZZ", MockStoreRepo(), MockUserRepo(), object(), object()  # type: ignore[arg-type]
+                "ZZ",
+                MockStoreRepo(),
+                MockUserRepo(),
+                object(),
+                object(),  # type: ignore[arg-type]
             )
 
 
 class TestGetNationalStats:
     async def test_combines_all_regions(self) -> None:
         result = await org_stats_service.get_national_stats(
-            MockStoreRepo(), MockUserRepo(), object(), object()  # type: ignore[arg-type]
+            MockStoreRepo(),
+            MockUserRepo(),
+            object(),
+            object(),  # type: ignore[arg-type]
         )
         assert {r.region for r in result.regions} == {"TX", "NC"}
         assert result.rollup.total_sessions == 5 + 2 + 4

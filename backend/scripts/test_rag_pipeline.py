@@ -51,7 +51,7 @@ def test_objections() -> None:
         status = "PASS" if actual == expected_category else "FAIL"
         if status == "PASS":
             passed += 1
-        print(f"  [{status}] \"{msg[:50]}\" -> {actual} (expected: {expected_category})")
+        print(f'  [{status}] "{msg[:50]}" -> {actual} (expected: {expected_category})')
         if result and status == "PASS":
             context = service.get_resolution_context(result)
             print(f"         Resolution: {context[:80]}...")
@@ -112,8 +112,8 @@ async def test_enhance_query() -> None:
     original = "Is it stain resistant?"
     try:
         enhanced = await service.enhance_query(original, history)
-        print(f"  [PASS] Original:  \"{original}\"")
-        print(f"         Enhanced:  \"{enhanced}\"")
+        print(f'  [PASS] Original:  "{original}"')
+        print(f'         Enhanced:  "{enhanced}"')
     except Exception as e:
         print(f"  [FAIL] {e}")
 
@@ -167,12 +167,12 @@ async def test_retrieve() -> None:
             result = await service.retrieve(query=query, top_k=2)
             if result:
                 preview = result[:120].replace("\n", " ")
-                print(f"  [PASS] \"{query}\"")
+                print(f'  [PASS] "{query}"')
                 print(f"         -> {preview}...")
             else:
-                print(f"  [WARN] \"{query}\" -> No results")
+                print(f'  [WARN] "{query}" -> No results')
         except Exception as e:
-            print(f"  [FAIL] \"{query}\" -> {e}")
+            print(f'  [FAIL] "{query}" -> {e}')
 
 
 async def test_coach_analysis() -> None:
@@ -222,7 +222,7 @@ async def test_coach_analysis() -> None:
             stage_progress=progress,
         )
 
-        print(f"  [PASS] Analysis completed:")
+        print("  [PASS] Analysis completed:")
         print(f"         Techniques: {result.techniques_detected}")
         print(f"         Deviations: {result.deviations}")
         print(f"         Intervention: {result.intervention_level.value}")

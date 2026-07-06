@@ -50,7 +50,7 @@ async def measure_single_request(token: str, message: str) -> LatencyMetrics:
     try:
         # Measure time to ready message
         ready_start = time.perf_counter()
-        ready_msg = await websocket.recv()
+        await websocket.recv()  # ready message
         ready_end = time.perf_counter()
         ready_time = (ready_end - ready_start) * 1000
 

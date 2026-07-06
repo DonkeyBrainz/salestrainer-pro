@@ -10,7 +10,6 @@ from app.services.rag_service import (
     init_rag_service,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -46,9 +45,7 @@ def rag_service(mock_db: MagicMock, mock_settings: MagicMock) -> FirestoreRAGSer
 class TestFirestoreRAGServiceInit:
     """Tests for FirestoreRAGService initialization."""
 
-    def test_stores_db_and_settings(
-        self, mock_db: MagicMock, mock_settings: MagicMock
-    ) -> None:
+    def test_stores_db_and_settings(self, mock_db: MagicMock, mock_settings: MagicMock) -> None:
         """Should store db, collection name, embedding model, and api key."""
         service = FirestoreRAGService(db=mock_db, settings=mock_settings)
 
@@ -156,9 +153,7 @@ class TestEmbedText:
         assert result == [0.1, 0.2, 0.3]
 
     @pytest.mark.asyncio
-    async def test_embed_text_raises_on_api_error(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_embed_text_raises_on_api_error(self, rag_service: FirestoreRAGService) -> None:
         """Should propagate API errors."""
         mock_embed = AsyncMock(side_effect=Exception("API quota exceeded"))
         mock_client = MagicMock()
@@ -183,9 +178,7 @@ class TestRetrieve:
     ) -> None:
         """Should return concatenated content from matching docs."""
         # Mock embed_text
-        with patch.object(
-            rag_service, "embed_text", new_callable=AsyncMock
-        ) as mock_embed:
+        with patch.object(rag_service, "embed_text", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]
 
             # Mock Firestore chain
@@ -212,9 +205,7 @@ class TestRetrieve:
         self, rag_service: FirestoreRAGService, mock_db: MagicMock
     ) -> None:
         """Should return empty string when no results found."""
-        with patch.object(
-            rag_service, "embed_text", new_callable=AsyncMock
-        ) as mock_embed:
+        with patch.object(rag_service, "embed_text", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]
 
             mock_query = MagicMock()
@@ -233,9 +224,7 @@ class TestRetrieve:
         self, rag_service: FirestoreRAGService, mock_db: MagicMock
     ) -> None:
         """Should apply category filter to Firestore query."""
-        with patch.object(
-            rag_service, "embed_text", new_callable=AsyncMock
-        ) as mock_embed:
+        with patch.object(rag_service, "embed_text", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]
 
             mock_query = MagicMock()
@@ -248,22 +237,16 @@ class TestRetrieve:
             mock_collection.where.return_value = mock_filtered
             mock_db.collection.return_value = mock_collection
 
-            await rag_service.retrieve(
-                "Is this durable?", product_category="living_room"
-            )
+            await rag_service.retrieve("Is this durable?", product_category="living_room")
 
-            mock_collection.where.assert_called_once_with(
-                "metadata.category", "==", "living_room"
-            )
+            mock_collection.where.assert_called_once_with("metadata.category", "==", "living_room")
 
     @pytest.mark.asyncio
     async def test_retrieve_with_category_and_type_filter(
         self, rag_service: FirestoreRAGService, mock_db: MagicMock
     ) -> None:
         """Should apply both category and type filters."""
-        with patch.object(
-            rag_service, "embed_text", new_callable=AsyncMock
-        ) as mock_embed:
+        with patch.object(rag_service, "embed_text", new_callable=AsyncMock) as mock_embed:
             mock_embed.return_value = [0.1, 0.2, 0.3]
 
             mock_query = MagicMock()
@@ -285,12 +268,8 @@ class TestRetrieve:
                 product_type="sectional",
             )
 
-            mock_collection.where.assert_called_once_with(
-                "metadata.category", "==", "living_room"
-            )
-            mock_cat_filtered.where.assert_called_once_with(
-                "metadata.doc_type", "==", "sectional"
-            )
+            mock_collection.where.assert_called_once_with("metadata.category", "==", "living_room")
+            mock_cat_filtered.where.assert_called_once_with("metadata.doc_type", "==", "sectional")
 
 
 # =============================================================================
@@ -312,9 +291,7 @@ class TestReciprocalRankFusion:
             {"id": "d", "content": "Keyword D"},
         ]
 
-        fused = FirestoreRAGService._reciprocal_rank_fusion(
-            semantic, keyword, top_k=3
-        )
+        fused = FirestoreRAGService._reciprocal_rank_fusion(semantic, keyword, top_k=3)
 
         assert len(fused) == 3
         ids = [r["id"] for r in fused]
@@ -332,9 +309,7 @@ class TestReciprocalRankFusion:
             {"id": "c", "content": "Content C"},
         ]
 
-        fused = FirestoreRAGService._reciprocal_rank_fusion(
-            semantic, keyword, top_k=3
-        )
+        fused = FirestoreRAGService._reciprocal_rank_fusion(semantic, keyword, top_k=3)
 
         # "a" appears in both, should be first
         assert fused[0]["id"] == "a"
@@ -344,9 +319,7 @@ class TestReciprocalRankFusion:
         semantic = [{"id": f"s{i}", "content": f"S{i}"} for i in range(5)]
         keyword = [{"id": f"k{i}", "content": f"K{i}"} for i in range(5)]
 
-        fused = FirestoreRAGService._reciprocal_rank_fusion(
-            semantic, keyword, top_k=2
-        )
+        fused = FirestoreRAGService._reciprocal_rank_fusion(semantic, keyword, top_k=2)
 
         assert len(fused) == 2
 
@@ -396,9 +369,7 @@ class TestKeywordSearch:
         assert results[0]["id"] == "doc1"
 
     @pytest.mark.asyncio
-    async def test_keyword_search_empty_query(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_keyword_search_empty_query(self, rag_service: FirestoreRAGService) -> None:
         """Should return empty list for empty query."""
         results = await rag_service._keyword_search("")
         assert results == []
@@ -408,9 +379,7 @@ class TestHybridRetrieve:
     """Tests for hybrid_retrieve method."""
 
     @pytest.mark.asyncio
-    async def test_hybrid_retrieve_combines_results(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_hybrid_retrieve_combines_results(self, rag_service: FirestoreRAGService) -> None:
         """Should combine semantic and keyword results."""
         with (
             patch.object(
@@ -432,9 +401,7 @@ class TestHybridRetrieve:
             assert "Keyword B" in result
 
     @pytest.mark.asyncio
-    async def test_hybrid_retrieve_empty_results(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_hybrid_retrieve_empty_results(self, rag_service: FirestoreRAGService) -> None:
         """Should return empty string when no results."""
         with (
             patch.object(
@@ -463,9 +430,7 @@ class TestEnhanceQuery:
     """Tests for enhance_query method."""
 
     @pytest.mark.asyncio
-    async def test_enhances_query_with_context(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_enhances_query_with_context(self, rag_service: FirestoreRAGService) -> None:
         """Should rewrite query using conversation context."""
         mock_response = MagicMock()
         mock_response.text = "durable sectional for kids living room"
@@ -496,9 +461,7 @@ class TestEnhanceQuery:
         assert result == "Is it durable?"
 
     @pytest.mark.asyncio
-    async def test_falls_back_on_api_error(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_falls_back_on_api_error(self, rag_service: FirestoreRAGService) -> None:
         """Should return original query when LLM call fails."""
         mock_generate = AsyncMock(side_effect=Exception("API error"))
         mock_client = MagicMock()
@@ -512,9 +475,7 @@ class TestEnhanceQuery:
         assert result == "Is it durable?"
 
     @pytest.mark.asyncio
-    async def test_falls_back_on_empty_response(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_falls_back_on_empty_response(self, rag_service: FirestoreRAGService) -> None:
         """Should return original query when LLM returns empty text."""
         mock_response = MagicMock()
         mock_response.text = None
@@ -540,17 +501,11 @@ class TestRetrieveWithContext:
     """Tests for retrieve_with_context method."""
 
     @pytest.mark.asyncio
-    async def test_calls_enhance_then_retrieve(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_calls_enhance_then_retrieve(self, rag_service: FirestoreRAGService) -> None:
         """Should enhance query, then retrieve with enhanced query."""
         with (
-            patch.object(
-                rag_service, "enhance_query", new_callable=AsyncMock
-            ) as mock_enhance,
-            patch.object(
-                rag_service, "retrieve", new_callable=AsyncMock
-            ) as mock_retrieve,
+            patch.object(rag_service, "enhance_query", new_callable=AsyncMock) as mock_enhance,
+            patch.object(rag_service, "retrieve", new_callable=AsyncMock) as mock_retrieve,
         ):
             mock_enhance.return_value = "enhanced query"
             mock_retrieve.return_value = "Product context result"
@@ -583,9 +538,7 @@ class TestRerankWithLLM:
     """Tests for _rerank_with_llm method."""
 
     @pytest.mark.asyncio
-    async def test_reranks_with_valid_response(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_reranks_with_valid_response(self, rag_service: FirestoreRAGService) -> None:
         """Should re-rank candidates based on LLM response."""
         candidates = [
             {"id": "a", "content": "Content A"},
@@ -635,9 +588,7 @@ class TestRerankWithLLM:
         assert result[0]["id"] == "a"
 
     @pytest.mark.asyncio
-    async def test_returns_original_on_api_error(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_returns_original_on_api_error(self, rag_service: FirestoreRAGService) -> None:
         """Should fall back to original order on API error."""
         candidates = [
             {"id": "a", "content": "A"},
@@ -675,9 +626,7 @@ class TestRetrieveWithReranking:
     """Tests for retrieve_with_reranking method."""
 
     @pytest.mark.asyncio
-    async def test_retrieves_and_reranks(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_retrieves_and_reranks(self, rag_service: FirestoreRAGService) -> None:
         """Should retrieve initial candidates then re-rank."""
         with (
             patch.object(
@@ -700,18 +649,14 @@ class TestRetrieveWithReranking:
                 ],
             ) as mock_rerank,
         ):
-            result = await rag_service.retrieve_with_reranking(
-                "query", initial_k=3, final_k=2
-            )
+            result = await rag_service.retrieve_with_reranking("query", initial_k=3, final_k=2)
 
             mock_rerank.assert_called_once()
             assert "C" in result
             assert "A" in result
 
     @pytest.mark.asyncio
-    async def test_uses_hybrid_when_requested(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_uses_hybrid_when_requested(self, rag_service: FirestoreRAGService) -> None:
         """Should use hybrid search for initial retrieval when use_hybrid=True."""
         with (
             patch.object(
@@ -741,9 +686,7 @@ class TestRetrieveWithReranking:
             mock_keyword.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_returns_empty_on_no_candidates(
-        self, rag_service: FirestoreRAGService
-    ) -> None:
+    async def test_returns_empty_on_no_candidates(self, rag_service: FirestoreRAGService) -> None:
         """Should return empty string when no candidates found."""
         with patch.object(
             rag_service,
@@ -773,9 +716,7 @@ class TestSingleton:
         with pytest.raises(RuntimeError, match="RAG service not initialized"):
             get_rag_service()
 
-    def test_init_and_get_rag_service(
-        self, mock_db: MagicMock, mock_settings: MagicMock
-    ) -> None:
+    def test_init_and_get_rag_service(self, mock_db: MagicMock, mock_settings: MagicMock) -> None:
         """Should initialize and retrieve RAG service singleton."""
         import app.services.rag_service as module
 

@@ -6,20 +6,10 @@ salesperson messages and provide coaching feedback.
 
 from app.agents.state import CoreStageProgress, CustomerPersona
 
-# Structured output schema for LLM response
-COACH_ANALYSIS_SCHEMA = """{
-  "techniques_detected": ["technique_id", ...],
-  "stage_items_completed": {
-    "stage_name": ["item_id", ...]
-  },
-  "pbms_acknowledged": ["motivator_name", ...],
-  "deviations": ["deviation_id", ...],
-  "intervention_level": "none|info|suggestion|warning|critical",
-  "hint": "Coaching hint text if intervention needed",
-  "example_phrase": "Word-for-word example phrase the salesperson could say next, or null",
-  "ready_for_next_stage": true,
-  "suggested_stage": "CONNECT|OBSERVE|RECOMMEND|EXECUTE|null"
-}"""
+# Note: the response structure is enforced via native structured output
+# (response_schema=CoachAnalysisResponse in analyzer._call_gemini), not by
+# embedding a JSON schema in this prompt. Field semantics live on the
+# CoachAnalysisResponse Field descriptions and in the guidance below.
 
 # Main coach analysis prompt template
 COACH_ANALYSIS_PROMPT = """You are a sales coach analyzing a salesperson's message in a sales training session.
@@ -100,12 +90,10 @@ Analyze this salesperson message for C.O.R.E. selling technique usage.
 - Set `ready_for_next_stage` to true when ALL checklist items in the current stage are complete and the salesperson should transition to the next stage.
 - Otherwise set it to false.
 
-## Response Format
-
-Respond with ONLY valid JSON matching this schema:
-{schema}
+## Output Guidance
 
 Be specific about which techniques were used and which deviations occurred.
+List stage_items_completed as objects with stage, item, and completed=true.
 Consider BOTH the salesperson message AND the recent conversation context when detecting techniques.
 A technique should be marked as completed if it is demonstrated in the current message or was
 clearly performed earlier in the recent conversation history shown above.
@@ -169,7 +157,6 @@ def build_coach_prompt(
         objection_context_section=objection_context_section,
         conversation_history=conversation_history,
         salesperson_message=salesperson_message,
-        schema=COACH_ANALYSIS_SCHEMA,
     )
 
 

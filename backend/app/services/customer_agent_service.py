@@ -5,7 +5,7 @@ managing session initialization and message processing for roleplay sessions.
 """
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
@@ -89,6 +89,7 @@ class CustomerAgentService:
         session_id: str,
         user_message: str,
         current_state: CustomerAgentState,
+        generate_response: bool = True,
     ) -> tuple[str, CustomerAgentState]:
         """Process a salesperson message and get customer response.
 
@@ -96,15 +97,25 @@ class CustomerAgentService:
             session_id: Session identifier (used as thread_id for checkpointing).
             user_message: The salesperson's message.
             current_state: Current agent state.
+            generate_response: If False, skip the LLM response generation (voice
+                mode — the live Gemini session produces the customer's reply, so
+                the graph's text output would be discarded). State transitions
+                (mood, objections, turn count) still run.
 
         Returns:
-            Tuple of (customer_response, updated_state).
+            Tuple of (customer_response, updated_state). The response is "" when
+            generate_response is False.
         """
-        # Add user message to state
-        updated_state: CustomerAgentState = {
-            **current_state,
-            "messages": list(current_state["messages"]) + [HumanMessage(content=user_message)],
-        }
+        # Add user message to state; _skip_response is a runtime-only key read
+        # by the generate_response node (always set, so it can't go stale).
+        updated_state = cast(
+            CustomerAgentState,
+            {
+                **current_state,
+                "messages": list(current_state["messages"]) + [HumanMessage(content=user_message)],
+                "_skip_response": not generate_response,
+            },
+        )
 
         # Invoke the graph
         result_state = await self.agent.invoke(updated_state, thread_id=session_id)

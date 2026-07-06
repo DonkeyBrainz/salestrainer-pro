@@ -121,7 +121,12 @@ class MockEvaluation:
         self.created_at = created_at
         self.final_score = final_score
         self.grade = MockGrade(grade_value)
-        scores = stage_scores or {"CONNECT": 80.0, "OBSERVE": 70.0, "RECOMMEND": 60.0, "EXECUTE": 50.0}
+        scores = stage_scores or {
+            "CONNECT": 80.0,
+            "OBSERVE": 70.0,
+            "RECOMMEND": 60.0,
+            "EXECUTE": 50.0,
+        }
         self.scorecard = MockScorecard({k: MockStageScore(v) for k, v in scores.items()})
 
 
@@ -171,8 +176,20 @@ class TestGetUserStats:
     async def test_core_mastery_averages(self) -> None:
         now = datetime.now(UTC)
         evals = [
-            MockEvaluation("s1", now - timedelta(days=1), 80.0, "B", {"CONNECT": 90.0, "OBSERVE": 70.0, "RECOMMEND": 60.0, "EXECUTE": 50.0}),
-            MockEvaluation("s2", now - timedelta(days=5), 70.0, "C", {"CONNECT": 80.0, "OBSERVE": 80.0, "RECOMMEND": 70.0, "EXECUTE": 60.0}),
+            MockEvaluation(
+                "s1",
+                now - timedelta(days=1),
+                80.0,
+                "B",
+                {"CONNECT": 90.0, "OBSERVE": 70.0, "RECOMMEND": 60.0, "EXECUTE": 50.0},
+            ),
+            MockEvaluation(
+                "s2",
+                now - timedelta(days=5),
+                70.0,
+                "C",
+                {"CONNECT": 80.0, "OBSERVE": 80.0, "RECOMMEND": 70.0, "EXECUTE": 60.0},
+            ),
         ]
         result = await get_user_stats("u1", MockSessionRepo([]), MockEvalRepo(evals))  # type: ignore[arg-type]
         connect = next(s for s in result.core_mastery if s.stage == "CONNECT")
@@ -183,13 +200,27 @@ class TestGetUserStats:
         now = datetime.now(UTC)
         # Current period (within 30 days)
         current_evals = [
-            MockEvaluation("s1", now - timedelta(days=5), 80.0, "B", {"CONNECT": 80.0, "OBSERVE": 70.0, "RECOMMEND": 60.0, "EXECUTE": 50.0}),
+            MockEvaluation(
+                "s1",
+                now - timedelta(days=5),
+                80.0,
+                "B",
+                {"CONNECT": 80.0, "OBSERVE": 70.0, "RECOMMEND": 60.0, "EXECUTE": 50.0},
+            ),
         ]
         # Previous period (31-60 days ago)
         prev_evals = [
-            MockEvaluation("s2", now - timedelta(days=45), 60.0, "D", {"CONNECT": 60.0, "OBSERVE": 50.0, "RECOMMEND": 40.0, "EXECUTE": 30.0}),
+            MockEvaluation(
+                "s2",
+                now - timedelta(days=45),
+                60.0,
+                "D",
+                {"CONNECT": 60.0, "OBSERVE": 50.0, "RECOMMEND": 40.0, "EXECUTE": 30.0},
+            ),
         ]
-        result = await get_user_stats("u1", MockSessionRepo([]), MockEvalRepo(current_evals + prev_evals))  # type: ignore[arg-type]
+        result = await get_user_stats(
+            "u1", MockSessionRepo([]), MockEvalRepo(current_evals + prev_evals)
+        )  # type: ignore[arg-type]
         connect = next(s for s in result.core_mastery if s.stage == "CONNECT")
         assert connect.mastery_pct == 80.0
         assert connect.delta == 20.0  # 80 - 60

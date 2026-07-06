@@ -8,7 +8,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from app.agents.coach.analyzer import CoachAnalyzer
 from app.agents.personas import ANXIOUS_FIRST_TIMER, OPTIMISTIC_RENOVATOR
 from app.agents.state import CoreStageProgress, SalesStage
-from app.models.coach import InterventionLevel
+from app.models.coach import CoachAnalysisResponse, InterventionLevel, StageItemUpdate
 
 # =============================================================================
 # Fixtures
@@ -98,26 +98,26 @@ class TestMessagesToTuples:
 
 
 # =============================================================================
-# Response Parsing Tests
+# Finalize Analysis Tests (post-processing of structured output)
 # =============================================================================
 
 
-class TestParseResponse:
-    """Tests for _parse_response method."""
+class TestFinalizeAnalysis:
+    """Tests for _finalize_analysis method."""
 
-    def test_parses_valid_json(self, analyzer: CoachAnalyzer) -> None:
-        """Should parse valid JSON response."""
-        response = """{
-            "techniques_detected": ["warm_greeting"],
-            "stage_items_completed": {"CONNECT": ["warm_greeting"]},
-            "pbms_acknowledged": ["value"],
-            "deviations": [],
-            "intervention_level": "info",
-            "hint": "Great rapport building!",
-            "suggested_stage": null
-        }"""
+    def test_finalizes_valid_response(self, analyzer: CoachAnalyzer) -> None:
+        """Should carry structured output fields into CoachAnalysis."""
+        parsed = CoachAnalysisResponse(
+            techniques_detected=["warm_greeting"],
+            stage_items_completed=[
+                StageItemUpdate(stage="CONNECT", item="warm_greeting", completed=True)
+            ],
+            pbms_acknowledged=["value"],
+            intervention_level=InterventionLevel.INFO,
+            hint="Great rapport building!",
+        )
 
-        result = analyzer._parse_response(response, "CONNECT")
+        result = analyzer._finalize_analysis(parsed, "CONNECT")
 
         assert "warm_greeting" in result.techniques_detected
         assert len(result.stage_items_completed) == 1
@@ -125,128 +125,68 @@ class TestParseResponse:
         assert "value" in result.pbms_acknowledged
         assert result.intervention_level == InterventionLevel.INFO
         assert result.hint == "Great rapport building!"
+        assert result.confidence == 1.0
 
-    def test_parses_json_with_code_block(self, analyzer: CoachAnalyzer) -> None:
-        """Should parse JSON wrapped in code block."""
-        response = """```json
-{
-    "techniques_detected": ["needs_discovery"],
-    "stage_items_completed": {},
-    "pbms_acknowledged": [],
-    "deviations": [],
-    "intervention_level": "none",
-    "hint": null,
-    "suggested_stage": null
-}
-```"""
-
-        result = analyzer._parse_response(response, "OBSERVE")
-
-        assert "needs_discovery" in result.techniques_detected
-        assert result.intervention_level == InterventionLevel.NONE
-
-    def test_handles_invalid_json(self, analyzer: CoachAnalyzer) -> None:
-        """Should return safe default for invalid JSON."""
-        response = "This is not valid JSON"
-
-        result = analyzer._parse_response(response, "CONNECT")
+    def test_none_returns_safe_default(self, analyzer: CoachAnalyzer) -> None:
+        """Should return safe default when SDK produced no structured output."""
+        result = analyzer._finalize_analysis(None, "CONNECT")
 
         assert result.techniques_detected == []
         assert result.intervention_level == InterventionLevel.NONE
         assert result.confidence == 0.0
 
-    def test_handles_invalid_intervention_level(self, analyzer: CoachAnalyzer) -> None:
-        """Should default to NONE for invalid intervention level."""
-        response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "invalid_level",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
-        result = analyzer._parse_response(response, "CONNECT")
-
-        assert result.intervention_level == InterventionLevel.NONE
-
     def test_generates_hint_from_template(self, analyzer: CoachAnalyzer) -> None:
-        """Should generate hint from template when not in response."""
-        response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": ["missed_needs_discovery"],
-            "intervention_level": "warning",
-            "hint": null,
-            "example_phrase": null,
-            "ready_for_next_stage": false,
-            "suggested_stage": null
-        }"""
+        """Should generate hint from template when intervention flagged without hint."""
+        parsed = CoachAnalysisResponse(
+            deviations=["missed_needs_discovery"],
+            intervention_level=InterventionLevel.WARNING,
+            hint=None,
+        )
 
-        result = analyzer._parse_response(response, "OBSERVE")
+        result = analyzer._finalize_analysis(parsed, "OBSERVE")
 
         assert result.intervention_level == InterventionLevel.WARNING
         assert result.hint is not None
         assert len(result.hint) > 0
 
-    def test_parses_example_phrase(self, analyzer: CoachAnalyzer) -> None:
-        """Should parse example_phrase from response."""
-        response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": ["skipped_observe"],
-            "intervention_level": "suggestion",
-            "hint": "Try asking about their needs.",
-            "example_phrase": "What brings you in today?",
-            "ready_for_next_stage": false,
-            "suggested_stage": null
-        }"""
+    def test_passes_through_example_phrase(self, analyzer: CoachAnalyzer) -> None:
+        """Should pass example_phrase through from structured output."""
+        parsed = CoachAnalysisResponse(
+            deviations=["skipped_observe"],
+            intervention_level=InterventionLevel.SUGGESTION,
+            hint="Try asking about their needs.",
+            example_phrase="What brings you in today?",
+        )
 
-        result = analyzer._parse_response(response, "OBSERVE")
+        result = analyzer._finalize_analysis(parsed, "OBSERVE")
 
         assert result.example_phrase == "What brings you in today?"
         assert result.ready_for_next_stage is False
 
-    def test_parses_ready_for_next_stage(self, analyzer: CoachAnalyzer) -> None:
-        """Should parse ready_for_next_stage from response."""
-        response = """{
-            "techniques_detected": ["warm_greeting", "establish_credibility", "create_comfort"],
-            "stage_items_completed": {
-                "CONNECT": ["warm_greeting", "establish_credibility", "create_comfort"]
-            },
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "info",
-            "hint": "Great CONNECT stage!",
-            "example_phrase": null,
-            "ready_for_next_stage": true,
-            "suggested_stage": "OBSERVE"
-        }"""
+    def test_passes_through_ready_for_next_stage(self, analyzer: CoachAnalyzer) -> None:
+        """Should pass ready_for_next_stage and suggested_stage through."""
+        parsed = CoachAnalysisResponse(
+            techniques_detected=["warm_greeting", "establish_credibility", "create_comfort"],
+            intervention_level=InterventionLevel.INFO,
+            hint="Great CONNECT stage!",
+            ready_for_next_stage=True,
+            suggested_stage="OBSERVE",
+        )
 
-        result = analyzer._parse_response(response, "CONNECT")
+        result = analyzer._finalize_analysis(parsed, "CONNECT")
 
         assert result.ready_for_next_stage is True
+        assert result.suggested_stage == "OBSERVE"
         assert result.example_phrase is None
 
-    def test_defaults_new_fields_when_missing(self, analyzer: CoachAnalyzer) -> None:
-        """Should default example_phrase to None and ready_for_next_stage to False when missing."""
-        response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
-        result = analyzer._parse_response(response, "CONNECT")
+    def test_defaults_when_fields_missing(self, analyzer: CoachAnalyzer) -> None:
+        """Wire-model defaults should flow through to CoachAnalysis."""
+        result = analyzer._finalize_analysis(CoachAnalysisResponse(), "CONNECT")
 
         assert result.example_phrase is None
         assert result.ready_for_next_stage is False
+        assert result.intervention_level == InterventionLevel.NONE
+        assert result.hint is None
 
 
 # =============================================================================
@@ -265,15 +205,14 @@ class TestAnalyze:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should return CoachAnalysis from analyze."""
-        mock_response = """{
-            "techniques_detected": ["motivator_mapping"],
-            "stage_items_completed": {"OBSERVE": ["motivator_mapping"]},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "info",
-            "hint": "Good motivator identification!",
-            "suggested_stage": null
-        }"""
+        mock_response = CoachAnalysisResponse(
+            techniques_detected=["motivator_mapping"],
+            stage_items_completed=[
+                StageItemUpdate(stage="OBSERVE", item="motivator_mapping", completed=True)
+            ],
+            intervention_level=InterventionLevel.INFO,
+            hint="Good motivator identification!",
+        )
 
         with patch.object(analyzer, "_call_gemini", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
@@ -311,6 +250,27 @@ class TestAnalyze:
             assert result.intervention_level == InterventionLevel.NONE
             assert result.confidence == 0.0
 
+    @pytest.mark.asyncio
+    async def test_analyze_handles_missing_structured_output(
+        self,
+        analyzer: CoachAnalyzer,
+        sample_messages: list,
+        sample_progress: CoreStageProgress,
+    ) -> None:
+        """Should return safe default when _call_gemini yields no parsed output."""
+        with patch.object(analyzer, "_call_gemini", new_callable=AsyncMock) as mock_call:
+            mock_call.return_value = None
+
+            result = await analyzer.analyze(
+                salesperson_message="Hello",
+                messages=sample_messages,
+                persona=ANXIOUS_FIRST_TIMER,
+                stage_progress=sample_progress,
+            )
+
+            assert result.intervention_level == InterventionLevel.NONE
+            assert result.confidence == 0.0
+
 
 # =============================================================================
 # Integration-style Tests (still mocked, but fuller flow)
@@ -324,17 +284,16 @@ class TestAnalyzerIntegration:
     async def test_detects_good_greeting(self) -> None:
         """Should detect good greeting technique."""
         analyzer = CoachAnalyzer()
-        mock_response = """{
-            "techniques_detected": ["warm_greeting", "establish_credibility"],
-            "stage_items_completed": {
-                "CONNECT": ["warm_greeting", "establish_credibility"]
-            },
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "info",
-            "hint": "Great rapport building!",
-            "suggested_stage": "OBSERVE"
-        }"""
+        mock_response = CoachAnalysisResponse(
+            techniques_detected=["warm_greeting", "establish_credibility"],
+            stage_items_completed=[
+                StageItemUpdate(stage="CONNECT", item="warm_greeting", completed=True),
+                StageItemUpdate(stage="CONNECT", item="establish_credibility", completed=True),
+            ],
+            intervention_level=InterventionLevel.INFO,
+            hint="Great rapport building!",
+            suggested_stage="OBSERVE",
+        )
 
         with patch.object(analyzer, "_call_gemini", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
@@ -355,15 +314,12 @@ class TestAnalyzerIntegration:
     async def test_detects_deviation(self) -> None:
         """Should detect deviation when skipping stages."""
         analyzer = CoachAnalyzer()
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": ["recommended_too_early", "skipped_observe"],
-            "intervention_level": "warning",
-            "hint": "You're presenting solutions before understanding their needs.",
-            "suggested_stage": "OBSERVE"
-        }"""
+        mock_response = CoachAnalysisResponse(
+            deviations=["recommended_too_early", "skipped_observe"],
+            intervention_level=InterventionLevel.WARNING,
+            hint="You're presenting solutions before understanding their needs.",
+            suggested_stage="OBSERVE",
+        )
 
         with patch.object(analyzer, "_call_gemini", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
@@ -395,16 +351,6 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should pass RAG context to prompt when enabled."""
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
         mock_settings = MagicMock()
         mock_settings.rag_enabled = True
         mock_settings.rag_use_reranking = False
@@ -421,7 +367,7 @@ class TestAnalyzerRAGIntegration:
                 return_value="Sectional is stain-resistant.",
             ),
         ):
-            mock_call.return_value = mock_response
+            mock_call.return_value = CoachAnalysisResponse()
 
             await analyzer.analyze(
                 salesperson_message="Tell me about durability",
@@ -443,16 +389,6 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should not include product context when RAG disabled."""
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
         mock_settings = MagicMock()
         mock_settings.rag_enabled = False
         mock_settings.rag_use_objection_lookup = False
@@ -461,7 +397,7 @@ class TestAnalyzerRAGIntegration:
             patch.object(analyzer, "_call_gemini", new_callable=AsyncMock) as mock_call,
             patch("app.agents.coach.analyzer.get_settings", return_value=mock_settings),
         ):
-            mock_call.return_value = mock_response
+            mock_call.return_value = CoachAnalysisResponse()
 
             await analyzer.analyze(
                 salesperson_message="Tell me about durability",
@@ -481,15 +417,11 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should still produce analysis when RAG fails."""
-        mock_response = """{
-            "techniques_detected": ["goal_identification"],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "info",
-            "hint": "Good question!",
-            "suggested_stage": null
-        }"""
+        mock_response = CoachAnalysisResponse(
+            techniques_detected=["goal_identification"],
+            intervention_level=InterventionLevel.INFO,
+            hint="Good question!",
+        )
 
         mock_settings = MagicMock()
         mock_settings.rag_enabled = True
@@ -527,20 +459,8 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should forward persona property_id to RAG retrieval with property_listing doc type."""
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
         # Persona with explicit property_id for RAG filtering
-        persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(
-            update={"property_id": "property_1"}
-        )
+        persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(update={"property_id": "property_1"})
 
         mock_settings = MagicMock()
         mock_settings.rag_enabled = True
@@ -558,7 +478,7 @@ class TestAnalyzerRAGIntegration:
                 return_value="Filtered product info.",
             ) as mock_retrieve,
         ):
-            mock_call.return_value = mock_response
+            mock_call.return_value = CoachAnalysisResponse()
 
             await analyzer.analyze(
                 salesperson_message="Tell me about this property",
@@ -580,19 +500,7 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should forward property_id to hybrid RAG retrieval."""
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
-        persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(
-            update={"property_id": "property_6"}
-        )
+        persona_with_product = ANXIOUS_FIRST_TIMER.model_copy(update={"property_id": "property_6"})
 
         mock_settings = MagicMock()
         mock_settings.rag_enabled = True
@@ -610,7 +518,7 @@ class TestAnalyzerRAGIntegration:
                 return_value="Hybrid product info.",
             ) as mock_hybrid,
         ):
-            mock_call.return_value = mock_response
+            mock_call.return_value = CoachAnalysisResponse()
 
             await analyzer.analyze(
                 salesperson_message="Show me this condo",
@@ -620,7 +528,9 @@ class TestAnalyzerRAGIntegration:
             )
 
             # CONNECT stage → section_type=None
-            mock_hybrid.assert_called_once_with("Show me this condo", "property_6", "property_listing", None)
+            mock_hybrid.assert_called_once_with(
+                "Show me this condo", "property_6", "property_listing", None
+            )
 
     @pytest.mark.asyncio
     async def test_rag_forwards_persona_product_fields(
@@ -630,16 +540,6 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should forward existing persona product fields to RAG retrieval."""
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
         mock_settings = MagicMock()
         mock_settings.rag_enabled = True
         mock_settings.rag_use_reranking = False
@@ -656,7 +556,7 @@ class TestAnalyzerRAGIntegration:
                 return_value="",
             ) as mock_retrieve,
         ):
-            mock_call.return_value = mock_response
+            mock_call.return_value = CoachAnalysisResponse()
 
             await analyzer.analyze(
                 salesperson_message="Hello",
@@ -676,16 +576,6 @@ class TestAnalyzerRAGIntegration:
         sample_progress: CoreStageProgress,
     ) -> None:
         """Should use conversation-aware retrieval when enabled."""
-        mock_response = """{
-            "techniques_detected": [],
-            "stage_items_completed": {},
-            "pbms_acknowledged": [],
-            "deviations": [],
-            "intervention_level": "none",
-            "hint": null,
-            "suggested_stage": null
-        }"""
-
         mock_settings = MagicMock()
         mock_settings.rag_enabled = True
         mock_settings.rag_use_reranking = False
@@ -701,7 +591,7 @@ class TestAnalyzerRAGIntegration:
                 return_value="Context-enhanced product info.",
             ) as mock_ctx_retrieve,
         ):
-            mock_call.return_value = mock_response
+            mock_call.return_value = CoachAnalysisResponse()
 
             await analyzer.analyze(
                 salesperson_message="Is it durable?",
