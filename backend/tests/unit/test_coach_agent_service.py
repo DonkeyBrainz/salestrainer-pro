@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.agents.state import CustomerAgentState, CoreStageProgress, SalesStage
+from app.agents.state import CoreStageProgress, CustomerAgentState, SalesStage
 from app.config import Settings
 from app.models.coach import CoachAnalysis, CoachHint, InterventionLevel, StageItemUpdate
 from app.models.evaluation import Evaluation, Grade

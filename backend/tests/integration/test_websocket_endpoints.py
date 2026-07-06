@@ -754,8 +754,7 @@ class TestProductParamsInjection:
         mock_live_session.receive.return_value = controlled_receive()
 
         with client_with_overrides.websocket_connect(
-            "/ws/gemini/live?token=valid_token"
-            "&product_category=bracken&product_type=sectional_1"
+            "/ws/gemini/live?token=valid_token&product_category=bracken&product_type=sectional_1"
         ) as websocket:
             websocket.receive_json()
 
@@ -1294,10 +1293,6 @@ class TestEvaluateControlAction:
                 # Send a text message first (to populate buffer)
                 websocket.send_text(json.dumps({"type": "text", "content": "Hi there"}))
 
-                # Receive assistant transcription + turn complete
-                websocket.receive_json()  # transcription
-                websocket.receive_json()  # turn_complete
-
                 import time
 
                 time.sleep(0.1)
@@ -1305,8 +1300,13 @@ class TestEvaluateControlAction:
                 # Now send evaluate
                 websocket.send_text(json.dumps({"type": "control", "action": "evaluate"}))
 
-                # Receive evaluation result
+                # Drain turn/coach events (transcription, turn_complete,
+                # coach_status, stage_progress) until the evaluation arrives
                 result = websocket.receive_json()
+                for _ in range(10):
+                    if result["type"] == "evaluation_result":
+                        break
+                    result = websocket.receive_json()
                 assert result["type"] == "evaluation_result"
 
             # Verify persistence was called before evaluation
@@ -1497,10 +1497,6 @@ class TestEvaluateControlAction:
                 # Send text to populate buffer
                 websocket.send_text(json.dumps({"type": "text", "content": "Hello"}))
 
-                # Receive turn
-                websocket.receive_json()  # transcription
-                websocket.receive_json()  # turn_complete
-
                 import time
 
                 time.sleep(0.1)
@@ -1508,8 +1504,13 @@ class TestEvaluateControlAction:
                 # Send evaluate
                 websocket.send_text(json.dumps({"type": "control", "action": "evaluate"}))
 
-                # Receive evaluation
+                # Drain turn/coach events (transcription, turn_complete,
+                # coach_status, stage_progress) until the evaluation arrives
                 result = websocket.receive_json()
+                for _ in range(10):
+                    if result["type"] == "evaluation_result":
+                        break
+                    result = websocket.receive_json()
                 assert result["type"] == "evaluation_result"
 
             # end_session should be called exactly once (from evaluate action),

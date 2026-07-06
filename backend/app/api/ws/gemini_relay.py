@@ -12,7 +12,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 
 from app.agents.personas import get_persona
 from app.agents.prompts import build_customer_prompt
-from app.agents.state import CustomerAgentState
+from app.agents.state import CustomerAgentState, CustomerPersona
 from app.api.products import get_product_details
 from app.core.exceptions import (
     InternalError,
@@ -63,6 +63,9 @@ class GeminiWebSocketRelay:
         self._message_buffer: list[TranscriptMessage] = []
         self._session_id: str | None = None
         self._agent_state: CustomerAgentState | None = None
+        # Final persona for this session (post product-metadata injection);
+        # kept so the system instruction can be rebuilt on reconnect.
+        self._persona: CustomerPersona | None = None
         self._session_mode: SessionType = SessionType.TRAINING
         self._pending_reasoning: str | None = None  # Hold reasoning until speech arrives
         # Accumulate transcription chunks for consolidated Firestore storage
@@ -203,12 +206,8 @@ class GeminiWebSocketRelay:
             # Continue anyway - agent initialization failure shouldn't block WebSocket
 
         # Build system instruction from persona and agent state
-        system_instruction: str | None = None
-        if self._agent_state:
-            system_instruction = build_customer_prompt(
-                persona=persona,
-                state=self._agent_state,
-            )
+        self._persona = persona
+        system_instruction = self._current_system_instruction()
 
         # Connect to Gemini Live API with reconnection support
         try:
@@ -323,6 +322,20 @@ class GeminiWebSocketRelay:
         """
         while self._reconnect_attempts < self._max_reconnect_attempts:
             self._should_reconnect = False
+
+            # On reconnect, rebuild the prompt so it reflects the customer's
+            # current mood/regard/objection state instead of the connect-time
+            # snapshot. With a resumption handle Gemini also restores server-side
+            # context; the fresh prompt is the only accurate option when
+            # reconnecting without one.
+            if self._reconnect_attempts > 0:
+                rebuilt = self._current_system_instruction()
+                if rebuilt is not None:
+                    system_instruction = rebuilt
+                    logger.info(
+                        "Rebuilt system instruction on reconnect",
+                        extra={"session_id": self._session_id},
+                    )
 
             try:
                 # Only pass resumption handle if resumption is enabled
@@ -481,33 +494,11 @@ class GeminiWebSocketRelay:
                                 text=content,
                                 timestamp=datetime.now(UTC),
                             )
-                            # Update agent state (non-blocking)
-                            if self._agent_state and self._session_id:
-                                try:
-                                    # Preserve coach-maintained stage_progress across
-                                    # LangGraph invocation (graph doesn't manage this field)
-                                    preserved_progress = self._agent_state["stage_progress"]
-                                    (
-                                        _,
-                                        self._agent_state,
-                                    ) = await self.customer_agent_service.process_message(
-                                        session_id=self._session_id,
-                                        user_message=content,
-                                        current_state=self._agent_state,
-                                    )
-                                    self._agent_state["stage_progress"] = preserved_progress
-                                    logger.debug(
-                                        f"Agent state updated: mood={self._agent_state.get('mood')}, "
-                                        f"regard={self._agent_state.get('regard_level')}"
-                                    )
-
-                                    # Coach analysis (run in background, non-blocking)
-                                    await self._analyze_and_send_hint(
-                                        salesperson_message=content,
-                                        websocket=websocket,
-                                    )
-                                except Exception as e:
-                                    logger.warning(f"Agent processing failed: {e}")
+                            # Update agent state + coach analysis (non-blocking)
+                            await self._process_agents(
+                                salesperson_message=content,
+                                websocket=websocket,
+                            )
 
                         elif msg_type == "control":
                             # Control messages (e.g., end_turn, evaluate)
@@ -678,30 +669,11 @@ class GeminiWebSocketRelay:
                             timestamp=datetime.now(UTC),
                         )
 
-                        # Run coach analysis on complete message
-                        if self._agent_state and self._session_id:
-                            try:
-                                # Preserve coach-maintained stage_progress across
-                                # LangGraph invocation (graph doesn't manage this field)
-                                preserved_progress = self._agent_state["stage_progress"]
-                                (
-                                    _,
-                                    self._agent_state,
-                                ) = await self.customer_agent_service.process_message(
-                                    session_id=self._session_id,
-                                    user_message=user_text,
-                                    current_state=self._agent_state,
-                                )
-                                self._agent_state["stage_progress"] = preserved_progress
-                                await self._analyze_and_send_hint(
-                                    salesperson_message=user_text,
-                                    websocket=websocket,
-                                )
-                            except Exception as e:
-                                logger.warning(
-                                    f"Agent processing failed: {e}",
-                                    exc_info=True,
-                                )
+                        # Run agent state update + coach analysis on complete message
+                        await self._process_agents(
+                            salesperson_message=user_text,
+                            websocket=websocket,
+                        )
 
                         self._pending_user_transcription = ""
 
@@ -753,6 +725,63 @@ class GeminiWebSocketRelay:
         )
         self._message_buffer.append(message)
 
+    def _current_system_instruction(self) -> str | None:
+        """Build the persona system instruction from the current agent state.
+
+        Used at connect time and again on each reconnect so the prompt reflects
+        live mood/regard/objection state rather than the connect-time snapshot.
+        """
+        if not (self._persona and self._agent_state):
+            return None
+        return build_customer_prompt(persona=self._persona, state=self._agent_state)
+
+    async def _process_agents(
+        self,
+        salesperson_message: str,
+        websocket: WebSocket,
+    ) -> None:
+        """Run customer-agent state update and coach analysis for a completed turn.
+
+        Each agent gets its own exception scope: a customer-agent failure must not
+        prevent coach analysis (and vice versa). Both degrade non-fatally while the
+        voice session continues.
+
+        Args:
+            salesperson_message: The salesperson's completed message
+            websocket: WebSocket connection for sending coach events
+        """
+        if not (self._agent_state and self._session_id):
+            return
+
+        try:
+            # Preserve coach-maintained stage_progress across
+            # LangGraph invocation (graph doesn't manage this field)
+            preserved_progress = self._agent_state["stage_progress"]
+            (
+                _,
+                self._agent_state,
+            ) = await self.customer_agent_service.process_message(
+                session_id=self._session_id,
+                user_message=salesperson_message,
+                current_state=self._agent_state,
+                generate_response=False,
+            )
+            self._agent_state["stage_progress"] = preserved_progress
+            logger.debug(
+                f"Agent state updated: mood={self._agent_state.get('mood')}, "
+                f"regard={self._agent_state.get('regard_level')}"
+            )
+        except Exception as e:
+            logger.warning(f"Customer agent processing failed: {e}", exc_info=True)
+
+        try:
+            await self._analyze_and_send_hint(
+                salesperson_message=salesperson_message,
+                websocket=websocket,
+            )
+        except Exception as e:
+            logger.warning(f"Coach analysis failed: {e}", exc_info=True)
+
     async def _analyze_and_send_hint(
         self,
         salesperson_message: str,
@@ -792,8 +821,13 @@ class GeminiWebSocketRelay:
             )
             return
 
-        # Check cache using message hash
-        message_hash = hashlib.sha256(salesperson_message.encode()).hexdigest()[:16]
+        # Check cache using stage-scoped message hash. Keying on stage prevents
+        # replaying a stale analysis/progress from an earlier C.O.R.E. stage
+        # (turn_count is deliberately excluded — it would defeat the cache).
+        current_stage = self._agent_state["stage_progress"].current_stage.value
+        message_hash = hashlib.sha256(
+            f"{current_stage}|{salesperson_message}".encode()
+        ).hexdigest()[:16]
         if message_hash in self._analysis_cache:
             logger.debug(
                 "Using cached analysis",

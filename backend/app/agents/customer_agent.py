@@ -322,6 +322,12 @@ class CustomerAgentGraph:
         Returns:
             New message appended to messages and incremented turn_count.
         """
+        # Voice mode: the live Gemini session produces the customer's reply, so the
+        # graph's text response would be discarded — skip the LLM call but keep
+        # turn accounting intact (runtime key, not in TypedDict).
+        if cast(Any, state).get("_skip_response"):
+            return {"turn_count": state["turn_count"] + 1}
+
         persona = state["persona"]
 
         # Build system prompt

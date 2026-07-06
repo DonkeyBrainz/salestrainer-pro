@@ -47,6 +47,53 @@ class StageItemUpdate(BaseModel):
     completed: bool = Field(..., description="Whether item was completed")
 
 
+class CoachAnalysisResponse(BaseModel):
+    """Wire schema for the coach LLM's structured output.
+
+    Passed to Gemini as ``response_schema`` so the SDK guarantees shape and
+    enum validity. Mirrors CoachAnalysis minus code-owned fields
+    (``confidence`` is set by the analyzer, never by the model); the analyzer
+    finalizes this into a CoachAnalysis (template hint fallback, confidence).
+    """
+
+    techniques_detected: list[str] = Field(
+        default_factory=list,
+        description="C.O.R.E. technique IDs observed in the salesperson message",
+    )
+    stage_items_completed: list[StageItemUpdate] = Field(
+        default_factory=list,
+        description="Checklist items completed by this message (completed=true)",
+    )
+    pbms_acknowledged: list[str] = Field(
+        default_factory=list,
+        description="Customer motivators the salesperson acknowledged in this turn",
+    )
+    deviations: list[str] = Field(
+        default_factory=list,
+        description="C.O.R.E. deviation IDs detected",
+    )
+    intervention_level: InterventionLevel = Field(
+        InterventionLevel.NONE,
+        description="Severity of intervention needed",
+    )
+    hint: str | None = Field(
+        None,
+        description="Coaching hint text if intervention needed, else null",
+    )
+    example_phrase: str | None = Field(
+        None,
+        description="Word-for-word example phrase the salesperson could say next, or null",
+    )
+    ready_for_next_stage: bool = Field(
+        False,
+        description="True when all current-stage checklist items are complete",
+    )
+    suggested_stage: str | None = Field(
+        None,
+        description="Stage to transition to (CONNECT/OBSERVE/RECOMMEND/EXECUTE), or null",
+    )
+
+
 class CoachAnalysis(BaseModel):
     """Result of coach agent analyzing a salesperson message.
 

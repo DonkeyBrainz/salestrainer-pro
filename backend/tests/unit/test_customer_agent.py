@@ -7,7 +7,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
 from app.agents.customer_agent import CustomerAgentGraph
-from app.agents.personas import ANXIOUS_FIRST_TIMER, WEALTHY_SKEPTIC, OPTIMISTIC_RENOVATOR
+from app.agents.personas import ANXIOUS_FIRST_TIMER, OPTIMISTIC_RENOVATOR, WEALTHY_SKEPTIC
 from app.agents.prompts import (
     build_customer_prompt,
     get_regard_description,
@@ -532,12 +532,12 @@ class TestGenerateResponse:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should call LLM and return response."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as MockLLM:
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as mock_llm_cls:
             mock_llm_instance = AsyncMock()
             mock_llm_instance.ainvoke.return_value = MagicMock(
                 content="Hello! I'm looking for a sofa."
             )
-            MockLLM.return_value = mock_llm_instance
+            mock_llm_cls.return_value = mock_llm_instance
 
             agent = CustomerAgentGraph(mock_settings)
 
@@ -553,10 +553,10 @@ class TestGenerateResponse:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should include objection instruction when injected."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as MockLLM:
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as mock_llm_cls:
             mock_llm_instance = AsyncMock()
             mock_llm_instance.ainvoke.return_value = MagicMock(content="I need to measure first.")
-            MockLLM.return_value = mock_llm_instance
+            mock_llm_cls.return_value = mock_llm_instance
 
             agent = CustomerAgentGraph(mock_settings)
 
@@ -570,6 +570,25 @@ class TestGenerateResponse:
         messages = call_args[0][0]
         # Should have system prompt + user message + objection instruction
         assert len(messages) >= 3
+
+    async def test_skips_llm_call_when_skip_response_set(
+        self, mock_settings: MagicMock, sample_state: CustomerAgentState
+    ) -> None:
+        """Voice mode: no LLM call, but turn accounting still happens."""
+        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as mock_llm_cls:
+            mock_llm_instance = AsyncMock()
+            mock_llm_cls.return_value = mock_llm_instance
+
+            agent = CustomerAgentGraph(mock_settings)
+
+        sample_state["messages"] = [HumanMessage(content="Hi there!")]
+        sample_state["_skip_response"] = True
+
+        result = await agent._generate_response(sample_state)
+
+        mock_llm_instance.ainvoke.assert_not_awaited()
+        assert "messages" not in result
+        assert result["turn_count"] == 1
 
 
 # =============================================================================
@@ -651,7 +670,7 @@ class TestProcessMessage:
 
     async def test_adds_user_message_to_state(self, mock_settings: MagicMock) -> None:
         """Should add user message before invoking graph."""
-        with patch("app.services.customer_agent_service.CustomerAgentGraph") as MockGraph:
+        with patch("app.services.customer_agent_service.CustomerAgentGraph") as mock_graph_cls:
             mock_agent = MagicMock()
             mock_agent.invoke = AsyncMock(
                 return_value={
@@ -671,7 +690,7 @@ class TestProcessMessage:
                     "user_id": "u",
                 }
             )
-            MockGraph.return_value = mock_agent
+            mock_graph_cls.return_value = mock_agent
 
             service = CustomerAgentService(mock_settings)
             initial_state = await service.start_session("s", "u", "optimistic_renovator")
@@ -686,7 +705,7 @@ class TestProcessMessage:
 
     async def test_returns_response_text(self, mock_settings: MagicMock) -> None:
         """Should extract response text from AI message."""
-        with patch("app.services.customer_agent_service.CustomerAgentGraph") as MockGraph:
+        with patch("app.services.customer_agent_service.CustomerAgentGraph") as mock_graph_cls:
             mock_agent = MagicMock()
             mock_agent.invoke = AsyncMock(
                 return_value={
@@ -703,7 +722,7 @@ class TestProcessMessage:
                     "user_id": "u",
                 }
             )
-            MockGraph.return_value = mock_agent
+            mock_graph_cls.return_value = mock_agent
 
             service = CustomerAgentService(mock_settings)
             initial_state = await service.start_session("s", "u", "optimistic_renovator")
@@ -712,16 +731,54 @@ class TestProcessMessage:
 
         assert response == "I'm looking for a sofa."
 
+    async def test_generate_response_flag_threads_to_graph_state(
+        self, mock_settings: MagicMock
+    ) -> None:
+        """generate_response=False sets _skip_response; default leaves it False."""
+        with patch("app.services.customer_agent_service.CustomerAgentGraph") as mock_graph_cls:
+            mock_agent = MagicMock()
+            mock_agent.invoke = AsyncMock(
+                return_value={
+                    "messages": [HumanMessage(content="Hello!")],
+                    "turn_count": 1,
+                    "persona": OPTIMISTIC_RENOVATOR,
+                    "mood": Mood.INTERESTED,
+                    "regard_level": RegardLevel.HIGH,
+                    "objections_available": [],
+                    "objections_raised": [],
+                    "objections_resolved": [],
+                    "stage_progress": CoreStageProgress(),
+                    "session_id": "s",
+                    "user_id": "u",
+                }
+            )
+            mock_graph_cls.return_value = mock_agent
+
+            service = CustomerAgentService(mock_settings)
+            initial_state = await service.start_session("s", "u", "optimistic_renovator")
+
+            response, _ = await service.process_message(
+                "s", "Hello!", initial_state, generate_response=False
+            )
+            passed_state = mock_agent.invoke.call_args[0][0]
+            assert passed_state["_skip_response"] is True
+            # No AI message generated -> empty response text
+            assert response == ""
+
+            await service.process_message("s", "Hello!", initial_state)
+            passed_state = mock_agent.invoke.call_args[0][0]
+            assert passed_state["_skip_response"] is False
+
 
 class TestGetSessionState:
     """Tests for get_session_state method."""
 
     async def test_delegates_to_agent(self, mock_settings: MagicMock) -> None:
         """Should call agent's get_state method."""
-        with patch("app.services.customer_agent_service.CustomerAgentGraph") as MockGraph:
+        with patch("app.services.customer_agent_service.CustomerAgentGraph") as mock_graph_cls:
             mock_agent = MagicMock()
             mock_agent.get_state.return_value = None
-            MockGraph.return_value = mock_agent
+            mock_graph_cls.return_value = mock_agent
 
             service = CustomerAgentService(mock_settings)
             result = await service.get_session_state("test-session")

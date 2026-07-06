@@ -8,7 +8,6 @@ from google.cloud import firestore
 
 from app.config import get_settings
 
-
 # Patterns that indicate customer is acting like a salesperson
 SALES_MODE_PATTERNS = [
     # Direct sales questions
@@ -69,11 +68,9 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
     print(f"✅ Found user: {user_data.get('name')} (ID: {user_id})")
 
     # 2. Get sessions
-    print(f"\n📊 Fetching sessions...")
+    print("\n📊 Fetching sessions...")
     sessions_query = (
-        db.collection("sessions")
-        .where("user_id", "==", user_id)
-        .where("is_deleted", "==", False)
+        db.collection("sessions").where("user_id", "==", user_id).where("is_deleted", "==", False)
     )
 
     sessions = []
@@ -85,13 +82,11 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
     print(f"✅ Found {len(sessions)} sessions")
 
     # 3. Get transcripts
-    print(f"\n📝 Fetching transcripts...")
+    print("\n📝 Fetching transcripts...")
     transcripts = []
     for session in sessions:
         transcript_query = (
-            db.collection("transcripts")
-            .where("session_id", "==", session["session_id"])
-            .limit(1)
+            db.collection("transcripts").where("session_id", "==", session["session_id"]).limit(1)
         )
         async for doc in transcript_query.stream():
             transcript_data = doc.to_dict()
@@ -102,7 +97,7 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
     print(f"✅ Found {len(transcripts)} transcripts")
 
     # 4. Analyze for sales mode violations
-    print(f"\n🔬 Analyzing for sales mode violations...\n")
+    print("\n🔬 Analyzing for sales mode violations...\n")
 
     violations = []
     total_customer_messages = 0
@@ -137,18 +132,20 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
 
     # 5. Report findings
     print("=" * 80)
-    print(f"🚨 SALES MODE VIOLATION REPORT")
+    print("🚨 SALES MODE VIOLATION REPORT")
     print("=" * 80)
 
-    print(f"\n📊 SUMMARY")
+    print("\n📊 SUMMARY")
     print(f"  Total Transcripts: {len(transcripts)}")
     print(f"  Total Customer Messages: {total_customer_messages}")
     print(f"  Violations Found: {len(violations)}")
     print(f"  Sessions with Violations: {len(sessions_with_violations)}")
-    print(f"  Violation Rate: {len(violations) / total_customer_messages * 100:.1f}% of customer messages")
+    print(
+        f"  Violation Rate: {len(violations) / total_customer_messages * 100:.1f}% of customer messages"
+    )
 
     if violations:
-        print(f"\n🔴 VIOLATIONS DETECTED\n")
+        print("\n🔴 VIOLATIONS DETECTED\n")
 
         # Group by persona
         by_persona = {}
@@ -158,18 +155,20 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
                 by_persona[persona] = []
             by_persona[persona].append(v)
 
-        print(f"📋 Violations by Persona:")
-        for persona, persona_violations in sorted(by_persona.items(), key=lambda x: len(x[1]), reverse=True):
+        print("📋 Violations by Persona:")
+        for persona, persona_violations in sorted(
+            by_persona.items(), key=lambda x: len(x[1]), reverse=True
+        ):
             print(f"  {persona}: {len(persona_violations)} violations")
 
-        print(f"\n💬 Sample Violations (first 20):\n")
+        print("\n💬 Sample Violations (first 20):\n")
         for i, v in enumerate(violations[:20], 1):
             print(f"{i}. Session: {v['session_id'][:8]}... | Persona: {v['persona']}")
-            print(f"   Message: \"{v['customer_message'][:150]}...\"")
+            print(f'   Message: "{v["customer_message"][:150]}..."')
             print(f"   Pattern: {v['pattern_matched']}")
             print()
 
-        print(f"\n📈 Most Common Patterns:")
+        print("\n📈 Most Common Patterns:")
         pattern_counts = {}
         for v in violations:
             pattern = v["pattern_matched"]
@@ -179,8 +178,8 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
             print(f"  {count}x - {pattern}")
 
     else:
-        print(f"\n✅ NO VIOLATIONS DETECTED")
-        print(f"   All customer personas stayed in character!")
+        print("\n✅ NO VIOLATIONS DETECTED")
+        print("   All customer personas stayed in character!")
 
     print("\n" + "=" * 80)
 
@@ -189,12 +188,15 @@ async def detect_sales_mode(user_email: str) -> dict[str, Any]:
         "total_customer_messages": total_customer_messages,
         "violations_found": len(violations),
         "sessions_with_violations": len(sessions_with_violations),
-        "violation_rate": len(violations) / total_customer_messages if total_customer_messages > 0 else 0,
+        "violation_rate": len(violations) / total_customer_messages
+        if total_customer_messages > 0
+        else 0,
         "violations": violations,
         "by_persona": {
-            persona: len(persona_violations)
-            for persona, persona_violations in by_persona.items()
-        } if violations else {},
+            persona: len(persona_violations) for persona, persona_violations in by_persona.items()
+        }
+        if violations
+        else {},
     }
 
 

@@ -4,7 +4,6 @@ This module provides the CoachAnalyzer class that analyzes salesperson
 messages for E.A.S.Y. technique usage and provides coaching feedback.
 """
 
-import json
 import logging
 from typing import Any
 
@@ -16,12 +15,9 @@ from app.agents.coach.hints import get_intervention_message
 from app.agents.coach.prompts import build_coach_prompt, format_conversation_history
 from app.agents.state import CoreStageProgress, CustomerPersona
 from app.config import get_settings
-from app.models.coach import CoachAnalysis, InterventionLevel, StageItemUpdate
+from app.models.coach import CoachAnalysis, CoachAnalysisResponse, InterventionLevel
 
 logger = logging.getLogger(__name__)
-
-# Default model for coach analysis
-DEFAULT_COACH_MODEL = "gemini-2.5-flash"
 
 
 class CoachAnalyzer:
@@ -35,10 +31,11 @@ class CoachAnalyzer:
         """Initialize the coach analyzer.
 
         Args:
-            model: Gemini model to use. Defaults to gemini-2.5-flash.
+            model: Gemini model to use. Defaults to settings.coach_model
+                (model IDs are operational config, not code constants).
         """
         settings = get_settings()
-        self._model = model or settings.coach_model or DEFAULT_COACH_MODEL
+        self._model = model or settings.coach_model
         self._client: genai.Client | None = None
 
     @property
@@ -121,13 +118,10 @@ class CoachAnalyzer:
         )
 
         try:
-            # Call Gemini for analysis
-            response = await self._call_gemini(prompt)
+            # Call Gemini for analysis (native structured output)
+            parsed = await self._call_gemini(prompt)
 
-            # Parse the response
-            analysis = self._parse_response(response, stage_progress.current_stage.value)
-
-            return analysis
+            return self._finalize_analysis(parsed, stage_progress.current_stage.value)
 
         except Exception as e:
             logger.error(f"Coach analysis failed: {e}")
@@ -277,14 +271,15 @@ class CoachAnalyzer:
             logger.warning(f"RAG retrieval failed (non-blocking): {e}")
             return ""
 
-    async def _call_gemini(self, prompt: str) -> str:
-        """Call Gemini API for analysis.
+    async def _call_gemini(self, prompt: str) -> CoachAnalysisResponse | None:
+        """Call Gemini API for analysis with native structured output.
 
         Args:
             prompt: The analysis prompt
 
         Returns:
-            Raw response text from Gemini
+            Parsed CoachAnalysisResponse, or None if the SDK produced no
+            structured output (treated as a failed analysis upstream).
         """
         response = await self.client.aio.models.generate_content(
             model=self._model,
@@ -292,12 +287,15 @@ class CoachAnalyzer:
             config=types.GenerateContentConfig(
                 temperature=0.1,  # Low temperature for consistent analysis
                 max_output_tokens=1024,
+                response_mime_type="application/json",
+                response_schema=CoachAnalysisResponse,
             ),
         )
 
-        if response.text:
-            return response.text
-        return "{}"
+        parsed = response.parsed
+        if isinstance(parsed, CoachAnalysisResponse):
+            return parsed
+        return None
 
     def _messages_to_tuples(self, messages: list[BaseMessage]) -> list[tuple[str, str]]:
         """Convert LangChain messages to (role, content) tuples.
@@ -316,86 +314,24 @@ class CoachAnalyzer:
                 result.append(("assistant", str(msg.content)))
         return result
 
-    def _parse_response(self, response_text: str, current_stage: str) -> CoachAnalysis:
-        """Parse Gemini response into CoachAnalysis.
+    def _finalize_analysis(
+        self, parsed: CoachAnalysisResponse | None, current_stage: str
+    ) -> CoachAnalysis:
+        """Finalize the LLM's structured output into a CoachAnalysis.
+
+        The SDK guarantees shape and enum validity; this step keeps only the
+        semantic fallbacks: no structured output at all -> safe default, and
+        intervention flagged without a hint -> template hint.
 
         Args:
-            response_text: Raw JSON response from Gemini
-            current_stage: Current E.A.S.Y. stage for fallback hints
+            parsed: Structured output from Gemini, or None on parse failure
+            current_stage: Current C.O.R.E. stage for fallback hints
 
         Returns:
-            Parsed CoachAnalysis object
+            Finalized CoachAnalysis object
         """
-        try:
-            # Clean the response (remove markdown code blocks if present)
-            cleaned = response_text.strip()
-            if cleaned.startswith("```"):
-                # Remove markdown code block
-                lines = cleaned.split("\n")
-                cleaned = "\n".join(lines[1:-1]) if len(lines) > 2 else cleaned
-
-            data: dict[str, Any] = json.loads(cleaned)
-
-            # Parse techniques detected
-            techniques = data.get("techniques_detected", [])
-
-            # Parse stage items completed
-            stage_items_raw = data.get("stage_items_completed", {})
-            stage_items: list[StageItemUpdate] = []
-            for stage, items in stage_items_raw.items():
-                for item in items:
-                    stage_items.append(StageItemUpdate(stage=stage, item=item, completed=True))
-
-            # Parse PBMs acknowledged
-            pbms = data.get("pbms_acknowledged", [])
-
-            # Parse deviations
-            deviations = data.get("deviations", [])
-
-            # Parse intervention level
-            level_str = data.get("intervention_level", "none").lower()
-            try:
-                intervention_level = InterventionLevel(level_str)
-            except ValueError:
-                intervention_level = InterventionLevel.NONE
-
-            # Get hint (use LLM hint or generate from templates)
-            hint = data.get("hint")
-            if not hint and intervention_level != InterventionLevel.NONE:
-                # Generate hint from templates
-                deviation = deviations[0] if deviations else None
-                technique = techniques[0] if techniques else None
-                hint = get_intervention_message(
-                    level=intervention_level,
-                    stage=current_stage,
-                    deviation=deviation,
-                    technique=technique,
-                )
-
-            # Parse suggested stage
-            suggested_stage = data.get("suggested_stage")
-
-            # Parse example phrase
-            example_phrase = data.get("example_phrase")
-
-            # Parse ready for next stage
-            ready_for_next_stage = bool(data.get("ready_for_next_stage", False))
-
-            return CoachAnalysis(
-                techniques_detected=techniques,
-                stage_items_completed=stage_items,
-                pbms_acknowledged=pbms,
-                deviations=deviations,
-                intervention_level=intervention_level,
-                hint=hint,
-                example_phrase=example_phrase,
-                ready_for_next_stage=ready_for_next_stage,
-                suggested_stage=suggested_stage,
-                confidence=1.0,
-            )
-
-        except json.JSONDecodeError as e:
-            logger.warning(f"Failed to parse coach response as JSON: {e}")
+        if parsed is None:
+            logger.warning("Coach response had no structured output; using safe default")
             return CoachAnalysis(
                 techniques_detected=[],
                 stage_items_completed=[],
@@ -406,6 +342,31 @@ class CoachAnalyzer:
                 suggested_stage=None,
                 confidence=0.0,
             )
+
+        # Use LLM hint or generate from templates
+        hint = parsed.hint
+        if not hint and parsed.intervention_level != InterventionLevel.NONE:
+            deviation = parsed.deviations[0] if parsed.deviations else None
+            technique = parsed.techniques_detected[0] if parsed.techniques_detected else None
+            hint = get_intervention_message(
+                level=parsed.intervention_level,
+                stage=current_stage,
+                deviation=deviation,
+                technique=technique,
+            )
+
+        return CoachAnalysis(
+            techniques_detected=parsed.techniques_detected,
+            stage_items_completed=parsed.stage_items_completed,
+            pbms_acknowledged=parsed.pbms_acknowledged,
+            deviations=parsed.deviations,
+            intervention_level=parsed.intervention_level,
+            hint=hint,
+            example_phrase=parsed.example_phrase,
+            ready_for_next_stage=parsed.ready_for_next_stage,
+            suggested_stage=parsed.suggested_stage,
+            confidence=1.0,
+        )
 
     def analyze_sync(
         self,

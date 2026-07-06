@@ -14,7 +14,6 @@ from google.cloud import firestore
 
 from app.config import get_settings
 
-
 # Patterns indicating customer volunteered information
 VOLUNTEER_PATTERNS = {
     "name": {
@@ -151,11 +150,9 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
     print(f"✅ Found user: {user_data.get('name')} (ID: {user_id})")
 
     # Get sessions
-    print(f"\n📊 Fetching sessions...")
+    print("\n📊 Fetching sessions...")
     sessions_query = (
-        db.collection("sessions")
-        .where("user_id", "==", user_id)
-        .where("is_deleted", "==", False)
+        db.collection("sessions").where("user_id", "==", user_id).where("is_deleted", "==", False)
     )
 
     sessions = []
@@ -167,13 +164,11 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
     print(f"✅ Found {len(sessions)} sessions")
 
     # Get transcripts
-    print(f"\n📝 Fetching transcripts...")
+    print("\n📝 Fetching transcripts...")
     transcripts = []
     for session in sessions:
         transcript_query = (
-            db.collection("transcripts")
-            .where("session_id", "==", session["session_id"])
-            .limit(1)
+            db.collection("transcripts").where("session_id", "==", session["session_id"]).limit(1)
         )
         async for doc in transcript_query.stream():
             transcript_data = doc.to_dict()
@@ -183,25 +178,29 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
     print(f"✅ Found {len(transcripts)} transcripts")
 
     # Analyze volunteering behavior
-    print(f"\n🔬 Analyzing volunteer behavior...\n")
+    print("\n🔬 Analyzing volunteer behavior...\n")
 
     # Track by persona and difficulty
-    by_persona = defaultdict(lambda: {
-        "message_count": 0,
-        "first_message_volunteers": 0,
-        "volunteer_events": defaultdict(int),
-        "total_volunteer_score": 0,
-        "sessions": 0,
-        "examples": [],
-    })
+    by_persona = defaultdict(
+        lambda: {
+            "message_count": 0,
+            "first_message_volunteers": 0,
+            "volunteer_events": defaultdict(int),
+            "total_volunteer_score": 0,
+            "sessions": 0,
+            "examples": [],
+        }
+    )
 
-    by_difficulty = defaultdict(lambda: {
-        "message_count": 0,
-        "first_message_volunteers": 0,
-        "volunteer_events": defaultdict(int),
-        "total_volunteer_score": 0,
-        "sessions": 0,
-    })
+    by_difficulty = defaultdict(
+        lambda: {
+            "message_count": 0,
+            "first_message_volunteers": 0,
+            "volunteer_events": defaultdict(int),
+            "total_volunteer_score": 0,
+            "sessions": 0,
+        }
+    )
 
     for transcript in transcripts:
         session = transcript["session"]
@@ -214,11 +213,9 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
 
         # Check first customer message (most important for volunteering)
         first_customer_msg = None
-        first_customer_idx = -1
-        for idx, msg in enumerate(messages):
+        for msg in messages:
             if msg.get("role") in ["assistant", "model"]:
                 first_customer_msg = msg.get("text", "")
-                first_customer_idx = idx
                 break
 
         if first_customer_msg:
@@ -241,12 +238,14 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
 
                 # Save example
                 if len(by_persona[persona]["examples"]) < 3:
-                    by_persona[persona]["examples"].append({
-                        "session_id": session["session_id"],
-                        "message": first_customer_msg,
-                        "volunteered": volunteered_items,
-                        "score": first_msg_score,
-                    })
+                    by_persona[persona]["examples"].append(
+                        {
+                            "session_id": session["session_id"],
+                            "message": first_customer_msg,
+                            "volunteered": volunteered_items,
+                            "score": first_msg_score,
+                        }
+                    )
 
         # Analyze all customer messages
         for idx, msg in enumerate(messages):
@@ -287,10 +286,10 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
 
     # Calculate metrics
     print("=" * 100)
-    print(f"📊 VOLUNTEER BEHAVIOR ANALYSIS")
+    print("📊 VOLUNTEER BEHAVIOR ANALYSIS")
     print("=" * 100)
 
-    print(f"\n📋 BY PERSONA\n")
+    print("\n📋 BY PERSONA\n")
 
     # Sort by volunteer score (high to low)
     sorted_personas = sorted(
@@ -311,19 +310,21 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
 
         # Category breakdown
         if stats["volunteer_events"]:
-            print(f"   Volunteers:")
-            for category, count in sorted(stats["volunteer_events"].items(), key=lambda x: x[1], reverse=True):
+            print("   Volunteers:")
+            for category, count in sorted(
+                stats["volunteer_events"].items(), key=lambda x: x[1], reverse=True
+            ):
                 print(f"     - {VOLUNTEER_PATTERNS[category]['description']}: {count}x")
 
         # Examples
         if stats["examples"]:
-            print(f"   First Message Examples:")
+            print("   First Message Examples:")
             for ex in stats["examples"][:2]:
-                print(f"     • \"{ex['message'][:100]}...\" (score: {ex['score']})")
+                print(f'     • "{ex["message"][:100]}..." (score: {ex["score"]})')
 
         print()
 
-    print(f"\n📊 BY DIFFICULTY/REGARD LEVEL\n")
+    print("\n📊 BY DIFFICULTY/REGARD LEVEL\n")
 
     # Sort by volunteer score
     sorted_difficulty = sorted(
@@ -344,8 +345,10 @@ async def analyze_volunteer_behavior(user_email: str) -> dict[str, Any]:
 
         # Category breakdown
         if stats["volunteer_events"]:
-            print(f"   Top Volunteers:")
-            for category, count in sorted(stats["volunteer_events"].items(), key=lambda x: x[1], reverse=True)[:5]:
+            print("   Top Volunteers:")
+            for category, count in sorted(
+                stats["volunteer_events"].items(), key=lambda x: x[1], reverse=True
+            )[:5]:
                 print(f"     - {VOLUNTEER_PATTERNS[category]['description']}: {count}x")
 
         print()

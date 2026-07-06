@@ -8,8 +8,6 @@ from typing import Any
 from google.cloud import firestore
 
 from app.config import get_settings
-from app.models.session import SessionStatus, SessionType
-from app.models.transcript import MessageRole
 
 
 async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
@@ -44,11 +42,9 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
     print(f"✅ Found user: {user_data.get('name')} (ID: {user_id})")
 
     # 2. Get all sessions for this user
-    print(f"\n📊 Fetching sessions...")
+    print("\n📊 Fetching sessions...")
     sessions_query = (
-        db.collection("sessions")
-        .where("user_id", "==", user_id)
-        .where("is_deleted", "==", False)
+        db.collection("sessions").where("user_id", "==", user_id).where("is_deleted", "==", False)
     )
 
     sessions = []
@@ -60,13 +56,11 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
     print(f"✅ Found {len(sessions)} sessions")
 
     # 3. Get transcripts for all sessions
-    print(f"\n📝 Fetching transcripts...")
+    print("\n📝 Fetching transcripts...")
     transcripts = []
     for session in sessions:
         transcript_query = (
-            db.collection("transcripts")
-            .where("session_id", "==", session["session_id"])
-            .limit(1)
+            db.collection("transcripts").where("session_id", "==", session["session_id"]).limit(1)
         )
         async for doc in transcript_query.stream():
             transcript_data = doc.to_dict()
@@ -87,7 +81,7 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
         }
 
     # 4. Analyze transcripts
-    print(f"\n🔬 Analyzing transcripts...\n")
+    print("\n🔬 Analyzing transcripts...\n")
 
     analysis = {
         "user_email": user_email,
@@ -172,8 +166,14 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
             "persona": persona,
             "difficulty": difficulty,
             "status": status,
-            "started_at": started_at.isoformat() if isinstance(started_at, datetime) else str(started_at),
-            "ended_at": ended_at.isoformat() if isinstance(ended_at, datetime) else str(ended_at) if ended_at else None,
+            "started_at": started_at.isoformat()
+            if isinstance(started_at, datetime)
+            else str(started_at),
+            "ended_at": ended_at.isoformat()
+            if isinstance(ended_at, datetime)
+            else str(ended_at)
+            if ended_at
+            else None,
             "message_count": len(messages),
             "user_message_count": len(user_messages),
             "customer_message_count": len(customer_messages),
@@ -194,9 +194,7 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
     # User phrases (3+ words)
     user_text = " ".join(all_user_messages).lower()
     user_words = user_text.split()
-    user_trigrams = [
-        " ".join(user_words[i : i + 3]) for i in range(len(user_words) - 2)
-    ]
+    user_trigrams = [" ".join(user_words[i : i + 3]) for i in range(len(user_words) - 2)]
     analysis["common_user_phrases"] = collections.Counter(user_trigrams).most_common(20)
 
     # Customer phrases (3+ words)
@@ -212,7 +210,7 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
     print(f"📊 ANALYSIS SUMMARY FOR {user_data.get('name')} ({user_email})")
     print("=" * 80)
 
-    print(f"\n📈 OVERALL STATS")
+    print("\n📈 OVERALL STATS")
     print(f"  Total Sessions: {analysis['total_sessions']}")
     print(f"  Total Transcripts: {analysis['total_transcripts']}")
     print(f"  Total Messages: {analysis['total_messages']}")
@@ -221,49 +219,51 @@ async def analyze_user_transcripts(user_email: str) -> dict[str, Any]:
     print(f"  Avg Messages/Session: {analysis['avg_messages_per_session']:.1f}")
     print(f"  Avg Session Duration: {analysis['avg_session_duration_minutes']:.1f} minutes")
 
-    print(f"\n🎭 SESSION BREAKDOWN")
+    print("\n🎭 SESSION BREAKDOWN")
     for session_type, count in analysis["session_breakdown"].items():
         print(f"  {session_type}: {count}")
 
-    print(f"\n👥 PERSONA USAGE")
+    print("\n👥 PERSONA USAGE")
     for persona, count in analysis["persona_usage"].most_common():
         print(f"  {persona}: {count}")
 
-    print(f"\n⚡ DIFFICULTY BREAKDOWN")
+    print("\n⚡ DIFFICULTY BREAKDOWN")
     for difficulty, count in analysis["difficulty_usage"].most_common():
         print(f"  {difficulty}: {count}")
 
-    print(f"\n✅ STATUS BREAKDOWN")
+    print("\n✅ STATUS BREAKDOWN")
     for status, count in analysis["status_breakdown"].items():
         print(f"  {status}: {count}")
 
-    print(f"\n📅 SESSIONS BY DATE")
+    print("\n📅 SESSIONS BY DATE")
     for date in sorted(analysis["sessions_by_date"].keys()):
         count = analysis["sessions_by_date"][date]
         print(f"  {date}: {count}")
 
-    print(f"\n💬 TOP 10 USER PHRASES (3-grams)")
+    print("\n💬 TOP 10 USER PHRASES (3-grams)")
     for phrase, count in analysis["common_user_phrases"][:10]:
         if count > 1:  # Only show phrases used more than once
             print(f"  '{phrase}': {count}x")
 
-    print(f"\n🗣️  TOP 10 CUSTOMER PHRASES (3-grams)")
+    print("\n🗣️  TOP 10 CUSTOMER PHRASES (3-grams)")
     for phrase, count in analysis["common_customer_phrases"][:10]:
         if count > 1:
             print(f"  '{phrase}': {count}x")
 
-    print(f"\n📋 RECENT SESSIONS (last 5)")
+    print("\n📋 RECENT SESSIONS (last 5)")
     for session in sorted(
         analysis["detailed_sessions"],
         key=lambda x: x["started_at"],
         reverse=True,
     )[:5]:
         print(f"\n  Session: {session['session_id'][:8]}...")
-        print(f"  Type: {session['type']} | Persona: {session['persona']} | Difficulty: {session['difficulty']}")
+        print(
+            f"  Type: {session['type']} | Persona: {session['persona']} | Difficulty: {session['difficulty']}"
+        )
         print(f"  Status: {session['status']} | Messages: {session['message_count']}")
         print(f"  Started: {session['started_at']}")
         if session["user_messages"]:
-            print(f"  First user messages:")
+            print("  First user messages:")
             for msg in session["user_messages"][:3]:
                 print(f"    - {msg[:100]}...")
 
