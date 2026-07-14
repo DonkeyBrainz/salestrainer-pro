@@ -1,0 +1,16 @@
+# Numbers stress test: prices, sizes, and counts are where ASR front-ends
+# slip. The model must hear figures correctly to respond sensibly.
+id: practical_family_numbers_comprehension
+tags: [persona:practical_family, voice:comprehension, voice:numbers]
+persona_id: practical_family
+turns:
+  - salesperson_text: "This one is listed at four hundred eighty five thousand, with three bedrooms and two baths on a quarter acre lot."
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300
+  - salesperson_text: "The sellers also just replaced the roof in twenty twenty three, so that's a fifteen year warranty you'd inherit."
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300

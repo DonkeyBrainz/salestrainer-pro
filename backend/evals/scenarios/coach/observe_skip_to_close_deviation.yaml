@@ -1,0 +1,15 @@
+# Jumping straight to closing during OBSERVE (no discovery done) is a
+# stage-skip deviation.
+id: observe_skip_to_close_deviation
+tags: [stage:observe, deviation:stage_skip]
+persona_id: anxious_first_timer
+cases:
+  - salesperson_message: "Let's not overthink it — I'll draw up the paperwork right now so we can sign today."
+    conversation_so_far:
+      - { role: user, content: "Hi, welcome! I'm Alex." }
+      - { role: assistant, content: "Hi. This is my first time buying, so I'm a bit nervous." }
+    stage_progress_before:
+      current_stage: OBSERVE
+      connect: { warm_greeting: true, establish_credibility: true, create_comfort: true }
+    expect_deviation_flagged: true
+    expect_intervention_at_least: warning

@@ -128,9 +128,7 @@ class GeminiService:
             # Catch any other unexpected errors
             raise InternalError(f"Unexpected error calling Gemini: {str(e)}") from e
 
-    async def generate_stream(
-        self, request: GeminiRequest
-    ) -> AsyncGenerator[GeminiStreamChunk, None]:
+    async def generate_stream(self, request: GeminiRequest) -> AsyncGenerator[GeminiStreamChunk]:
         """Generate text using Gemini model with streaming.
 
         Args:
@@ -203,7 +201,7 @@ class GeminiService:
         system_instruction: str | None = None,
         voice_name: str | None = None,
         resumption_handle: str | None = None,
-    ) -> AsyncGenerator["GeminiLiveSession", None]:
+    ) -> AsyncGenerator["GeminiLiveSession"]:
         """Connect to Gemini Live API for real-time bidirectional streaming.
 
         Args:
@@ -325,7 +323,7 @@ class GeminiLiveSession:
         except Exception as e:
             raise InternalError(f"Failed to send text to Gemini Live: {str(e)}") from e
 
-    async def receive(self) -> AsyncGenerator[dict[str, Any], None]:
+    async def receive(self) -> AsyncGenerator[dict[str, Any]]:
         """Receive responses from Gemini across multiple turns.
 
         Yields:
@@ -372,6 +370,13 @@ class GeminiLiveSession:
                             "type": "go_away",
                             "time_left": getattr(response.go_away, "time_left", None),
                         }
+
+                    # Surface token usage (billed audio/text tokens). Emitted
+                    # under the vendor-agnostic usage keys so eval harnesses
+                    # can do cost accounting; the relay ignores this type.
+                    usage_event = self._extract_usage_event(response)
+                    if usage_event is not None:
+                        yield usage_event
 
                     server_content = response.server_content
                     if not server_content:
@@ -437,6 +442,57 @@ class GeminiLiveSession:
             raise
         except Exception as e:
             raise InternalError(f"Failed to receive from Gemini Live: {str(e)}") from e
+
+    @staticmethod
+    def _extract_usage_event(response: Any) -> dict[str, Any] | None:
+        """Map LiveServerMessage.usage_metadata to a "usage" LiveEvent (or None).
+
+        Gemini reports cumulative token usage on some server messages; the
+        per-modality breakdown (audio vs text) is preserved under "detail".
+        Field values are coerced defensively (non-int -> 0) so SDK drift or
+        partial payloads degrade to "no usage event" instead of crashing the
+        receive loop.
+        """
+
+        def _as_int(value: Any) -> int:
+            return value if isinstance(value, int) and not isinstance(value, bool) else 0
+
+        usage_metadata = getattr(response, "usage_metadata", None)
+        if usage_metadata is None:
+            return None
+
+        prompt_tokens = _as_int(getattr(usage_metadata, "prompt_token_count", 0))
+        completion_tokens = _as_int(getattr(usage_metadata, "response_token_count", 0))
+        total_tokens = _as_int(getattr(usage_metadata, "total_token_count", 0))
+        if not (prompt_tokens or completion_tokens or total_tokens):
+            return None
+
+        detail: dict[str, Any] = {}
+        for field in ("prompt_tokens_details", "response_tokens_details"):
+            details = getattr(usage_metadata, field, None)
+            if isinstance(details, list):
+                detail[field] = [
+                    {
+                        "modality": str(getattr(d, "modality", "")),
+                        "token_count": _as_int(getattr(d, "token_count", 0)),
+                    }
+                    for d in details
+                ]
+        thoughts = _as_int(getattr(usage_metadata, "thoughts_token_count", 0))
+        if thoughts:
+            detail["thoughts_token_count"] = thoughts
+
+        return {
+            "type": "usage",
+            "audio_data": None,
+            "text": None,
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+            },
+            "detail": detail,
+        }
 
     async def close(self) -> None:
         """Close the Live session.

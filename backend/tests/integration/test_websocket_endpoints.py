@@ -209,6 +209,18 @@ class TestWebSocketConnection:
             assert data["type"] == "ready"
             assert data["status"] == "connected"
 
+    def test_unsupported_provider_rejected(self, client_with_overrides):
+        """Should close with 4004 when requesting a provider outside the allowlist."""
+        from starlette.websockets import WebSocketDisconnect
+
+        # Default allowlist is ["gemini"]; 'openai' is not permitted.
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client_with_overrides.websocket_connect(
+                "/ws/gemini/live?token=valid_token&provider=openai"
+            ) as websocket:
+                websocket.receive_json()
+        assert exc_info.value.code == 4004
+
 
 class TestMessageRelay:
     """Tests for bidirectional message relay."""

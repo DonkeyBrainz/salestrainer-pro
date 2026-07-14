@@ -21,6 +21,7 @@ from app.agents.state import (
     RegardLevel,
     Timeline,
 )
+from app.llm_providers import CompletionResult
 from app.services.customer_agent_service import CustomerAgentService
 
 
@@ -143,7 +144,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should detect greeting in message."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [HumanMessage(content="Hi there, how are you today?")]
@@ -156,7 +157,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should detect pushy sales language."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [HumanMessage(content="Buy now while the deal lasts!")]
@@ -169,7 +170,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should detect acknowledgment of concerns."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [HumanMessage(content="I understand your concerns about that.")]
@@ -182,7 +183,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should detect questions."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [HumanMessage(content="What are you looking for today?")]
@@ -195,7 +196,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should flag a message containing an insult word."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [HumanMessage(content="You're an idiot, this is stupid.")]
@@ -208,7 +209,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should flag a dismissive phrase like 'shut up' / 'waste of time'."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [HumanMessage(content="Just shut up, this is a waste of time.")]
@@ -221,7 +222,7 @@ class TestAnalyzeInput:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Benign words containing insult substrings must NOT trip the flag."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # "hello" contains "hell", "class" contains "ass", "pass" contains "ass".
@@ -236,28 +237,28 @@ class TestAnalyzeInput:
     def test_empty_messages_returns_empty(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
-        """Should return empty dict for no messages."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        """Should return an empty (but present) analysis for no messages."""
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = []
 
         result = agent._analyze_input(sample_state)
 
-        assert result == {}
+        assert result == {"_analysis": {}}
 
     def test_ai_message_returns_empty(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
-        """Should return empty for AI messages (not human)."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        """Should return an empty (but present) analysis for AI messages (not human)."""
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["messages"] = [AIMessage(content="Hello!")]
 
         result = agent._analyze_input(sample_state)
 
-        assert result == {}
+        assert result == {"_analysis": {}}
 
 
 class TestUpdateMood:
@@ -267,7 +268,7 @@ class TestUpdateMood:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should improve mood when salesperson acknowledges concern."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["mood"] = Mood.NEUTRAL
@@ -281,7 +282,7 @@ class TestUpdateMood:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should improve regard when salesperson acknowledges concern."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["regard_level"] = RegardLevel.LOW
@@ -289,13 +290,13 @@ class TestUpdateMood:
 
         result = agent._update_mood(sample_state)
 
-        assert result["regard_level"] == RegardLevel.HIGH
+        assert result["regard_level"] == RegardLevel.MEDIUM  # one step up the 4-level ladder
 
     def test_worsens_mood_on_pushy(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should worsen mood on pushy behavior."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["mood"] = Mood.INTERESTED
@@ -309,7 +310,7 @@ class TestUpdateMood:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should improve regard on greeting in early turns."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["turn_count"] = 1
@@ -318,13 +319,13 @@ class TestUpdateMood:
 
         result = agent._update_mood(sample_state)
 
-        assert result["regard_level"] == RegardLevel.HIGH
+        assert result["regard_level"] == RegardLevel.MEDIUM  # one step up the 4-level ladder
 
     def test_disrespect_sharply_drops_mood_and_regard_even_high_regard(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Insults should sour even a warm (high-regard) customer: 2-step mood drop + regard hit."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # OPTIMISTIC_RENOVATOR is high_regard (1 worsen step) -> insult worsens 2 steps.
@@ -335,13 +336,13 @@ class TestUpdateMood:
         result = agent._update_mood(sample_state)
 
         assert result["mood"] == Mood.SKEPTICAL  # INTERESTED -> NEUTRAL -> SKEPTICAL
-        assert result["regard_level"] == RegardLevel.LOW  # HIGH -> LOW
+        assert result["regard_level"] == RegardLevel.MEDIUM  # HIGH -> MEDIUM
 
     def test_disrespect_overrides_concurrent_acknowledgment(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Disrespect must dominate even if the message also acknowledges a concern."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["mood"] = Mood.NEUTRAL
@@ -352,13 +353,13 @@ class TestUpdateMood:
 
         # Worsens from the original NEUTRAL (not the improved mood): NEUTRAL -> SKEPTICAL -> FRUSTRATED.
         assert result["mood"] == Mood.FRUSTRATED
-        assert result["regard_level"] == RegardLevel.LOW
+        assert result["regard_level"] == RegardLevel.MEDIUM  # HIGH -> MEDIUM
 
     def test_disrespect_overrides_mood_decay(
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Disrespect counts as a negative action, so the no-op decay path must not run."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["mood"] = Mood.INTERESTED
@@ -377,7 +378,7 @@ class TestObjectionRouting:
 
     def test_routes_to_inject_early_turn_medium_difficulty(self, mock_settings: MagicMock) -> None:
         """Should inject objection on turns 2-4 for medium difficulty."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         state: CustomerAgentState = {
@@ -402,7 +403,7 @@ class TestObjectionRouting:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should route to respond when no objections available."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["objections_available"] = []
@@ -415,7 +416,7 @@ class TestObjectionRouting:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should route to respond when all objections already raised."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["objections_raised"] = list(sample_state["objections_available"])
@@ -428,7 +429,7 @@ class TestObjectionRouting:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should not auto-inject for easy personas even in early turns."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # OPTIMISTIC_RENOVATOR is easy difficulty
@@ -447,7 +448,7 @@ class TestInjectObjection:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should select first unraised objection."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["objections_available"] = ["objection1", "objection2"]
@@ -462,7 +463,7 @@ class TestInjectObjection:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should skip objections already raised."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["objections_available"] = ["objection1", "objection2"]
@@ -477,7 +478,7 @@ class TestInjectObjection:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should return empty when all objections already raised."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         sample_state["objections_available"] = ["objection1"]
@@ -493,7 +494,7 @@ class TestMoodHelpers:
 
     def test_improve_mood_progression(self, mock_settings: MagicMock) -> None:
         """Should progress mood positively (using easy difficulty for 100% chance)."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Use "high_regard" difficulty (100% improve chance) to test progression
@@ -505,7 +506,7 @@ class TestMoodHelpers:
 
     def test_worsen_mood_progression(self, mock_settings: MagicMock) -> None:
         """Should progress mood negatively (using easy difficulty for 1-step)."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Use "high_regard" difficulty (1 step worsen) to test single-step progression
@@ -517,11 +518,12 @@ class TestMoodHelpers:
 
     def test_improve_regard_progression(self, mock_settings: MagicMock) -> None:
         """Should progress regard positively."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         assert agent._improve_regard(RegardLevel.NO) == RegardLevel.LOW
-        assert agent._improve_regard(RegardLevel.LOW) == RegardLevel.HIGH
+        assert agent._improve_regard(RegardLevel.LOW) == RegardLevel.MEDIUM
+        assert agent._improve_regard(RegardLevel.MEDIUM) == RegardLevel.HIGH
         assert agent._improve_regard(RegardLevel.HIGH) == RegardLevel.HIGH  # Max
 
 
@@ -532,14 +534,11 @@ class TestGenerateResponse:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should call LLM and return response."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as mock_llm_cls:
-            mock_llm_instance = AsyncMock()
-            mock_llm_instance.ainvoke.return_value = MagicMock(
-                content="Hello! I'm looking for a sofa."
-            )
-            mock_llm_cls.return_value = mock_llm_instance
-
-            agent = CustomerAgentGraph(mock_settings)
+        mock_provider = AsyncMock()
+        mock_provider.complete.return_value = CompletionResult(
+            text="Hello! I'm looking for a sofa."
+        )
+        agent = CustomerAgentGraph(mock_settings, provider=mock_provider)
 
         sample_state["messages"] = [HumanMessage(content="Hi there!")]
 
@@ -553,12 +552,9 @@ class TestGenerateResponse:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Should include objection instruction when injected."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as mock_llm_cls:
-            mock_llm_instance = AsyncMock()
-            mock_llm_instance.ainvoke.return_value = MagicMock(content="I need to measure first.")
-            mock_llm_cls.return_value = mock_llm_instance
-
-            agent = CustomerAgentGraph(mock_settings)
+        mock_provider = AsyncMock()
+        mock_provider.complete.return_value = CompletionResult(text="I need to measure first.")
+        agent = CustomerAgentGraph(mock_settings, provider=mock_provider)
 
         sample_state["messages"] = [HumanMessage(content="Hi there!")]
         sample_state["_injected_objection"] = "need to measure"
@@ -566,7 +562,7 @@ class TestGenerateResponse:
         await agent._generate_response(sample_state)
 
         # Check that LLM was called with extra instruction
-        call_args = mock_llm_instance.ainvoke.call_args
+        call_args = mock_provider.complete.call_args
         messages = call_args[0][0]
         # Should have system prompt + user message + objection instruction
         assert len(messages) >= 3
@@ -575,18 +571,15 @@ class TestGenerateResponse:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Voice mode: no LLM call, but turn accounting still happens."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI") as mock_llm_cls:
-            mock_llm_instance = AsyncMock()
-            mock_llm_cls.return_value = mock_llm_instance
-
-            agent = CustomerAgentGraph(mock_settings)
+        mock_provider = AsyncMock()
+        agent = CustomerAgentGraph(mock_settings, provider=mock_provider)
 
         sample_state["messages"] = [HumanMessage(content="Hi there!")]
         sample_state["_skip_response"] = True
 
         result = await agent._generate_response(sample_state)
 
-        mock_llm_instance.ainvoke.assert_not_awaited()
+        mock_provider.complete.assert_not_awaited()
         assert "messages" not in result
         assert result["turn_count"] == 1
 
@@ -1082,7 +1075,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_resists_mood_improvement(self, mock_settings: MagicMock) -> None:
         """Hard persona should resist mood improvement when random > 0.5."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Mock random to return 0.6 (above hard persona's 0.5 threshold)
@@ -1094,7 +1087,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_improves_mood_when_random_low(self, mock_settings: MagicMock) -> None:
         """Hard persona should improve mood when random <= 0.5."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Mock random to return 0.3 (below hard persona's 0.5 threshold)
@@ -1106,7 +1099,7 @@ class TestDifficultyTuning:
 
     def test_easy_persona_always_improves_mood(self, mock_settings: MagicMock) -> None:
         """Easy persona should always improve mood (1.0 chance)."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Even with high random value, should still improve
@@ -1118,7 +1111,7 @@ class TestDifficultyTuning:
 
     def test_medium_persona_mood_improvement(self, mock_settings: MagicMock) -> None:
         """Medium persona should improve 70% of the time."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Random = 0.6 < 0.7 threshold -> should improve
@@ -1133,7 +1126,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_worsens_mood_two_steps(self, mock_settings: MagicMock) -> None:
         """Hard persona should worsen mood by 2 steps."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # INTERESTED -> SKEPTICAL (2 steps down)
@@ -1146,7 +1139,7 @@ class TestDifficultyTuning:
 
     def test_easy_persona_worsens_mood_one_step(self, mock_settings: MagicMock) -> None:
         """Easy persona should worsen mood by only 1 step."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # INTERESTED -> NEUTRAL (1 step down)
@@ -1159,7 +1152,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_mood_decays(self, mock_settings: MagicMock) -> None:
         """Hard persona should decay mood when random < 0.2."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Mock random to return 0.1 (below hard persona's 0.2 decay threshold)
@@ -1171,7 +1164,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_no_decay_when_random_high(self, mock_settings: MagicMock) -> None:
         """Hard persona should not decay when random >= 0.2."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Mock random to return 0.5 (above hard persona's 0.2 decay threshold)
@@ -1183,7 +1176,7 @@ class TestDifficultyTuning:
 
     def test_easy_persona_no_mood_decay(self, mock_settings: MagicMock) -> None:
         """Easy persona should never have mood decay (0.0 chance)."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # Even with very low random value, should not decay
@@ -1196,7 +1189,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_higher_objection_chance(self, mock_settings: MagicMock) -> None:
         """Hard persona should inject objections at 60% rate."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         state: CustomerAgentState = {
@@ -1227,7 +1220,7 @@ class TestDifficultyTuning:
         self, mock_settings: MagicMock, sample_state: CustomerAgentState
     ) -> None:
         """Easy persona should inject objections at only 20% rate."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         # OPTIMISTIC_RENOVATOR is easy difficulty
@@ -1246,7 +1239,7 @@ class TestDifficultyTuning:
 
     def test_hard_persona_selects_hardest_objection(self, mock_settings: MagicMock) -> None:
         """Hard persona should select last (hardest) objection."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         pending = ["easy objection", "medium objection", "hard objection"]
@@ -1257,7 +1250,7 @@ class TestDifficultyTuning:
 
     def test_easy_persona_selects_first_objection(self, mock_settings: MagicMock) -> None:
         """Easy persona should select first objection."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         pending = ["easy objection", "medium objection", "hard objection"]
@@ -1268,7 +1261,7 @@ class TestDifficultyTuning:
 
     def test_medium_persona_selects_first_objection(self, mock_settings: MagicMock) -> None:
         """Medium persona should also select first objection."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         pending = ["easy objection", "medium objection", "hard objection"]
@@ -1302,7 +1295,7 @@ class TestDifficultyTuning:
 
     def test_update_mood_applies_decay_when_no_action(self, mock_settings: MagicMock) -> None:
         """Should apply mood decay when no positive/negative action detected."""
-        with patch("app.agents.customer_agent.ChatGoogleGenerativeAI"):
+        with patch("app.agents.customer_agent.GeminiProvider"):
             agent = CustomerAgentGraph(mock_settings)
 
         state: CustomerAgentState = {

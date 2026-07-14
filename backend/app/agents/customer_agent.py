@@ -9,8 +9,7 @@ import random
 import re
 from typing import Any, Literal, cast
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
@@ -22,6 +21,7 @@ from app.agents.state import (
     RegardLevel,
 )
 from app.config import Settings
+from app.llm_providers import ChatMessage, ChatRole, GeminiProvider, LLMProvider
 
 # Words/phrases that signal the salesperson is being disrespectful toward the
 # customer. Single words are matched against the message's word set (so benign
@@ -82,19 +82,16 @@ class CustomerAgentGraph:
     5. generate_response - Call LLM for customer response
     """
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, provider: LLMProvider | None = None) -> None:
         """Initialize the customer agent graph.
 
         Args:
             settings: Application settings with Gemini configuration.
+            provider: LLM provider for response generation. Defaults to
+                Gemini; the eval harness injects alternatives here.
         """
         self.settings = settings
-        self.llm = ChatGoogleGenerativeAI(
-            model=settings.gemini_model,
-            google_api_key=settings.gemini_api_key,
-            temperature=settings.gemini_temperature,
-            max_output_tokens=settings.gemini_max_tokens,
-        )
+        self.llm_provider: LLMProvider = provider or GeminiProvider(settings)
         self.checkpointer = MemorySaver()
         self.graph = self._build_graph()
 
@@ -150,13 +147,15 @@ class CustomerAgentGraph:
         Returns:
             Analysis results stored in _analysis key.
         """
+        # Always overwrite _analysis: it is checkpointed between invocations,
+        # so a stale analysis from the previous turn must never leak forward.
         messages = state["messages"]
         if not messages:
-            return {}
+            return {"_analysis": {}}
 
         last_msg = messages[-1]
         if not isinstance(last_msg, HumanMessage):
-            return {}
+            return {"_analysis": {}}
 
         content = last_msg.content.lower() if isinstance(last_msg.content, str) else ""
         # Whole-word set for insult matching (avoids substring false positives).
@@ -326,7 +325,11 @@ class CustomerAgentGraph:
         # graph's text response would be discarded — skip the LLM call but keep
         # turn accounting intact (runtime key, not in TypedDict).
         if cast(Any, state).get("_skip_response"):
-            return {"turn_count": state["turn_count"] + 1}
+            return {
+                "turn_count": state["turn_count"] + 1,
+                "_injected_objection": None,
+                "_last_usage": None,
+            }
 
         persona = state["persona"]
 
@@ -334,24 +337,35 @@ class CustomerAgentGraph:
         system_prompt = build_customer_prompt(persona, state)
 
         # Prepare messages for LLM
-        llm_messages: list[BaseMessage] = [SystemMessage(content=system_prompt)]
+        llm_messages: list[ChatMessage] = [ChatMessage(ChatRole.SYSTEM, system_prompt)]
 
         # Add conversation history
         for msg in state["messages"]:
-            llm_messages.append(msg)
+            role = ChatRole.USER if isinstance(msg, HumanMessage) else ChatRole.ASSISTANT
+            llm_messages.append(ChatMessage(role, str(msg.content)))
 
         # If objection was injected, add instruction (runtime key, not in TypedDict)
         injected: str | None = cast(Any, state).get("_injected_objection")
         if injected:
             instruction = f'\n[Naturally work this concern into your response: "{injected}"]'
-            llm_messages.append(SystemMessage(content=instruction))
+            llm_messages.append(ChatMessage(ChatRole.SYSTEM, instruction))
 
-        # Generate response
-        response = await self.llm.ainvoke(llm_messages)
+        # Generate response. model=None lets the provider resolve its own
+        # default (each LLMProvider impl knows its own model setting) so this
+        # path works unmodified when a non-Gemini provider is injected.
+        result = await self.llm_provider.complete(
+            llm_messages,
+            model=None,
+            temperature=self.settings.gemini_temperature,
+            max_output_tokens=self.settings.gemini_max_tokens,
+        )
 
         return {
-            "messages": [AIMessage(content=response.content)],
+            "messages": [AIMessage(content=result.text)],
             "turn_count": state["turn_count"] + 1,
+            # Consumed: clear so it can't be re-applied on the next turn.
+            "_injected_objection": None,
+            "_last_usage": result.usage,
         }
 
     # --- Helper methods ---
@@ -473,7 +487,7 @@ class CustomerAgentGraph:
         Returns:
             Improved regard (or same if already at max).
         """
-        progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.HIGH]
+        progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.MEDIUM, RegardLevel.HIGH]
         idx = progression.index(regard)
         return progression[min(idx + 1, len(progression) - 1)]
 
@@ -486,7 +500,7 @@ class CustomerAgentGraph:
         Returns:
             Worsened regard (or same if already at min).
         """
-        progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.HIGH]
+        progression = [RegardLevel.NO, RegardLevel.LOW, RegardLevel.MEDIUM, RegardLevel.HIGH]
         idx = progression.index(regard)
         return progression[max(idx - 1, 0)]
 

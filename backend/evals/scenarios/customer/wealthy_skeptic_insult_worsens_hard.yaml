@@ -1,0 +1,10 @@
+# Low-regard persona: insult worsens 2 steps twice (clamped at frustrated).
+id: wealthy_skeptic_insult_worsens_hard
+tags: [persona:wealthy_skeptic, difficulty:low_regard, mood:worsen, behavior:insult]
+persona_id: wealthy_skeptic
+initial_mood: interested
+seed: 5
+turns:
+  - salesperson_message: "You'd be stupid not to see the value here."
+    expected_mood_after: frustrated
+    forbid_phrases: ["as an AI", "language model", "training exercise"]

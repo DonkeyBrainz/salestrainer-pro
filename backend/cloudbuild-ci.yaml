@@ -2,7 +2,7 @@
 # Runs lint, type check, and tests. Does not build or deploy.
 
 steps:
-  - name: 'python:3.11-slim'
+  - name: 'python:3.13-slim'
     id: 'ci-checks'
     entrypoint: 'bash'
     args:

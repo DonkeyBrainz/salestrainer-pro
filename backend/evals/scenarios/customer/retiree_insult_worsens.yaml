@@ -1,0 +1,9 @@
+id: retiree_insult_worsens
+tags: [persona:lifestyle_retiree, difficulty:low_regard, mood:worsen, behavior:insult]
+persona_id: lifestyle_retiree
+initial_mood: neutral
+seed: 29
+turns:
+  - salesperson_message: "Frankly this back-and-forth is a waste of time — do you want it or not?"
+    expected_mood_after: frustrated
+    forbid_phrases: ["as an AI", "I cannot"]

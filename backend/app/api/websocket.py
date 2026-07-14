@@ -3,11 +3,13 @@
 from fastapi import APIRouter, Depends, Query, WebSocket
 
 from app.api.ws import GeminiWebSocketRelay
+from app.config import Settings, get_settings
 from app.core.dependencies import (
     get_auth_service,
     get_coach_agent_service,
     get_customer_agent_service,
     get_gemini_service,
+    get_live_provider,
     get_session_service,
 )
 from app.models.session import SessionType
@@ -35,11 +37,15 @@ async def websocket_gemini_relay(
     resume: bool = Query(
         True, description="Enable session resumption (set to false for fresh start)"
     ),
+    provider: str | None = Query(
+        None, description="Live provider: gemini, openai, or nova (default: server setting)"
+    ),
     gemini_service: GeminiService = Depends(get_gemini_service),
     auth_service: AuthService = Depends(get_auth_service),
     session_service: SessionService = Depends(get_session_service),
     customer_agent_service: CustomerAgentService = Depends(get_customer_agent_service),
     coach_agent_service: CoachAgentService = Depends(get_coach_agent_service),
+    settings: Settings = Depends(get_settings),
 ) -> None:
     """WebSocket relay for Gemini Live API.
 
@@ -119,8 +125,16 @@ async def websocket_gemini_relay(
     if mode.lower() == "evaluation":
         session_mode = SessionType.EVALUATION
 
+    # Resolve the live provider (query param overrides the server default),
+    # gated by the allowlist. Reject before accepting the socket if unsupported.
+    requested_provider = provider or settings.live_provider
+    live_provider = get_live_provider(requested_provider, settings, gemini_service)
+    if live_provider is None:
+        await websocket.close(code=4004, reason="Unsupported live provider")
+        return
+
     relay = GeminiWebSocketRelay(
-        gemini_service,
+        live_provider,
         auth_service,
         session_service,
         customer_agent_service,

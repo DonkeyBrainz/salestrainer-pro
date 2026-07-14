@@ -184,6 +184,20 @@ class CoachHint(BaseModel):
     )
 
 
+class FeedbackResponse(BaseModel):
+    """Structured output schema for post-session narrative feedback.
+
+    Used as the response_schema for the evaluation feedback LLM call.
+    """
+
+    strengths: list[str] = Field(
+        default_factory=list, description="Specific strengths observed in the session"
+    )
+    improvements: list[str] = Field(
+        default_factory=list, description="Specific improvement areas for the trainee"
+    )
+
+
 class CoachAudioIntervention(BaseModel):
     """Audio intervention for critical deviations (Training mode only).
 

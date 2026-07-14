@@ -1,0 +1,17 @@
+# Low-regard persona: friendly early turns keep mood neutral (greetings count
+# as positive action while turn_count <= 2, so no decay and no early
+# behavior-responsive injection), then the turn-2 window deterministically
+# injects an objection. Low-regard priority picks from the hardest end.
+id: landlord_auto_objection
+tags: [persona:landlord_investor, difficulty:low_regard, objection:auto, stage:observe]
+persona_id: landlord_investor
+initial_mood: neutral
+seed: 17
+turns:
+  - salesperson_message: "Hi, good morning! Thanks for making time to see the duplex."
+    expected_mood_direction: same
+  - salesperson_message: "Hello — let me pull up the rent roll so you can see the numbers."
+    forbid_phrases: ["as an AI"]
+  - salesperson_message: "Both units are rented, with gross rents around $2,900 a month combined."
+    inject_objection_expected: true
+    forbid_phrases: ["as an AI", "language model"]

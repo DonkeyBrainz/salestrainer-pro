@@ -43,8 +43,10 @@ def agent_state() -> CustomerAgentState:
 @pytest.fixture
 def relay(agent_state: CustomerAgentState) -> GeminiWebSocketRelay:
     """Relay with mocked services and an active agent state."""
+    live_provider = MagicMock()
+    live_provider.name = "gemini"
     relay = GeminiWebSocketRelay(
-        gemini_service=MagicMock(),
+        live_provider=live_provider,
         auth_service=MagicMock(),
         session_service=MagicMock(),
         customer_agent_service=MagicMock(),

@@ -43,5 +43,13 @@ __pycache__/
 .claude
 CLAUDE.md
 
+# WSL alternate-data-stream artifacts from Windows downloads
+*:Zone.Identifier
+
+# Local reference material (design mockups, seed content) — not part of the app
+/design_handoff_dashboards/
+/design_handoff_sales_trainer/
+/files/
+
 # Obsidian UI state — rewritten constantly while the vault is open
 documentation/SalesTrainer/.obsidian/workspace.json

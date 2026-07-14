@@ -1,0 +1,14 @@
+# High-regard persona: acknowledgment always improves mood (improve_chance=1.0),
+# so the "improve" expectation is deterministic.
+id: renovator_mood_improves_on_acknowledgment
+tags: [persona:optimistic_renovator, difficulty:high_regard, mood:improve, stage:connect]
+persona_id: optimistic_renovator
+initial_mood: neutral
+seed: 7
+turns:
+  - salesperson_message: "Hi there! Welcome — I'm Alex. What brought you out to see this property today?"
+    expected_mood_direction: same
+    forbid_phrases: ["as an AI", "language model", "training exercise"]
+  - salesperson_message: "I totally understand wanting a project you can put your own stamp on. That makes sense."
+    expected_mood_direction: improve
+    forbid_phrases: ["as an AI", "language model"]

@@ -3,7 +3,7 @@ name = "salestrainer-pro-backend"
 version = "0.1.0"
 description = "Backend API for SalesTrainer Pro - Universal Sales Roleplay Platform"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
@@ -22,11 +22,24 @@ dependencies = [
     "langgraph>=0.2.0",
     "langchain-core>=0.3.0",
     "langchain-google-genai>=2.0.0",
+    # Speech-to-speech provider adapters (OpenAI Realtime WebSocket)
+    "websockets>=15.0",
+    # AWS SDK (for Bedrock/Nova credential resolution via standard credential chain)
+    "boto3>=1.28.0",
 ]
 
 [project.optional-dependencies]
 scripts = [
     "google-cloud-storage>=2.14.0",
+]
+# Amazon Nova Sonic speech-to-speech adapter. Its runtime is the experimental
+# Smithy-generated async Bedrock client `aws-sdk-bedrock-runtime`, the only
+# Python path supporting InvokeModelWithBidirectionalStream. It requires
+# Python >=3.12 (satisfied by this project's 3.13 floor). Not installed by
+# default; enable with: uv sync --extra nova. The Nova adapter lazily imports
+# it and raises a clear error if absent.
+nova = [
+    "aws-sdk-bedrock-runtime>=0.7.0",
 ]
 dev = [
     "pytest>=7.4.0",
@@ -49,7 +62,7 @@ build-backend = "hatchling.build"
 packages = ["app"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 100
 
 [tool.ruff.lint]
@@ -57,7 +70,7 @@ select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = true
 ignore_missing_imports = true
 mypy_path = "stubs"
@@ -78,4 +91,5 @@ dev = [
     "respx>=0.20.0",
     "ruff>=0.14.14",
     "pre-commit>=4.5.1",
+    "types-pyyaml>=6.0.12.20260518",
 ]

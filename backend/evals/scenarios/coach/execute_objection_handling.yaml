@@ -1,0 +1,15 @@
+id: execute_objection_handling
+tags: [stage:execute, technique:objection_handling]
+persona_id: wealthy_skeptic
+cases:
+  - salesperson_message: "That's a fair question. The $65k difference reflects the half-acre lot and the full renovation in 2022 — the house two streets over needs a new roof and HVAC. Let me show you the comps side by side."
+    conversation_so_far:
+      - { role: user, content: "Based on everything you've told me, this home checks every box. Shall we talk numbers?" }
+      - { role: assistant, content: "Why is this worth $685K when the house two streets over is $620K?" }
+    stage_progress_before:
+      current_stage: EXECUTE
+      connect: { warm_greeting: true, establish_credibility: true, create_comfort: true }
+      observe: { needs_discovery: true, goal_identification: true, motivator_mapping: true }
+      recommend: { solution_presentation: true, value_connection: true, risk_mitigation: true }
+    expect_techniques_any_of: [objection_handling]
+    expect_deviation_flagged: false

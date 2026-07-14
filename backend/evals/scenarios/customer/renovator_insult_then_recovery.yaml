@@ -1,0 +1,13 @@
+# Insults deterministically worsen mood two steps for every persona; a
+# high-regard persona then deterministically improves on acknowledgment.
+id: renovator_insult_then_recovery
+tags: [persona:optimistic_renovator, difficulty:high_regard, mood:worsen, behavior:insult]
+persona_id: optimistic_renovator
+initial_mood: interested
+seed: 7
+turns:
+  - salesperson_message: "Honestly, only an idiot would pass on this deal."
+    expected_mood_direction: worsen
+    forbid_phrases: ["as an AI", "I cannot"]
+  - salesperson_message: "I'm sorry, that was out of line. I hear you, and I understand this is a big decision."
+    expected_mood_direction: improve

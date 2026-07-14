@@ -56,6 +56,34 @@ class Settings(BaseSettings):
     gemini_live_temperature: float = 0.5
     gemini_max_tokens: int = 1024
 
+    # OpenAI Realtime (speech-to-speech provider)
+    openai_api_key: str = ""
+    openai_realtime_model: str = "gpt-realtime"
+    openai_realtime_temperature: float = 0.8
+
+    # Amazon Nova (Bedrock). Credentials resolve via the standard AWS chain
+    # (env vars / ~/.aws / instance role). Requires the optional 'nova' extra
+    # (uv sync --extra nova).
+    aws_region: str = "us-east-1"
+    # Nova Sonic is speech-to-speech only (bidirectional stream) — used by the
+    # live voice provider and the voice eval suite. Nova 2 Sonic: newer, and
+    # $3.00/$12.00 per 1M speech tokens vs v1's $3.40/$13.60 (Gemini parity).
+    nova_sonic_model: str = "amazon.nova-2-sonic-v1:0"
+    nova_sonic_temperature: float = 0.7
+    # Nova text model (Converse API) — used by the turn-based eval harness.
+    nova_model: str = "amazon.nova-lite-v1:0"
+    nova_temperature: float = 0.7
+    # Mistral Voxtral Small 24B, also on Bedrock (Converse API, text-only path
+    # for the eval harness) — used by the turn-based eval harness.
+    voxtral_model: str = "mistral.voxtral-small-24b-2507"
+    voxtral_temperature: float = 0.7
+
+    # Live (speech-to-speech) provider selection
+    # Server default provider, plus the set of providers clients may request via
+    # the ?provider= query param. Operators add "openai"/"nova" once keys are set.
+    live_provider: str = "gemini"
+    live_provider_allowlist: list[str] = ["gemini"]
+
     # Coach Agent
     coach_model: str = "gemini-2.5-flash"
 
