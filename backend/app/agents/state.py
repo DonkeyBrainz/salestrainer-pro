@@ -6,7 +6,7 @@ customer while the salesperson practices the C.O.R.E. selling system.
 """
 
 from enum import Enum
-from typing import Annotated
+from typing import Annotated, NotRequired
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
@@ -132,7 +132,13 @@ class CustomerPersona(BaseModel):
     )
 
     # Voice configuration
-    voice_name: str = Field(..., description="Gemini voice identifier (e.g., 'leda', 'kore')")
+    voices: dict[str, str] = Field(
+        ...,
+        description=(
+            "Provider-keyed prebuilt voice IDs, e.g. "
+            "{'gemini': 'puck', 'openai': 'cedar', 'nova': 'matthew'}"
+        ),
+    )
     is_evaluation_only: bool = Field(
         False, description="If True, only available in evaluation mode"
     )
@@ -233,3 +239,13 @@ class CustomerAgentState(TypedDict):
     # Session metadata
     session_id: str
     user_id: str
+
+    # Runtime-only keys passed between nodes within a single graph invocation.
+    # These MUST be declared here: LangGraph only propagates keys that are
+    # state channels — undeclared keys returned by a node are silently dropped
+    # (which previously broke behavior-driven mood updates, objection
+    # injection instructions, and the voice-mode LLM-call bypass).
+    _analysis: NotRequired[dict[str, bool]]
+    _injected_objection: NotRequired[str | None]
+    _skip_response: NotRequired[bool]
+    _last_usage: NotRequired[dict[str, int] | None]

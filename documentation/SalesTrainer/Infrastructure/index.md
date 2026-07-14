@@ -49,13 +49,15 @@ gcloud run deploy salestrainer-pro-frontend ...
 
 | Service | Location | Purpose |
 |---------|----------|---------|
-| Backend | Cloud Run | FastAPI server |
+| Backend | Cloud Run | FastAPI server (Python 3.13+) |
 | Frontend | Cloud Run | React SPA |
 | Database | Firestore | Sessions, users, knowledge |
 | Storage | GCS | Training materials, documents |
-| Secrets | Secret Manager | API keys, credentials |
+| Secrets | Secret Manager | API keys, voice provider credentials |
 | Logging | Cloud Logging | Centralized application logs |
 | Images | Artifact Registry | Container images |
+
+**Note:** Multi-provider voice support requires configuration for Gemini and/or Vertex AI (set via environment variables in Secret Manager).
 
 ## Key Decisions
 
@@ -91,3 +93,7 @@ See [[CICD_GUIDE]] for:
 ---
 
 **Infrastructure questions?** Check [[CICD_GUIDE]] for deployment troubleshooting.
+
+---
+
+**Last updated:** 2026-07-13

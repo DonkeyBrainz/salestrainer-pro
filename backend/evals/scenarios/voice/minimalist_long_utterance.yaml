@@ -1,0 +1,16 @@
+# Long-utterance endurance: a ~20 second monologue tests VAD endpointing and
+# sustained ASR accuracy, not just short-phrase recognition.
+id: minimalist_long_utterance
+tags: [persona:urban_minimalist, voice:comprehension, voice:endurance]
+persona_id: urban_minimalist
+turns:
+  - salesperson_text: "So here's the full picture. The unit is a corner loft with floor to ceiling windows facing south, polished concrete floors throughout, a galley kitchen with integrated appliances, and a dedicated office nook behind a sliding partition. The building went up in twenty nineteen, has a rooftop deck, secure bike storage, and the monthly fees cover water, heat, and high speed internet. It's a seven minute walk to the light rail."
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 45000
+    min_output_audio_ms: 300
+  - salesperson_text: "Out of all that, what stands out, and what's missing for you?"
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300

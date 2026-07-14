@@ -1,0 +1,10 @@
+# A textbook warm greeting in CONNECT should be credited, with no deviation.
+id: connect_greeting_detected
+tags: [stage:connect, technique:warm_greeting]
+persona_id: anxious_first_timer
+cases:
+  - salesperson_message: "Hi! Welcome in — I'm Alex. Great to meet you. How has your day been so far?"
+    conversation_so_far: []
+    stage_progress_before: { current_stage: CONNECT }
+    expect_techniques_any_of: [warm_greeting, create_comfort]
+    expect_deviation_flagged: false

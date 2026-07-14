@@ -41,3 +41,5 @@ cookies.txt
 .DS_Store
 Thumbs.db
 tests/e2e/audio_output/
+evals/results/
+evals/fixtures/audio/

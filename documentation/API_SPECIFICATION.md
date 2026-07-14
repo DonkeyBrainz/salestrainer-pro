@@ -1,15 +1,15 @@
-# API Specification: Luxe Sales Coach v2 Backend
+# API Specification: SalesTrainer Pro Backend
 
-> **Version:** 2.0.0
-> **Last Updated:** 2026-02-05
+> **Version:** 2.1.0
+> **Last Updated:** 2026-07-02
 > **Status:** Current
-> **Base URL:** `https://api.luxe-sales-coach.run.app` (production) / `http://localhost:8000` (development)
+> **Base URL:** Cloud Run service URL (production) / `http://localhost:8000` (development)
 
 ---
 
 ## Overview
 
-This document defines the REST and WebSocket API for the Luxe Sales Coach v2 backend. All endpoints follow REST conventions and return JSON responses.
+This document defines the REST and WebSocket API for the SalesTrainer Pro backend. All endpoints follow REST conventions and return JSON responses.
 
 ### API Conventions
 
@@ -28,8 +28,11 @@ This document defines the REST and WebSocket API for the Luxe Sales Coach v2 bac
 3. [Gemini API Proxy](#3-gemini-api-proxy)
 4. [Voice Sessions (WebSocket)](#4-voice-sessions-websocket)
 5. [Personas](#5-personas)
-6. [Error Handling](#6-error-handling)
-7. [WebSocket Protocol](#7-websocket-protocol)
+6. [Admin Endpoints](#6-admin-endpoints)
+7. [Products Endpoint](#7-products-endpoint)
+8. [Sessions Endpoint](#8-sessions-endpoint)
+9. [Error Handling](#9-error-handling)
+10. [WebSocket Protocol](#10-websocket-protocol)
 
 ---
 
@@ -286,29 +289,39 @@ Real-time bidirectional audio streaming for voice roleplay training. Managed ent
 
 ### WebSocket /ws/gemini/live
 
-Establish real-time voice session with Gemini Live API.
+Establish real-time voice session with Gemini Live API. Supports multi-provider voice output (Gemini, OpenAI, Google Nova) negotiated at connection time.
 
 **Connection Query Parameters:**
 - `token` (required) - JWT authentication token
 - `mode` (required) - `training` or `evaluation`
-- `persona` (optional) - Customer persona ID (Assistant, Executive, Skeptic)
-- `difficulty` (optional) - Difficulty level (Basic, Intermediate, Advanced)
+- `persona` (optional) - Customer persona ID (e.g., `anxious_first_timer`, `wealthy_skeptic`)
+- `voice_provider` (optional) - Voice provider preference (`gemini`, `openai`, `nova`). Defaults to `gemini`.
 
 **Example URL:**
 ```
-ws://localhost:8000/ws/gemini/live?token={accessToken}&mode=training&persona=executive&difficulty=intermediate
+ws://localhost:8000/ws/gemini/live?token={accessToken}&mode=training&persona=anxious_first_timer&voice_provider=gemini
 ```
+
+**Voice Provider Mapping:**
+Each persona supports multiple voice providers. The connection parameter selects which provider's voice will be used:
+
+| Provider | Audio Quality | Latency | Use Case |
+|----------|---------------|---------|----------|
+| `gemini` | High | Low | Real-time roleplay, default |
+| `openai` | Very High | Medium | Premium audio quality |
+| `nova` | High | Low | Cost-optimized alternative |
 
 **Features:**
 - JWT authentication via query parameter
+- Multi-provider voice support (negotiated at connection)
 - Bidirectional audio streaming (PCM 16kHz input, 24kHz output)
 - Text message support for control commands
-- Real-time coaching hints (coach mode)
+- Real-time coaching hints (training mode only)
 - 30-minute idle timeout
 - Automatic reconnection support
 - Full conversation transcription
 
-See [WebSocket Protocol](#7-websocket-protocol) for message formats and error handling.
+See [WebSocket Protocol](#10-websocket-protocol) for message formats and error handling.
 
 ---
 
@@ -323,29 +336,75 @@ List available customer personas for roleplay. No authentication required.
 {
   "personas": [
     {
-      "id": "assistant",
-      "name": "Assistant",
-      "description": "Cooperative and helpful customer",
-      "traits": ["eager to buy", "asks clarifying questions"],
-      "difficultyLevels": ["Basic", "Intermediate", "Advanced"]
+      "id": "anxious_first_timer",
+      "name": "Jennifer",
+      "backstory": "28-year-old teacher, engaged, saving for first home. Never owned property before.",
+      "looking_for": "First home, 3-bedroom, move-in ready, under $300K",
+      "difficulty": "medium_regard",
+      "initial_regard": "low",
+      "timeline": "urgent",
+      "primary_pbm": "confidence",
+      "secondary_pbm": "value",
+      "objections": [
+        "What if the roof breaks after I buy it?",
+        "How do I know this is a good deal?",
+        "I need to have my parents look at it first",
+        "The inspector said the foundation is 'old' — is that a problem?"
+      ],
+      "voices": {
+        "gemini": "aoede",
+        "openai": "coral",
+        "nova": "tiffany"
+      },
+      "product_category": "primary_residence",
+      "product_type": "starter_home",
+      "product_keywords": ["first-time buyer", "confidence", "inspection", "parents", "wedding"]
     },
     {
-      "id": "executive",
-      "name": "Executive",
-      "description": "Time-conscious decision maker",
-      "traits": ["results-focused", "demands ROI proof"],
-      "difficultyLevels": ["Basic", "Intermediate", "Advanced"]
-    },
-    {
-      "id": "skeptic",
-      "name": "Skeptic",
-      "description": "Skeptical and objection-prone customer",
-      "traits": ["raises objections", "questions value"],
-      "difficultyLevels": ["Basic", "Intermediate", "Advanced"]
+      "id": "wealthy_skeptic",
+      "name": "David",
+      "backstory": "58-year-old tech executive, made his money in startups. Distrusts salespeople.",
+      "looking_for": "Luxury home, 5+ bedrooms, golf course area, under $700K",
+      "difficulty": "low_regard",
+      "initial_regard": "low",
+      "timeline": "flexible",
+      "primary_pbm": "authenticity",
+      "secondary_pbm": "investment value",
+      "objections": [
+        "Why is this worth $685K when the house two streets over is $620K?",
+        "I'm not paying a premium just for the neighborhood name",
+        "That HOA fee is ridiculous"
+      ],
+      "voices": {
+        "gemini": "charon",
+        "openai": "ash",
+        "nova": "matthew"
+      },
+      "product_category": "luxury_estate",
+      "product_type": "large_single_family"
     }
   ]
 }
 ```
+
+**Persona Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | string | Unique persona identifier |
+| name | string | Customer's first name |
+| backstory | string | Brief background context |
+| looking_for | string | What they're searching for |
+| difficulty | enum | `high_regard`, `medium_regard`, `low_regard`, `no_regard` |
+| initial_regard | enum | Starting engagement level (`high`, `medium`, `low`, `no`) |
+| timeline | enum | Purchase urgency (`urgent`, `medium`, `flexible`, `browsing`) |
+| primary_pbm | string | Primary buying motivation |
+| secondary_pbm | string | Secondary motivation (optional) |
+| objections | array | Curated list of objections this persona may raise |
+| voices | object | Provider-keyed voice IDs: `{"gemini": "...", "openai": "...", "nova": "..."}` |
+| product_category | string | Category for RAG filtering (e.g., `primary_residence`, `luxury_estate`) |
+| product_type | string | Specific type within category (e.g., `starter_home`, `duplex`) |
+| product_keywords | array | Keywords for content retrieval |
 
 ---
 
@@ -357,7 +416,231 @@ List personas available for evaluation mode. No authentication required.
 
 ---
 
-## 6. Error Handling
+## 6. Admin Endpoints
+
+Admin-only endpoints for metrics, analytics, and session management, under `backend/app/api/admin.py`. Restricted via an `ADMIN_EMAILS` allowlist (`require_admin` dependency) — not a role field on the user record.
+
+### GET /api/v1/admin/personas/metrics
+
+Aggregate persona performance metrics across all sessions and transcripts.
+
+**Authentication:** Required (admin email allowlist)
+
+**Response:** `200 OK`
+```json
+{
+  "totalSessions": 156,
+  "totalTranscripts": 148,
+  "byPersona": [
+    {
+      "personaId": "executive",
+      "sessions": 42,
+      "messageCount": 310,
+      "volunteerScore": 0.62,
+      "firstMessageVolunteerRate": 0.35,
+      "salesModeViolations": 2,
+      "volunteerCategories": {"needs": 18, "budget": 7}
+    }
+  ],
+  "byDifficulty": [
+    {
+      "difficulty": "intermediate",
+      "sessions": 58,
+      "messageCount": 402,
+      "volunteerScore": 0.58,
+      "firstMessageVolunteerRate": 0.30
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/admin/users/metrics
+
+Aggregate user-level activity metrics.
+
+**Authentication:** Required (admin email allowlist)
+
+**Response:** `200 OK`
+```json
+{
+  "totalUsers": 245,
+  "activeUsers7d": 87,
+  "activeUsers30d": 156,
+  "users": [
+    {
+      "userId": "550e8400-e29b-41d4-a716-446655440000",
+      "userName": "Jane Rep",
+      "userEmail": "rep@example.com",
+      "totalSessions": 14,
+      "totalTranscripts": 13,
+      "totalMessages": 210,
+      "avgMessagesPerSession": 15.0,
+      "avgSessionDurationMinutes": 7.5,
+      "sessionBreakdown": {"training": 10, "evaluation": 4},
+      "personaUsage": {"executive": 6, "skeptic": 8},
+      "lastActive": "2026-06-30T18:12:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/admin/users/{user_id}/sessions
+
+Paginated session history for a specific user (admin view, no ownership check).
+
+**Authentication:** Required (admin email allowlist)
+
+**Path Parameters:**
+- `user_id` (string, UUID): Target user ID
+
+**Query Parameters:**
+- `limit` (integer, optional, default 20)
+- `offset` (integer, optional, default 0)
+- `session_type` (string, optional): `training` or `evaluation`
+
+**Response:** `200 OK` — same `SessionListResponse` shape as [Sessions Endpoint](#8-sessions-endpoint)
+
+---
+
+### GET /api/v1/admin/sessions/{session_id}
+
+Full detail for any session, regardless of owner.
+
+**Authentication:** Required (admin email allowlist)
+
+**Path Parameters:**
+- `session_id` (string): Session identifier
+
+**Response:** `200 OK` — same `SessionDetailResponse` shape as [Sessions Endpoint](#8-sessions-endpoint)
+
+---
+
+## 7. Products Endpoint
+
+Product catalog used to drive RAG filtering context during a session. **Note:** the catalog (`backend/app/api/products.py`) is currently hardcoded to a furniture-collection taxonomy (Bracken, Calden, Modero, Neo, Whitehaven) and has not yet been generalized to the platform's other industries — update this section when the catalog is made industry-configurable.
+
+### GET /api/v1/products
+
+Retrieve the complete product catalog (categories and their types).
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+{
+  "categories": [
+    {
+      "id": "bracken",
+      "name": "Bracken",
+      "description": "Bracken furniture collection",
+      "types": []
+    }
+  ]
+}
+```
+
+---
+
+### GET /api/v1/products/categories
+
+List all product category IDs.
+
+**Authentication:** Not required
+
+**Response:** `200 OK`
+```json
+["bracken", "calden", "modero", "neo", "whitehaven"]
+```
+
+---
+
+## 8. Sessions Endpoint
+
+Authenticated user's own session history and detail (`backend/app/api/sessions.py`).
+
+### GET /api/v1/sessions
+
+Paginated list of the current user's sessions, with grade/score backfilled from the evaluation when one exists.
+
+**Authentication:** Required
+
+**Query Parameters:**
+- `limit` (integer, optional, default 20)
+- `offset` (integer, optional, default 0)
+- `session_type` (string, optional): `training` or `evaluation`
+
+**Response:** `200 OK`
+```json
+{
+  "sessions": [
+    {
+      "session_id": "sess-456",
+      "session_type": "training",
+      "status": "completed",
+      "started_at": "2026-06-19T12:00:00Z",
+      "ended_at": "2026-06-19T12:08:15Z",
+      "duration": 495,
+      "selected_persona": "executive",
+      "difficulty": "intermediate",
+      "product_category": "bracken",
+      "product_type": null,
+      "message_count": 18,
+      "grade": "B+",
+      "score": 82,
+      "has_evaluation": true
+    }
+  ],
+  "total": 42,
+  "limit": 20,
+  "offset": 0,
+  "has_more": true
+}
+```
+
+---
+
+### GET /api/v1/sessions/{session_id}
+
+Full session detail: session summary, transcript, and evaluation (if present). Returns `403` if the session belongs to another user, `404` if it doesn't exist.
+
+**Authentication:** Required
+
+**Path Parameters:**
+- `session_id` (string): Session identifier
+
+**Response:** `200 OK`
+```json
+{
+  "session": {
+    "session_id": "sess-456",
+    "session_type": "training",
+    "status": "completed",
+    "started_at": "2026-06-19T12:00:00Z",
+    "ended_at": "2026-06-19T12:08:15Z",
+    "duration": 495,
+    "selected_persona": "executive",
+    "difficulty": "intermediate",
+    "message_count": 18,
+    "grade": "B+",
+    "score": 82,
+    "has_evaluation": true
+  },
+  "transcript": {},
+  "evaluation": {}
+}
+```
+
+**Errors:**
+- `403` - Session belongs to another user
+- `404` - Session not found
+
+---
+
+## 9. Error Handling
 
 All errors return a standardized error response format:
 
@@ -396,7 +679,7 @@ All errors return a standardized error response format:
 
 ---
 
-## 7. WebSocket Protocol
+## 10. WebSocket Protocol
 
 ### Message Types
 
@@ -519,8 +802,16 @@ X-RateLimit-Reset: 1707144000
 | WebSocket | `/ws/gemini/live` | Yes | Voice session |
 | GET | `/personas` | No | List personas |
 | GET | `/personas/evaluation` | No | List evaluation personas |
+| GET | `/api/v1/admin/personas/metrics` | Yes (admin) | Persona performance metrics |
+| GET | `/api/v1/admin/users/metrics` | Yes (admin) | User analytics |
+| GET | `/api/v1/admin/users/{user_id}/sessions` | Yes (admin) | User session history |
+| GET | `/api/v1/admin/sessions/{session_id}` | Yes (admin) | Session details |
+| GET | `/api/v1/products` | No | Product catalog |
+| GET | `/api/v1/products/categories` | No | Product category IDs |
+| GET | `/api/v1/sessions` | Yes | Current user's session list |
+| GET | `/api/v1/sessions/{session_id}` | Yes | Session details with transcript + evaluation |
 
 ---
 
-**Last Updated:** February 5, 2026
+**Last Updated:** July 2, 2026
 **Maintainer:** Development Team

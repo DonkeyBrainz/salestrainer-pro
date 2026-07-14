@@ -1,0 +1,13 @@
+id: observe_needs_discovery
+tags: [stage:observe, technique:needs_discovery]
+persona_id: practical_family
+cases:
+  - salesperson_message: "Tell me more about what your family needs day to day — how many kids, and what does a typical week look like?"
+    conversation_so_far:
+      - { role: user, content: "Hi! Welcome, I'm Alex. Great to meet you both." }
+      - { role: assistant, content: "Thanks. We're looking for something bigger for our family." }
+    stage_progress_before:
+      current_stage: OBSERVE
+      connect: { warm_greeting: true, establish_credibility: true, create_comfort: true }
+    expect_techniques_any_of: [needs_discovery, goal_identification]
+    expect_deviation_flagged: false

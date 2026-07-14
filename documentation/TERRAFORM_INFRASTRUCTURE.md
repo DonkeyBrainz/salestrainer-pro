@@ -2,7 +2,9 @@
 
 ## Overview
 
-The Luxe Sales Coach uses **GCP-native infrastructure** provisioned entirely with Terraform (v1.5+). All resources are centralized in the `ashley-ai` GCP project with the `us-central1` region. The setup is production-focused with no separate dev/staging environments.
+SalesTrainer Pro uses **GCP-native infrastructure** provisioned entirely with Terraform (v1.5+). All resources are centralized in the `salescoach-494901` GCP project with the `us-central1` region. The setup is production-focused with no separate dev/staging environments.
+
+> **Note:** No custom domain is currently active — deployments use the default Cloud Run `*.run.app` URLs (see `documentation/CICD_GUIDE.md`). `your-domain.example.com` below is a placeholder for the optional load-balancer/custom-domain setup.
 
 ---
 
@@ -14,7 +16,7 @@ The Luxe Sales Coach uses **GCP-native infrastructure** provisioned entirely wit
                           Internet
                              │
                              ▼
-                 salescoach.ashleyfurniture.com
+                 your-domain.example.com
                         (Load Balancer)
                              │
               ┌──────────────┴──────────────┐
@@ -41,7 +43,7 @@ The Luxe Sales Coach uses **GCP-native infrastructure** provisioned entirely wit
                    │   4 Triggers     │
                    └────────┬─────────┘
                             ▲
-             afi-internal/ai-ml-sales-coach (GitHub)
+             DonkeyBrainz/salestrainer-pro (GitHub)
 
 Benefits:
   ✓ First-party cookies (works in incognito)
@@ -69,7 +71,7 @@ Issues:
 | File | Purpose |
 |------|---------|
 | `provider.tf` | GCP provider configuration (v5.x), terraform version constraint |
-| `backend.tf` | Remote state storage in GCS (`ashley-ai-ai-ml-sales-coach-tf-state`) |
+| `backend.tf` | Remote state storage in GCS (`salescoach-494901-terraform-state`) |
 | `variables.tf` | Input variables: project_id, region, GitHub details, domain, enable_load_balancer |
 | `main.tf` | Core resources: Cloud Run services, Artifact Registry, APIs |
 | `load_balancer.tf` | **NEW**: Cloud Load Balancer, SSL cert, URL routing (optional) |
@@ -103,13 +105,13 @@ When enabled, deploys a Cloud Load Balancer for custom domain with first-party c
 ### URL Routing Rules
 
 ```
-salescoach.ashleyfurniture.com/api/*         → Backend Cloud Run
-salescoach.ashleyfurniture.com/ws/*          → Backend Cloud Run (WebSockets)
-salescoach.ashleyfurniture.com/auth/*        → Backend Cloud Run (OAuth)
-salescoach.ashleyfurniture.com/health        → Backend Cloud Run
-salescoach.ashleyfurniture.com/docs          → Backend Cloud Run (API docs)
-salescoach.ashleyfurniture.com/redoc         → Backend Cloud Run
-salescoach.ashleyfurniture.com/*             → Frontend Cloud Run (default)
+your-domain.example.com/api/*         → Backend Cloud Run
+your-domain.example.com/ws/*          → Backend Cloud Run (WebSockets)
+your-domain.example.com/auth/*        → Backend Cloud Run (OAuth)
+your-domain.example.com/health        → Backend Cloud Run
+your-domain.example.com/docs          → Backend Cloud Run (API docs)
+your-domain.example.com/redoc         → Backend Cloud Run
+your-domain.example.com/*             → Frontend Cloud Run (default)
 ```
 
 ### Benefits
@@ -163,7 +165,7 @@ GEMINI_API_KEY          ← Secret Manager
 GOOGLE_CLIENT_ID        ← Secret Manager
 GOOGLE_CLIENT_SECRET    ← Secret Manager
 SECRET_KEY              ← Secret Manager
-GCP_PROJECT_ID          = ashley-ai
+GCP_PROJECT_ID          = salescoach-494901
 ENVIRONMENT             = production
 FIRESTORE_DATABASE      = ai-ml-native
 LOG_JSON                = true
@@ -190,10 +192,10 @@ LOG_LEVEL               = INFO
 **Repository**: `salescoach`
 - **Location**: `us-central1`
 - **Format**: Docker
-- **Path**: `us-central1-docker.pkg.dev/ashley-ai/salescoach`
+- **Path**: `us-central1-docker.pkg.dev/salescoach-494901/salestrainer-pro`
 - **Image naming**:
-  - Backend: `...docker.pkg.dev/ashley-ai/salescoach/backend:<git-sha>`
-  - Frontend: `...docker.pkg.dev/ashley-ai/salescoach/frontend:<git-sha>`
+  - Backend: `...docker.pkg.dev/salescoach-494901/salestrainer-pro/backend:<git-sha>`
+  - Frontend: `...docker.pkg.dev/salescoach-494901/salestrainer-pro/frontend:<git-sha>`
 
 ---
 
@@ -315,7 +317,7 @@ compute.googleapis.com
 ## Data & State Management
 
 ### Terraform State
-- **Location**: GCS bucket `ashley-ai-ai-ml-sales-coach-tf-state`
+- **Location**: GCS bucket `salescoach-494901-terraform-state`
 - **Path**: `production/terraform.tfstate`
 - **Versioning**: Enabled for recovery
 - **Locking**: Automatic (prevents concurrent modifications)
@@ -336,7 +338,7 @@ compute.googleapis.com
 ### On Git Push to Main
 
 ```
-Push to afi-internal/ai-ml-sales-coach main branch
+Push to DonkeyBrainz/salestrainer-pro main branch
            ▼
 Cloud Build triggers (backend-deploy, frontend-deploy)
            ▼
@@ -346,7 +348,7 @@ Build Docker images
            ▼
 Push to Artifact Registry
   - Tag: Git commit SHA
-  - Path: us-central1-docker.pkg.dev/ashley-ai/salescoach/[backend|frontend]:SHA
+  - Path: us-central1-docker.pkg.dev/salescoach-494901/salestrainer-pro/[backend|frontend]:SHA
            ▼
 Inject secrets from Secret Manager
   - GEMINI_API_KEY, OAUTH credentials, JWT secret
@@ -363,7 +365,7 @@ Health checks verify service is running
 ### On Pull Request to Main
 
 ```
-Pull request to afi-internal/ai-ml-sales-coach main
+Pull request to DonkeyBrainz/salestrainer-pro main
            ▼
 Cloud Build triggers (backend-ci, frontend-ci)
            ▼
@@ -384,9 +386,9 @@ Report status to PR
 
 | Setting | Value |
 |---------|-------|
-| **GCP Project** | `ashley-ai` |
+| **GCP Project** | `salescoach-494901` |
 | **Region** | `us-central1` |
-| **GitHub Org** | `afi-internal` |
+| **GitHub Org** | `DonkeyBrainz` |
 | **GitHub Repo** | `ai-ml-sales-coach` |
 | **Watch Branch** | `main` |
 | **Firestore DB** | `ai-ml-native` |
@@ -408,7 +410,7 @@ After `terraform apply`, the following values are available:
 ```hcl
 backend_url              = "https://salescoach-backend-REGION-HASH.a.run.app"
 frontend_url             = "https://salescoach-frontend-REGION-HASH.a.run.app"
-artifact_registry_repo   = "us-central1-docker.pkg.dev/ashley-ai/salescoach"
+artifact_registry_repo   = "us-central1-docker.pkg.dev/salescoach-494901/salestrainer-pro"
 application_url          = "https://salescoach-frontend-REGION-HASH.a.run.app"
 load_balancer_ip         = null
 ```
@@ -417,15 +419,15 @@ load_balancer_ip         = null
 ```hcl
 backend_url              = "https://salescoach-backend-REGION-HASH.a.run.app" (internal only)
 frontend_url             = "https://salescoach-frontend-REGION-HASH.a.run.app" (internal only)
-artifact_registry_repo   = "us-central1-docker.pkg.dev/ashley-ai/salescoach"
-application_url          = "https://salescoach.ashleyfurniture.com"
+artifact_registry_repo   = "us-central1-docker.pkg.dev/salescoach-494901/salestrainer-pro"
+application_url          = "https://your-domain.example.com"
 load_balancer_ip         = "34.xxx.xxx.xxx" (use this for DNS A record)
 dns_configuration        = {
-  domain    = "salescoach.ashleyfurniture.com"
+  domain    = "your-domain.example.com"
   type      = "A"
   value     = "34.xxx.xxx.xxx"
   ttl       = 300
-  message   = "Create an A record for salescoach.ashleyfurniture.com pointing to 34.xxx.xxx.xxx"
+  message   = "Create an A record for your-domain.example.com pointing to 34.xxx.xxx.xxx"
 }
 ```
 
@@ -477,7 +479,7 @@ terraform apply
 terraform show
 
 # Check state in remote GCS
-gsutil cat gs://ashley-ai-ai-ml-sales-coach-tf-state/production/terraform.tfstate
+gsutil cat gs://salescoach-494901-terraform-state/production/terraform.tfstate
 
 # Destroy (⚠️ deletes all resources)
 terraform destroy

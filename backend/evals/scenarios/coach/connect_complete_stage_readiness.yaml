@@ -1,0 +1,14 @@
+# All CONNECT checklist items are already complete and the salesperson is
+# moving into discovery — the coach should signal readiness to advance.
+id: connect_complete_stage_readiness
+tags: [stage:connect, technique:stage_transition]
+persona_id: optimistic_renovator
+cases:
+  - salesperson_message: "Now that we've gotten acquainted — tell me, what's your vision for this project? What would make it a home run for you?"
+    conversation_so_far:
+      - { role: user, content: "Hi! I'm Alex — welcome. I've helped a dozen buyers with fixer-uppers in this neighborhood." }
+      - { role: assistant, content: "Nice to meet you! I love a good project house." }
+    stage_progress_before:
+      current_stage: CONNECT
+      connect: { warm_greeting: true, establish_credibility: true, create_comfort: true }
+    expect_ready_for_next_stage: true

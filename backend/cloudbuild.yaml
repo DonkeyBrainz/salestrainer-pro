@@ -6,7 +6,7 @@ steps:
   # Installing deps once and running all checks is faster than repeating
   # the install in 3 separate steps.
   # ---------------------------------------------------------------------------
-  - name: 'python:3.11-slim'
+  - name: 'python:3.13-slim'
     id: 'ci-checks'
     entrypoint: 'bash'
     args:

@@ -11,8 +11,10 @@ Feature-specific documentation, implementation guides, and troubleshooting.
 - Related: [[ADMIN_TROUBLESHOOTING]] for issues
 
 ### Training Examples & Case Studies
-- **[[ASHLEY_FURNITURE_EASY]]** - Real-world example: E.A.S.Y. Selling System for furniture retail
-  - Useful for understanding persona design and coaching context
+
+(Legacy industry examples archived in [[Cleanup/archived|../Cleanup/archived/index.md]])
+
+Note: SalesTrainer Pro uses the universal C.O.R.E. Selling System (Connect, Observe, Recommend, Execute) and is domain-agnostic. See [[PRODUCT_REQUIREMENTS|../Architecture & Design/PRODUCT_REQUIREMENTS.md]] for current framework.
 
 ### Troubleshooting
 - **[[ADMIN_TROUBLESHOOTING]]** - Common issues, debugging, and solutions
@@ -40,3 +42,7 @@ When adding a new feature:
 ---
 
 **Found a bug?** Check [[ADMIN_TROUBLESHOOTING]] first, then file an issue.
+
+---
+
+**Last updated:** 2026-07-13

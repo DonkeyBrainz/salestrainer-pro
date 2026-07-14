@@ -1,0 +1,11 @@
+# Opening with a hard price dump in CONNECT is a clear C.O.R.E. deviation
+# and should trigger at least a suggestion-level intervention.
+id: connect_price_dump_deviation
+tags: [stage:connect, deviation:price_dump]
+persona_id: wealthy_skeptic
+cases:
+  - salesperson_message: "So the price is $685k, take it or leave it."
+    conversation_so_far: []
+    stage_progress_before: { current_stage: CONNECT }
+    expect_deviation_flagged: true
+    expect_intervention_at_least: suggestion

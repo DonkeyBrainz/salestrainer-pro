@@ -4,12 +4,15 @@ These dependencies can be used across route handlers for common functionality
 like authentication, database access, and request validation.
 """
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import Settings, get_settings
+
+if TYPE_CHECKING:
+    from app.llm_providers.streaming import LLMStreamProvider
 from app.core.session import StateManager, get_state_manager
 from app.models.user import User
 from app.repositories.evaluation_repository import EvaluationRepository
@@ -122,6 +125,27 @@ def get_gemini_service(
 ) -> GeminiService:
     """Get Gemini service instance with injected dependencies."""
     return GeminiService(settings=settings)
+
+
+def get_live_provider(
+    requested: str,
+    settings: Settings,
+    gemini_service: GeminiService,
+) -> "LLMStreamProvider | None":
+    """Resolve a requested live-provider name to a constructed provider.
+
+    Returns None if the provider is unknown or not permitted by the allowlist
+    (the caller should reject the connection). The Gemini provider reuses the
+    already-constructed ``gemini_service`` to avoid a second genai client.
+    """
+    from app.llm_providers.gemini_live import GeminiLiveProvider
+    from app.llm_providers.registry import LIVE_PROVIDERS, build_live_provider
+
+    if requested not in LIVE_PROVIDERS or requested not in settings.live_provider_allowlist:
+        return None
+    if requested == "gemini":
+        return GeminiLiveProvider(settings, gemini_service=gemini_service)
+    return build_live_provider(requested, settings)
 
 
 def get_session_service(

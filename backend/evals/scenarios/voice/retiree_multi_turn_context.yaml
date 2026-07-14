@@ -1,0 +1,21 @@
+# Multi-turn context: the third turn only makes sense if the model retained
+# what was said in the first two — tests session-level audio context.
+id: retiree_multi_turn_context
+tags: [persona:lifestyle_retiree, voice:context, voice:multi_turn]
+persona_id: lifestyle_retiree
+turns:
+  - salesperson_text: "Welcome! Before we look around, tell me, what does your ideal week look like once you're settled?"
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300
+  - salesperson_text: "Lovely. This community has a golf course and a pool two blocks away, plus a walking trail along the water."
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300
+  - salesperson_text: "So of everything I just mentioned, which amenity matters most to you?"
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300

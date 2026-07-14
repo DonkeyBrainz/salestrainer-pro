@@ -1,0 +1,10 @@
+# Pushy sales language deterministically worsens mood one step.
+id: practical_family_pushy_worsens
+tags: [persona:practical_family, difficulty:medium_regard, mood:worsen, behavior:pushy]
+persona_id: practical_family
+initial_mood: neutral
+seed: 3
+turns:
+  - salesperson_message: "You need to buy now — this special deal is today only!"
+    expected_mood_direction: worsen
+    forbid_phrases: ["as an AI", "I cannot"]

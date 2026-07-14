@@ -22,12 +22,13 @@ from app.core.exceptions import (
     TokenExpiredError,
     UnauthorizedError,
 )
+from app.llm_providers.streaming import LLMStreamProvider
+from app.llm_providers.voices import resolve_voice
 from app.models.session import Difficulty, SessionCreate, SessionStatus, SessionType
 from app.models.transcript import MessageRole, TranscriptMessage
 from app.services.auth_service import AuthService
 from app.services.coach_agent_service import CoachAgentService
 from app.services.customer_agent_service import CustomerAgentService
-from app.services.gemini_service import GeminiService
 from app.services.session_service import SessionService
 
 logger = logging.getLogger(__name__)
@@ -38,7 +39,7 @@ class GeminiWebSocketRelay:
 
     def __init__(
         self,
-        gemini_service: GeminiService,
+        live_provider: LLMStreamProvider,
         auth_service: AuthService,
         session_service: SessionService,
         customer_agent_service: CustomerAgentService,
@@ -48,14 +49,17 @@ class GeminiWebSocketRelay:
         """Initialize WebSocket relay.
 
         Args:
-            gemini_service: Gemini service for Live API connections
+            live_provider: Speech-to-speech provider for Live API connections
+                (Gemini / OpenAI Realtime / Nova Sonic).
             auth_service: Auth service for token validation
             session_service: Session service for persistence
             customer_agent_service: Customer agent service for persona state
             coach_agent_service: Coach agent service for analysis and hints
-            enable_resumption: Enable session resumption (default True)
+            enable_resumption: Enable session resumption (Gemini-only; other
+                providers never emit resumption signals and reconnect fresh)
         """
-        self.gemini_service = gemini_service
+        self.live_provider = live_provider
+        self.provider_name = live_provider.name
         self.auth_service = auth_service
         self.session_service = session_service
         self.customer_agent_service = customer_agent_service
@@ -215,7 +219,7 @@ class GeminiWebSocketRelay:
                 websocket=websocket,
                 user_id=user_id,
                 system_instruction=system_instruction,
-                voice_name=persona.voice_name,
+                voice_name=resolve_voice(persona, self.provider_name),
                 session_task=session_task,
             )
 
@@ -340,9 +344,9 @@ class GeminiWebSocketRelay:
             try:
                 # Only pass resumption handle if resumption is enabled
                 resumption_handle = self._resumption_handle if self._enable_resumption else None
-                async with self.gemini_service.connect_live(
+                async with self.live_provider.connect_live(
                     system_instruction=system_instruction,
-                    voice_name=voice_name,
+                    voice=voice_name,
                     resumption_handle=resumption_handle,
                 ) as live_session:
                     # Reset attempts on successful connect

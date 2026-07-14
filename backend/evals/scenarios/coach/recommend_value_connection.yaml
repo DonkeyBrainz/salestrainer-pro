@@ -1,0 +1,15 @@
+id: recommend_value_connection
+tags: [stage:recommend, technique:value_connection]
+persona_id: privacy_remote_worker
+cases:
+  - salesperson_message: "Since quiet workspace is your top priority, the detached office over the garage gives you total separation from the house — no street noise, no interruptions on calls."
+    conversation_so_far:
+      - { role: user, content: "What matters most to you in the next place?" }
+      - { role: assistant, content: "Honestly, peace and privacy. I work from home and I'm on calls all day." }
+    stage_progress_before:
+      current_stage: RECOMMEND
+      connect: { warm_greeting: true, establish_credibility: true, create_comfort: true }
+      observe: { needs_discovery: true, goal_identification: true, motivator_mapping: true }
+      pbms_expressed: ["peace/privacy"]
+    expect_techniques_any_of: [value_connection, solution_presentation]
+    expect_deviation_flagged: false

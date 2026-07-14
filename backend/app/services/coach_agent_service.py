@@ -5,11 +5,8 @@ coordinating analysis, scoring, and intervention generation.
 """
 
 import asyncio
-import json
 import logging
 
-from google import genai
-from google.genai import types
 from langchain_core.messages import BaseMessage
 
 from app.agents.coach.analyzer import CoachAnalyzer
@@ -17,7 +14,8 @@ from app.agents.coach.hints import get_example_phrase_fallback
 from app.agents.coach.scorer import calculate_score
 from app.agents.state import CoreStageProgress, CustomerAgentState, CustomerPersona, SalesStage
 from app.config import Settings
-from app.models.coach import CoachAnalysis, CoachHint, InterventionLevel
+from app.llm_providers import ChatMessage, ChatRole, GeminiProvider, LLMProvider
+from app.models.coach import CoachAnalysis, CoachHint, FeedbackResponse, InterventionLevel
 from app.models.evaluation import (
     Evaluation,
     EvaluationCreate,
@@ -45,15 +43,20 @@ class CoachAgentService:
         self,
         settings: Settings,
         evaluation_repository: EvaluationRepository | None = None,
+        provider: LLMProvider | None = None,
     ) -> None:
         """Initialize the service.
 
         Args:
             settings: Application settings.
             evaluation_repository: Repository for storing evaluations.
+            provider: LLM provider shared by the analyzer and feedback
+                generation. Defaults to Gemini; the eval harness injects
+                alternatives here.
         """
         self.settings = settings
-        self.analyzer = CoachAnalyzer(model=settings.coach_model)
+        self.provider: LLMProvider = provider or GeminiProvider(settings)
+        self.analyzer = CoachAnalyzer(model=settings.coach_model, provider=self.provider)
         self.evaluation_repository = evaluation_repository or EvaluationRepository()
 
     async def analyze_turn(
@@ -480,24 +483,17 @@ Respond with ONLY valid JSON:
 {{"strengths": ["...", "..."], "improvements": ["...", "..."]}}"""
 
         try:
-            client = genai.Client(api_key=self.settings.gemini_api_key)
-            response = await client.aio.models.generate_content(
+            result = await self.provider.complete_structured(
+                [ChatMessage(ChatRole.USER, prompt)],
+                response_schema=FeedbackResponse,
                 model=self.settings.coach_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.3,
-                    max_output_tokens=1024,
-                ),
+                temperature=0.3,
+                max_output_tokens=1024,
             )
-            if response.text:
-                cleaned = response.text.strip()
-                if cleaned.startswith("```"):
-                    cleaned = "\n".join(cleaned.split("\n")[1:-1])
-                data = json.loads(cleaned)
-                strengths = data.get("strengths", [])
-                improvements = data.get("improvements", [])
-                if strengths or improvements:
-                    return strengths, improvements
+            if isinstance(result.parsed, FeedbackResponse) and (
+                result.parsed.strengths or result.parsed.improvements
+            ):
+                return result.parsed.strengths, result.parsed.improvements
         except Exception as e:
             logger.warning(f"LLM feedback generation failed, using templates: {e}")
 

@@ -2,20 +2,15 @@
 
 **Tags:** #deprecated #archived #legacy
 
-This folder contains two categories of documentation that are not part of active development but preserved for reference and decision-making.
+This folder preserves documentation that is not part of active development but may still hold reference value.
 
 ## Quick Navigation
 
-### [[markedfordeletion/index.md | Marked for Deletion]]
-**7 files** - Fully superseded, safe to delete
-- RAG Phase implementations (1, 2, 3) - ✅ All implemented
-- RAG planning documents - ✅ Plans completed
-- Incident analysis (429 error) - 🕐 Time-specific
-- Task planning document - 📋 Should be in PRs, not docs
+### [[archived/index.md | Archived Content]]
+**1 file** - Domain-specific or legacy examples
+- `AshleyFurnitureEASYSellingSystem.md` - Legacy E.A.S.Y. system example (archived 2026-07-13)
 
-**Action:** These can be deleted anytime. All information is in git history or current code.
-
----
+**Reason for archival:** SalesTrainer Pro has moved to universal C.O.R.E. Selling System and domain-agnostic framework.
 
 ### [[uncertain/index.md | Uncertain - Needs Review]]
 **3 files** - Potentially useful, requires human judgment
@@ -32,7 +27,6 @@ This folder contains two categories of documentation that are not part of active
 **Review if:**
 - You need historical context for a feature or architecture decision
 - You're investigating why something was cut or changed
-- You're researching previous attempts at a problem
 - You need to understand product scope boundaries
 
 **Don't review if:**
@@ -46,12 +40,19 @@ This folder contains two categories of documentation that are not part of active
 
 | Category | Count | Recommendation |
 |----------|-------|-----------------|
-| **Marked for Deletion** | 7 files | Safe to delete anytime |
+| **Archived** | 1 file | Reference only |
 | **Uncertain** | 3 files | Review & decide per-file |
-| **Total** | 10 files | Nothing lost (git history + code) |
+
+**2026-07-13 cleanup (agent-hardening sync):**
+- Moved Ashley Furniture EASY Selling System doc to `archived/` folder (legacy domain-specific content, superseded by universal C.O.R.E. system)
+- Removed references to furniture-specific examples from active docs
+- Updated all index files with Python 3.13+ requirement, multi-provider voice notes, and current timestamps
+- Verified RAG docs previously deleted (2026-07-02) remain removed
+
+**2026-07-02 cleanup:** The former "Marked for Deletion" folder (RAG phase 1-3 implementation docs, RAG integration plan, RAG infrastructure setup, the 429 error incident report, and an old PR planning doc) was removed. All of it was superseded by shipped code and git history — nothing was lost.
 
 ---
 
-**Status:** Analysis complete. All files categorized and ready for cleanup decision.
+**Last updated:** 2026-07-13
 
 Back to [[INDEX|../INDEX.md]]

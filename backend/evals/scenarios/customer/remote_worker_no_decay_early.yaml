@@ -1,0 +1,14 @@
+# Early greeting turns count as positive action (turn_count <= 2), so no
+# mood decay fires and mood holds steady.
+id: remote_worker_no_decay_early
+tags: [persona:privacy_remote_worker, difficulty:medium_regard, mood:same, stage:connect]
+persona_id: privacy_remote_worker
+initial_mood: neutral
+seed: 23
+turns:
+  - salesperson_message: "Hi, good morning! I'm glad you could make it out here."
+    expected_mood_direction: same
+    forbid_phrases: ["as an AI"]
+  - salesperson_message: "Hello again — did you have any trouble finding the place?"
+    expected_mood_direction: same
+    forbid_phrases: ["as an AI"]

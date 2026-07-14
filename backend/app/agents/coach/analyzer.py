@@ -7,14 +7,13 @@ messages for E.A.S.Y. technique usage and provides coaching feedback.
 import logging
 from typing import Any
 
-from google import genai
-from google.genai import types
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 from app.agents.coach.hints import get_intervention_message
 from app.agents.coach.prompts import build_coach_prompt, format_conversation_history
 from app.agents.state import CoreStageProgress, CustomerPersona
 from app.config import get_settings
+from app.llm_providers import ChatMessage, ChatRole, GeminiProvider, LLMProvider
 from app.models.coach import CoachAnalysis, CoachAnalysisResponse, InterventionLevel
 
 logger = logging.getLogger(__name__)
@@ -27,24 +26,18 @@ class CoachAnalyzer:
     E.A.S.Y. selling techniques, deviations, and determine interventions.
     """
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, provider: LLMProvider | None = None) -> None:
         """Initialize the coach analyzer.
 
         Args:
-            model: Gemini model to use. Defaults to settings.coach_model
+            model: Model to use. Defaults to settings.coach_model
                 (model IDs are operational config, not code constants).
+            provider: LLM provider for analysis calls. Defaults to Gemini;
+                the eval harness injects alternatives here.
         """
         settings = get_settings()
         self._model = model or settings.coach_model
-        self._client: genai.Client | None = None
-
-    @property
-    def client(self) -> genai.Client:
-        """Get or create the Gemini client."""
-        if self._client is None:
-            settings = get_settings()
-            self._client = genai.Client(api_key=settings.gemini_api_key)
-        return self._client
+        self._provider: LLMProvider = provider or GeminiProvider(settings)
 
     async def analyze(
         self,
@@ -272,29 +265,25 @@ class CoachAnalyzer:
             return ""
 
     async def _call_gemini(self, prompt: str) -> CoachAnalysisResponse | None:
-        """Call Gemini API for analysis with native structured output.
+        """Call the LLM provider for analysis with native structured output.
 
         Args:
             prompt: The analysis prompt
 
         Returns:
-            Parsed CoachAnalysisResponse, or None if the SDK produced no
+            Parsed CoachAnalysisResponse, or None if the provider produced no
             structured output (treated as a failed analysis upstream).
         """
-        response = await self.client.aio.models.generate_content(
+        result = await self._provider.complete_structured(
+            [ChatMessage(ChatRole.USER, prompt)],
+            response_schema=CoachAnalysisResponse,
             model=self._model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,  # Low temperature for consistent analysis
-                max_output_tokens=1024,
-                response_mime_type="application/json",
-                response_schema=CoachAnalysisResponse,
-            ),
+            temperature=0.1,  # Low temperature for consistent analysis
+            max_output_tokens=1024,
         )
 
-        parsed = response.parsed
-        if isinstance(parsed, CoachAnalysisResponse):
-            return parsed
+        if isinstance(result.parsed, CoachAnalysisResponse):
+            return result.parsed
         return None
 
     def _messages_to_tuples(self, messages: list[BaseMessage]) -> list[tuple[str, str]]:

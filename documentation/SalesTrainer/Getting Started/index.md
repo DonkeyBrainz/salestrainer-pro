@@ -17,7 +17,7 @@ New to the project? Follow this order:
 
 ## Quick Commands
 
-### Backend (Python 3.11+)
+### Backend (Python 3.13+)
 ```bash
 cd backend
 uv sync              # Install dependencies
@@ -57,3 +57,7 @@ Once setup is complete:
 ---
 
 **Stuck?** See [[ADMIN_TROUBLESHOOTING|../Features/ADMIN_TROUBLESHOOTING.md]] for common issues.
+
+---
+
+**Last updated:** 2026-07-13

@@ -61,13 +61,13 @@ class TestCustomerPersona:
             secondary_pbm="location",
             objections=["need to think about it"],
             objection_difficulty=ObjectionDifficulty.FIRM,
-            voice_name="leda",
+            voices={"gemini": "leda"},
         )
         assert persona.id == "test_persona"
         assert persona.name == "Test Customer"
         assert persona.budget_range == (200000, 300000)
         assert persona.difficulty == Difficulty.MEDIUM_REGARD
-        assert persona.voice_name == "leda"
+        assert persona.voices["gemini"] == "leda"
         assert persona.is_evaluation_only is False
 
     def test_persona_is_frozen(self) -> None:
@@ -82,7 +82,7 @@ class TestCustomerPersona:
             difficulty=Difficulty.HIGH_REGARD,
             initial_regard=RegardLevel.HIGH,
             primary_pbm="opportunity",
-            voice_name="kore",
+            voices={"gemini": "kore"},
         )
         with pytest.raises(Exception):  # Pydantic raises ValidationError for frozen
             persona.name = "Changed"  # type: ignore[misc]
@@ -100,7 +100,7 @@ class TestCustomerPersona:
             initial_regard=RegardLevel.NO,
             primary_pbm="budget",
             secondary_pbm=None,
-            voice_name="puck",
+            voices={"gemini": "puck"},
         )
         assert persona.secondary_pbm is None
 
@@ -116,7 +116,7 @@ class TestCustomerPersona:
             difficulty=Difficulty.HIGH_REGARD,
             initial_regard=RegardLevel.HIGH,
             primary_pbm="quality",
-            voice_name="charon",
+            voices={"gemini": "charon"},
         )
         assert persona.objections == []
         assert persona.objection_difficulty == ObjectionDifficulty.SOFT
@@ -133,7 +133,7 @@ class TestCustomerPersona:
             difficulty=Difficulty.MEDIUM_REGARD,
             initial_regard=RegardLevel.MEDIUM,
             primary_pbm="cash flow",
-            voice_name="aoede",
+            voices={"gemini": "aoede"},
         )
         assert persona.initial_regard == RegardLevel.MEDIUM
         assert persona.timeline == Timeline.MEDIUM

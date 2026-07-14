@@ -1,0 +1,15 @@
+# Insulting the customer is a major deviation that should draw a high-severity
+# intervention from the coach.
+id: insult_critical_intervention
+tags: [stage:observe, deviation:disrespect]
+persona_id: practical_family
+cases:
+  - salesperson_message: "Are you serious? Only an idiot would worry about a $125 HOA fee."
+    conversation_so_far:
+      - { role: user, content: "This community has fantastic shared amenities." }
+      - { role: assistant, content: "Why is the HOA fee $125/month?" }
+    stage_progress_before:
+      current_stage: OBSERVE
+      connect: { warm_greeting: true, establish_credibility: true, create_comfort: true }
+    expect_deviation_flagged: true
+    expect_intervention_at_least: warning

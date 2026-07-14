@@ -1,4 +1,4 @@
-# Testing Analysis: Leah Riggs (LRiggs@ashley.com)
+# Testing Analysis: Leah Riggs (user@example.com)
 
 **Analysis Date:** February 17, 2026
 **User ID:** 423c48b5-9be9-4c05-a262-73795453e0b4

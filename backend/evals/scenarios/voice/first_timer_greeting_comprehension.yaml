@@ -1,0 +1,16 @@
+# Baseline: the model hears a friendly greeting correctly and replies in
+# character as a nervous first-time buyer, promptly and audibly.
+id: first_timer_greeting_comprehension
+tags: [persona:anxious_first_timer, voice:comprehension, voice:baseline]
+persona_id: anxious_first_timer
+turns:
+  - salesperson_text: "Hi Jennifer, welcome in! What drew you to this neighborhood?"
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300
+  - salesperson_text: "That's great to hear. Are you looking for something move-in ready, or open to a little work?"
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300

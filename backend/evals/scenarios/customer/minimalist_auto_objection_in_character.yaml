@@ -1,0 +1,13 @@
+id: minimalist_auto_objection_in_character
+tags: [persona:urban_minimalist, difficulty:medium_regard, objection:auto, stage:observe]
+persona_id: urban_minimalist
+initial_mood: neutral
+seed: 13
+turns:
+  - salesperson_message: "Hi! Welcome to the building. What drew you to this neighborhood?"
+    forbid_phrases: ["as an AI", "language model"]
+  - salesperson_message: "This unit gets great natural light and the layout is very efficient."
+    forbid_phrases: ["as an AI"]
+  - salesperson_message: "The building also has a shared rooftop space residents love."
+    inject_objection_expected: true
+    forbid_phrases: ["as an AI", "I cannot", "let's move to the next stage"]

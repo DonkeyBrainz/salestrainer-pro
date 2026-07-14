@@ -257,6 +257,65 @@ class TestReceive:
                 pass
 
 
+class TestUsageExtraction:
+    """Tests for the "usage" LiveEvent emitted from usage_metadata."""
+
+    async def test_receive_yields_usage_event(self, live_session, mock_session):
+        """Should translate usage_metadata into a usage event before end."""
+        usage = MagicMock()
+        usage.prompt_token_count = 100
+        usage.response_token_count = 30
+        usage.total_token_count = 130
+        usage.thoughts_token_count = 12
+        modality_detail = MagicMock()
+        modality_detail.modality = "AUDIO"
+        modality_detail.token_count = 90
+        usage.prompt_tokens_details = [modality_detail]
+        usage.response_tokens_details = None
+
+        mock_response = MagicMock()
+        mock_response.session_resumption_update = None
+        mock_response.go_away = None
+        mock_response.usage_metadata = usage
+        mock_response.server_content.input_transcription = None
+        mock_response.server_content.output_transcription = None
+        mock_response.server_content.model_turn = None
+        mock_response.server_content.turn_complete = True
+
+        async def mock_turn_generator():
+            yield mock_response
+
+        mock_session.receive.return_value = mock_turn_generator()
+
+        responses = []
+        async for response in live_session.receive():
+            responses.append(response)
+            if response["type"] == "end":
+                await live_session.close()
+
+        assert [r["type"] for r in responses] == ["usage", "end"]
+        assert responses[0]["usage"] == {
+            "prompt_tokens": 100,
+            "completion_tokens": 30,
+            "total_tokens": 130,
+        }
+        assert responses[0]["detail"]["prompt_tokens_details"] == [
+            {"modality": "AUDIO", "token_count": 90}
+        ]
+        assert responses[0]["detail"]["thoughts_token_count"] == 12
+
+    def test_extract_returns_none_without_metadata(self):
+        """No usage_metadata -> no event."""
+        response = MagicMock()
+        response.usage_metadata = None
+        assert GeminiLiveSession._extract_usage_event(response) is None
+
+    def test_extract_coerces_non_int_garbage_to_none(self):
+        """Non-int token counts (e.g. mock/SDK drift) degrade to no event."""
+        response = MagicMock()  # every attr is a truthy MagicMock, none are ints
+        assert GeminiLiveSession._extract_usage_event(response) is None
+
+
 class TestClose:
     """Tests for close method."""
 
