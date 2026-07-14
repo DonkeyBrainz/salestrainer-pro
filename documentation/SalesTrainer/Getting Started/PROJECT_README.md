@@ -1,24 +1,24 @@
-# Luxe Sales Coach v2
+# SalesTrainer Pro
 
-![Backend CI](https://github.com/afi-internal/ai-ml-sales-coach/actions/workflows/backend-ci.yml/badge.svg)
-![Frontend CI](https://github.com/afi-internal/ai-ml-sales-coach/actions/workflows/frontend-ci.yml/badge.svg)
-![Backend Deploy](https://github.com/afi-internal/ai-ml-sales-coach/actions/workflows/backend-deploy.yml/badge.svg)
-![Frontend Deploy](https://github.com/afi-internal/ai-ml-sales-coach/actions/workflows/frontend-deploy.yml/badge.svg)
+![Backend CI](https://github.com/DonkeyBrainz/salestrainer-pro/actions/workflows/backend-ci.yml/badge.svg)
+![Frontend CI](https://github.com/DonkeyBrainz/salestrainer-pro/actions/workflows/frontend-ci.yml/badge.svg)
+![Backend Deploy](https://github.com/DonkeyBrainz/salestrainer-pro/actions/workflows/backend-deploy.yml/badge.svg)
+![Frontend Deploy](https://github.com/DonkeyBrainz/salestrainer-pro/actions/workflows/frontend-deploy.yml/badge.svg)
 
 AI-native sales training platform using Gemini Live API for real-time voice roleplay with customer personas. Built with LangGraph multi-agent architecture for dynamic customer simulation and real-time coaching feedback.
 
 ## Overview
 
-This repository contains a complete full-stack application for training sales representatives in the "E.A.S.Y. Selling System" methodology through immersive conversations with AI-powered customer personas. The system uses two LangGraph-based agents:
+This repository contains a complete full-stack application for training sales representatives in the "C.O.R.E. Selling System" methodology through immersive conversations with AI-powered customer personas. The system uses two LangGraph-based agents:
 
 1. **Customer Agent**: Simulates realistic customer personas (Assistant, Executive, Skeptic) with difficulty-tuned behavior and objection handling
-2. **Coach Agent**: Provides real-time coaching hints and post-session performance evaluation based on E.A.S.Y. methodology
+2. **Coach Agent**: Provides real-time coaching hints and post-session performance evaluation based on C.O.R.E. methodology
 
 ## Repository Structure
 
 ```
-luxe-sales-coach-v2/
-├── backend/                    # FastAPI backend (Python 3.11+)
+salestrainer-pro/
+├── backend/                    # FastAPI backend (Python 3.13+)
 │   ├── app/
 │   │   ├── agents/            # LangGraph agents (customer & coach)
 │   │   ├── api/               # REST endpoints and WebSocket relay
@@ -31,7 +31,7 @@ luxe-sales-coach-v2/
 │
 ├── frontend/                   # React + TypeScript frontend
 │   ├── src/
-│   │   ├── components/        # UI components (CoachHUD, EASYChecklist)
+│   │   ├── components/        # UI components (CoachHUD, CoreChecklist)
 │   │   ├── pages/             # Routes (Home, Session, Login)
 │   │   ├── hooks/             # WebSocket and audio hooks
 │   │   ├── services/          # API clients and auth
@@ -86,7 +86,7 @@ The backend uses LangGraph to build two specialized agents:
 **Coach Agent** (`backend/app/agents/coach/`)
 - Analyzes each sales turn in real-time
 - Generates contextual coaching hints during active sessions
-- Provides post-session scoring and E.A.S.Y. checklist verification
+- Provides post-session scoring and C.O.R.E. checklist verification
 - Components: scorer (grading), hints (guidance), analyzer (intent detection)
 
 ### Real-Time Voice Pipeline
@@ -108,7 +108,7 @@ The backend uses LangGraph to build two specialized agents:
 
 - **Google OAuth 2.0**: Secure sign-in for sales representatives
 - **Gemini Live API**: Real-time bidirectional audio streaming with 30-minute timeout
-- **E.A.S.Y. Framework**: Interactive checklist tracking (Engagement, Ask, Satisfaction, Yes)
+- **C.O.R.E. Framework**: Interactive checklist tracking (Connect, Observe, Recommend, Execute)
 - **Customer Personas**: Three AI-powered personas with objection handling
 - **CoachHUD**: Live coaching hints displayed during sessions
 - **Session Evaluation**: Post-session scoring and performance feedback
@@ -120,7 +120,7 @@ The backend uses LangGraph to build two specialized agents:
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | **Frontend** | React 19, TypeScript, Vite | UI and user interactions |
-| **Backend** | FastAPI, Python 3.11 | REST API and WebSocket relay |
+| **Backend** | FastAPI, Python 3.13 | REST API and WebSocket relay |
 | **Agents** | LangGraph, LangChain, Gemini | Customer simulation and coaching |
 | **Voice AI** | Gemini Live API | Real-time voice conversation |
 | **Database** | Firestore / PostgreSQL(pending) | Session persistence |
@@ -170,7 +170,7 @@ docker-compose up
 
 ```bash
 # Backend
-gcloud run deploy luxe-sales-coach-backend \
+gcloud run deploy salestrainer-pro-backend \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
@@ -178,7 +178,7 @@ gcloud run deploy luxe-sales-coach-backend \
 
 # Frontend (static hosting via Cloud Storage + Cloud Load Balancer)
 npm run build
-gsutil -m cp -r frontend/dist/* gs://luxe-sales-coach-frontend/
+gsutil -m cp -r frontend/dist/* gs://salestrainer-pro-frontend/
 ```
 
 ## Documentation
@@ -191,7 +191,7 @@ gsutil -m cp -r frontend/dist/* gs://luxe-sales-coach-frontend/
 
 ## Code Standards
 
-- **Language Versions**: Python 3.11+, TypeScript 5.8+
+- **Language Versions**: Python 3.13+, TypeScript 5.8+
 - **Package Managers**: uv (backend), npm (frontend)
 - **Formatting**: ruff format (Python), Prettier (TypeScript)
 - **Type Safety**: Full type coverage required on all functions
@@ -205,5 +205,5 @@ Jason Osajima, Amelia Loving
 ---
 
 **Status**: In-progress
-**Last Updated**: February 5, 2026
-**Version**: 2.0.0
+**Last Updated**: July 2, 2026
+**Version**: 2.1.0

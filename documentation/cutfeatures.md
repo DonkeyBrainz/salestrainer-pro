@@ -1,6 +1,6 @@
 # Cut Features Archive
 
-This document preserves the purpose and vision of features removed from the Luxe Sales Coach v2 to streamline the core training experience.
+This document preserves the purpose and vision of features removed from SalesTrainer Pro to streamline the core training experience.
 
 ## 1. Safe Space
 - **Purpose:** Provided a judgment-free, empathetic environment for Sales Agents (RSAs) to vent, debrief difficult customer interactions, or process the emotional toll of the sales floor.

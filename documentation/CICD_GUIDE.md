@@ -162,10 +162,12 @@ These are secrets your backend reads at runtime. Cloud Run injects them as envir
 
 | Secret Name | Value | Used By |
 |-------------|-------|---------|
-| `gemini-api-key` | Your Gemini API key | Backend - Gemini API calls |
+| `gemini-api-key` | Your Gemini API key | Backend - Gemini Live & text generation |
 | `google-oauth-client-id` | Google OAuth 2.0 client ID | Backend - user authentication |
 | `google-oauth-client-secret` | Google OAuth 2.0 client secret | Backend - user authentication |
 | `jwt-secret-key` | Random 32+ char string | Backend - JWT signing |
+| `openai-api-key` (optional) | OpenAI API key | Backend - OpenAI voice provider (if enabled) |
+| `google-nova-api-key` (optional) | Google Nova API key | Backend - Google Nova voice provider (if enabled) |
 
 **How to populate them:**
 
@@ -211,7 +213,23 @@ GitHub Actions reads these as `${{ vars.VARIABLE_NAME }}`. These are **not** sec
 terraform output workload_identity_provider
 ```
 
-### Layer 3: What NOT to put in secrets
+### Layer 3: Voice Provider Configuration
+
+Voice provider preferences are set via environment variables, not secrets:
+
+| Variable | Value | Default | Description |
+|----------|-------|---------|-------------|
+| `DEFAULT_VOICE_PROVIDER` | gemini, openai, nova | gemini | Fallback provider if client doesn't specify |
+| `ENABLED_VOICE_PROVIDERS` | Comma-separated list | gemini,openai,nova | Which providers are available (limits cost) |
+| `GEMINI_TEMPERATURE` | 0.0-1.0 | 0.7 | Creativity for customer response generation |
+| `GEMINI_MAX_TOKENS` | Integer | 1024 | Max output length per response |
+
+**Example:** To limit to Gemini + OpenAI only:
+```bash
+--set-env-vars="ENABLED_VOICE_PROVIDERS=gemini,openai"
+```
+
+### Layer 4: What NOT to put in secrets
 
 Regular environment variables go directly in the Cloud Run deploy command, not in Secret Manager:
 
@@ -223,6 +241,8 @@ Regular environment variables go directly in the Cloud Run deploy command, not i
 | `CORS_ORIGINS` | Not sensitive |
 | `GOOGLE_REDIRECT_URI` | Not sensitive |
 | `LOG_LEVEL` | Not sensitive |
+| `DEFAULT_VOICE_PROVIDER` | Not sensitive (user-facing feature) |
+| `ENABLED_VOICE_PROVIDERS` | Not sensitive (configuration) |
 
 ---
 
@@ -289,17 +309,17 @@ terraform output frontend_url
 
 ```dockerfile
 # Stage 1: Build dependencies
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 WORKDIR /build
 RUN pip install --no-cache-dir uv
 COPY pyproject.toml uv.lock* ./
 RUN uv pip install --system --no-cache .
 
 # Stage 2: Runtime
-FROM python:3.11-slim
+FROM python:3.13-slim
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 WORKDIR /app
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
 COPY --from=builder /usr/local/bin/uvicorn /usr/local/bin/uvicorn
 COPY app/ ./app/
 RUN chown -R appuser:appuser /app
@@ -371,25 +391,33 @@ Both workflows live in `.github/workflows/`. They use GitHub's built-in OIDC tok
 
 ### Backend pipeline (`.github/workflows/backend-deploy.yml`)
 
-**Triggers**: Push to `main` with changes under `backend/**`
+**Triggers**: Push to `main` with changes under `backend/**` or `.github/workflows/backend-deploy.yml`
 
-**Steps:**
-1. Python 3.11 setup + `uv` install
-2. `uv run ruff check app/` — lint
-3. `uv run mypy app/` — type check
-4. `uv run pytest --cov=app` — tests with coverage
-5. Authenticate to GCP via WIF (OIDC token → access token)
-6. Fetch frontend URL from Cloud Run (for CORS env var)
-7. Build and push Docker image to Artifact Registry
-8. `gcloud run deploy salestrainer-pro-backend` with secrets + env vars
+**Quality Gates (same as CI):**
+1. Python 3.13 setup + `uv` install
+2. `uv run ruff check app/` — lint (includes code style & docstring checks)
+3. `uv run ruff format --check .` — formatting verification
+4. `uv run mypy app/` — strict type checking
+5. `uv run pytest --cov=app --cov-report=term -q` — tests with coverage (minimum 80%)
+
+**Agent-Hardening Tests** — New test areas with 100% coverage requirements:
+- `backend/tests/unit/test_customer_agent.py` — LangGraph state machine (mood updates, objection injection, behavior-driven analysis)
+- `backend/tests/unit/test_agent_state.py` — Runtime-only state channels (_analysis, _injected_objection, _skip_response)
+- `backend/tests/integration/test_websocket_endpoints.py` — Voice mode flow with multi-provider support
+
+**Deployment Steps:**
+6. Authenticate to GCP via WIF (OIDC token → access token)
+7. Fetch frontend URL from Cloud Run (for CORS env var)
+8. Build and push Docker image to Artifact Registry (tagged with commit SHA)
+9. `gcloud run deploy salestrainer-pro-backend` with secrets + env vars
 
 **Key deploy flags:**
 ```yaml
 gcloud run deploy salestrainer-pro-backend \
   --image=us-central1-docker.pkg.dev/PROJECT/salestrainer-pro/backend:SHA \
   --service-account=salestrainer-pro-backend-sa@PROJECT.iam.gserviceaccount.com \
-  --set-secrets=GEMINI_API_KEY=gemini-api-key:latest,... \
-  --set-env-vars='^||^GCP_PROJECT_ID=...||CORS_ORIGINS=[...]||...'
+  --set-secrets=GEMINI_API_KEY=gemini-api-key:latest,GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_OAUTH_CLIENT_SECRET=google-oauth-client-secret:latest,JWT_SECRET_KEY=jwt-secret-key:latest \
+  --set-env-vars='^||^GCP_PROJECT_ID=...||CORS_ORIGINS=[frontend-url,http://localhost:3000,http://localhost:5173]||GEMINI_TEMPERATURE=0.7||GEMINI_MAX_TOKENS=1024||...'
 ```
 
 The `'^||^'` delimiter is required when env var values contain commas (like the CORS array).
@@ -554,11 +582,21 @@ terraform output backend_service_account
 
 ### 4. Populate Secret Manager
 
+**Required secrets:**
 ```bash
 echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
 echo -n "YOUR_CLIENT_ID.apps.googleusercontent.com" | gcloud secrets create google-oauth-client-id --data-file=-
 echo -n "YOUR_CLIENT_SECRET" | gcloud secrets create google-oauth-client-secret --data-file=-
 openssl rand -base64 32 | tr -d '\n' | gcloud secrets create jwt-secret-key --data-file=-
+```
+
+**Optional secrets** (only if enabling alternative voice providers):
+```bash
+# For OpenAI voice provider
+echo -n "YOUR_OPENAI_API_KEY" | gcloud secrets create openai-api-key --data-file=-
+
+# For Google Nova voice provider
+echo -n "YOUR_GOOGLE_NOVA_API_KEY" | gcloud secrets create google-nova-api-key --data-file=-
 ```
 
 ### 5. Set GitHub Repository Variables

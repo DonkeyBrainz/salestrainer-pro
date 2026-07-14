@@ -26,7 +26,7 @@
 
 ### 1.1 Product Vision
 
-SalesTrainer Pro is an AI-native sales training platform that enables sales professionals across any industry to master the C.O.R.E. Selling System through immersive, voice-based roleplay with realistic AI customer personas. The platform replaces traditional static training materials with real-time, adaptive conversations that simulate authentic customer interactions.
+SalesTrainer Pro is an AI-native sales training platform that enables sales professionals across any industry to master the C.O.R.E. Selling System through immersive, voice-based roleplay with realistic AI customer personas. The platform replaces traditional static training materials with real-time, adaptive conversations that simulate authentic customer interactions. Personas are domain-configurable, enabling deployment across real estate, SaaS, insurance, automotive, and other B2B/B2C environments.
 
 ### 1.2 Value Proposition
 
@@ -116,9 +116,10 @@ These limitations result in longer ramp-up times for new hires, inconsistent tec
 SalesTrainer Pro delivers AI-powered voice roleplay training with:
 
 **Realistic AI Customer Personas:**
-- 11 distinct personas representing common customer archetypes (eager newlyweds, skeptical shoppers, demanding professionals, price-resistant buyers)
+- 10 distinct personas representing common customer archetypes across configurable domains (e.g., real estate: first-time buyers, investors, renovators; SaaS: IT decision-makers, budget-conscious buyers; etc.)
 - Authentic backstories, buying motivations, objections, and conversation dynamics
 - Difficulty levels (Easy, Medium, Hard) with progressively challenging behaviors
+- Multi-provider voice support: Gemini, OpenAI Realtime, and Amazon Nova voices
 
 **Real-Time Coaching System:**
 - Dual-agent architecture: Customer Agent (roleplay) + Coach Agent (analysis)
@@ -224,12 +225,12 @@ SalesTrainer Pro delivers AI-powered voice roleplay training with:
    - Browser requests microphone permission (WebRTC)
    - WebSocket connects to `/ws/gemini/live` with JWT token, persona ID, difficulty level
    - Audio visualizer displays to confirm mic input
-   - Customer persona greets user (voice audio plays): "Hi, I'm looking for a new sofa for my living room"
+   - Customer persona greets user (voice audio plays via selected provider): "Hi, we're looking for our first home. Can you help us find something in this neighborhood?"
 
 4. **Roleplay Conversation**
    - **User speaks**: "Hi! I'd love to understand what brings you in today..."
    - **HUD updates**: Transcription appears in real-time
-   - **Customer responds** (voice + text): "Good, thanks. We're looking to upgrade our setup."
+   - **Customer responds** (voice + text): "We're relocating for work and need something move-in ready within 3 months."
    - **Coach analyzes**: Background analysis runs (2s latency)
    - **Hint appears** (if Live Practice mode): "Great warm opening! Now transition to discovering their situation with a broader question."
    - **C.O.R.E. checklist updates**: "Connect - Established rapport" item checked
@@ -488,15 +489,30 @@ SalesTrainer Pro delivers AI-powered voice roleplay training with:
 
 ### 4.4 FR-PERSONA: Customer Personas
 
-#### FR-PERSONA-001: 11 Distinct Personas
-**Description**: Provide varied customer archetypes for roleplay
+#### FR-PERSONA-001: 10 Distinct Personas (Domain-Configurable)
+**Description**: Provide varied customer archetypes for roleplay across configurable domains
 **Acceptance Criteria**:
-- 5 training personas: Eager Newlywed, Busy Parent, Skeptical Shopper, Demanding Professional, Price-Resistant
-- 6 evaluation-only personas: Tech-Savvy Millennial, Empty Nester, First-Time Buyer, Luxury Renovator, Small Space Dweller, Indecisive Couple
-- Each persona includes: name, backstory, product interest, budget range, timeline, PBMs, objections
+- 6 training personas: Optimistic Renovator, Anxious First-Timer, Practical Family, Urban Minimalist, Privacy-Seeking Remote Worker, Scaling Investor
+- 4 evaluation-only personas: Wealthy Skeptic, Landlord Investor, School-Obsessed Parent, Lifestyle Retiree
+- Personas configurable by domain (Real Estate, SaaS, Insurance, Automotive)
+- Each persona includes: name, backstory, product interest, budget range, timeline, PBMs, objections, multi-provider voices
 
 **Priority**: P0 (Must Have)
 **Reference**: `/backend/app/agents/personas.py`
+
+---
+
+#### FR-PERSONA-001B: Multi-Provider Voice Support
+**Description**: Support voice from Gemini, OpenAI Realtime, and Amazon Nova
+**Acceptance Criteria**:
+- Environment variable `VOICE_PROVIDER` selects primary provider (gemini, openai, nova)
+- Fallback chain: Primary provider → Secondary provider → Tertiary provider
+- Each persona has voice mappings for all three providers
+- Provider selection transparent to frontend (UI doesn't change)
+- Error handling if provider unavailable (automatic fallback)
+
+**Priority**: P1 (Should Have)
+**Reference**: `/backend/app/services/gemini_service.py`, `/backend/app/agents/personas.py`
 
 ---
 
@@ -512,11 +528,14 @@ SalesTrainer Pro delivers AI-powered voice roleplay training with:
 
 ---
 
-#### FR-PERSONA-003: Unique Voices
-**Description**: Distinct AI voice per persona for immersion
+#### FR-PERSONA-003: Multi-Provider Voices
+**Description**: Distinct AI voice per persona across multiple providers for flexibility
 **Acceptance Criteria**:
-- 11 Google TTS voices assigned (aoede, kore, charon, puck, fenrir, vindemiatrix, leda, zephyr, etc.)
-- Voice name passed to Gemini Live API `voiceName` parameter
+- Voice configurations per persona per provider:
+  - **Gemini**: Google TTS voices (aoede, kore, charon, puck, zephyr, etc.)
+  - **OpenAI**: Realtime API voices (verse, coral, marin, shimmer, echo, sage, ash, cedar, ballad, etc.)
+  - **Amazon Nova**: Sonic speech voices (carlos, tiffany, matthew, amy, etc.)
+- Voice provider selectable via environment or user preference
 - Voice consistent throughout session
 - Voice matches persona demographics (age, gender, persona)
 
@@ -817,7 +836,7 @@ SalesTrainer Pro delivers AI-powered voice roleplay training with:
 - **UI Components**: Voice interface, C.O.R.E. HUD, Report card, Admin dashboard
 
 **Backend:**
-- **FastAPI** (Python 3.11+)
+- **FastAPI** (Python 3.13+ required)
 - **WebSocket Relay**: Manages Gemini Live API connections
 - **Dual-Agent System**:
   - **Customer Agent** (LangGraph): Stateful customer persona behavior
@@ -826,7 +845,9 @@ SalesTrainer Pro delivers AI-powered voice roleplay training with:
 - **RAG Service**: Firestore vector search for product knowledge
 
 **External Integrations:**
-- **Gemini 2.5 Flash Live API**: Voice conversation
+- **Gemini 2.5 Flash Live API**: Voice conversation (primary provider)
+- **OpenAI Realtime API**: Voice conversation (alternative provider)
+- **Amazon Bedrock (Nova Sonic)**: Voice conversation (alternative provider)
 - **Gemini 2.0 Flash**: Coach analysis and RAG embeddings
 - **Firestore**: Users, sessions, transcripts, evaluations, knowledge chunks
 - **Google Cloud Storage**: PDF product catalogs
@@ -1074,43 +1095,38 @@ interface WSMessage {
 
 ### 5.4 Integration Specifications
 
-#### 5.4.1 Gemini Live API
+#### 5.4.1 Real-Time Voice Streaming (Multi-Provider)
 
-**Connection**:
-- Protocol: WebSocket
-- Endpoint: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`
-- Authentication: API key in query parameter
+**Gemini Live API (Primary)**:
+- **Protocol**: WebSocket
+- **Endpoint**: `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`
+- **Authentication**: API key in query parameter
+- **Audio Formats**: PCM 16-bit, 16kHz mono (input) → 24kHz mono (output)
+- **Configuration**: `LiveConnectConfig` with voice_name, system_instruction
+- **Message Types**: client_content, server_content, input_transcription, output_transcription, internal_reasoning, end
 
-**Audio Formats**:
-- **Input**: PCM 16-bit, 16kHz mono
-- **Output**: PCM 16-bit, 24kHz mono
-- **Encoding**: Raw bytes (binary WebSocket frames)
+**OpenAI Realtime API (Alternative)**:
+- **Protocol**: WebSocket
+- **Endpoint**: `wss://api.openai.com/v1/realtime`
+- **Authentication**: Bearer token in header
+- **Audio Format**: PCM 16-bit, 24kHz mono (bidirectional)
+- **Configuration**: Model (gpt-4-realtime-preview), voice selection
+- **Message Types**: session.created, input_audio_buffer.committed, response.delta, response.done
 
-**Configuration**:
-```python
-config = types.LiveConnectConfig(
-    response_modalities=[Modality.AUDIO],
-    input_audio_transcription=types.AudioTranscriptionConfig(),
-    output_audio_transcription=types.AudioTranscriptionConfig(),
-    voice_name="aoede",  # Persona-specific voice
-    system_instruction=persona_system_prompt,
-)
-```
+**Amazon Bedrock (Nova Sonic) (Alternative)**:
+- **Protocol**: HTTP/WebSocket (async bidirectional streaming)
+- **Authentication**: AWS IAM credentials via boto3
+- **Audio Format**: PCM 16-bit, 24kHz mono
+- **Configuration**: Model ID, voice selection per persona
+- **Message Types**: Stream events with audio chunks
 
-**Message Types**:
-- `client_content` (audio input)
-- `server_content` (audio output + transcription)
-- `input_transcription` (user speech text)
-- `output_transcription` (AI speech text)
-- `internal_reasoning` (model thinking, not shown to user)
-- `end` (turn completion signal)
-
-**Error Handling**:
+**Error Handling** (All Providers):
 - Automatic reconnection up to 3 attempts
 - Exponential backoff (1s, 2s, 4s)
 - Session state preserved for 5 minutes after disconnect
+- Automatic fallback to secondary provider on failure
 
-**Reference**: `/backend/app/services/gemini_service.py`
+**Reference**: `/backend/app/services/gemini_service.py`, `/backend/app/api/ws/gemini_relay.py`
 
 ---
 
@@ -1297,18 +1313,17 @@ class CustomerPersona:
     product_keywords: list[str]  # ["modern", "affordable", "quality"]
 ```
 
-**11 Personas**:
-1. Eager Newlywed (Maria) - High Regard, Living Room
-2. Busy Parent (Sarah) - Medium Regard, Sectional
-3. Skeptical Shopper (Robert) - Medium Regard, Recliner
-4. Demanding Professional (Dr. Chen) - Low Regard, Bedroom Set
-5. Price-Resistant (Mike) - Low Regard, Mattress
-6. Tech-Savvy Millennial (James) - Evaluation, Home Office
-7. Empty Nester (Linda) - Evaluation, Dining
-8. First-Time Buyer (Alex) - Evaluation, Living Room
-9. Luxury Renovator (Patricia) - Evaluation, Bedroom
-10. Small Space Dweller (Kenji) - Evaluation, Compact Furniture
-11. Indecisive Couple (Taylor & Jordan) - Evaluation, Living Room
+**10 Personas (Real Estate Example Domain)**:
+1. Optimistic Renovator (Marcus) - High Regard, Fixer-Upper
+2. Anxious First-Timer (Jennifer) - Medium Regard, Primary Residence
+3. Practical Family (Amanda) - Medium Regard, New Construction
+4. Urban Minimalist (Alex) - Medium Regard, Urban Condo
+5. Privacy-Seeking Remote Worker (Thomas) - Medium Regard, Acreage
+6. Scaling Investor (Sophia) - Medium Regard, Investment Property
+7. Wealthy Skeptic (David) - Low Regard, Luxury Estate
+8. Landlord Investor (Kevin) - Evaluation, Investment Property
+9. School-Obsessed Parent (Patricia) - Evaluation, Family Home
+10. Lifestyle Retiree (Richard) - Evaluation, Waterfront Estate
 
 **Reference**: `/backend/app/agents/personas.py`
 
@@ -1476,15 +1491,36 @@ class CustomerPersona:
 
 ---
 
-#### 6.1.3 Gemini API
-- **Purpose**: Voice conversation and coach analysis
-- **Models**:
-  - Gemini 2.5 Flash (Live API) - Customer persona
-  - Gemini 2.0 Flash - Coach analyzer
-  - text-embedding-004 - RAG embeddings
-- **API Key**: Stored in Secret Manager
-- **Rate Limits**: Unknown for Live API (preview product)
-- **Cost**: ~$0.05-0.15 per 20-minute session (estimated)
+#### 6.1.3 Multi-Provider Voice APIs
+- **Gemini 2.5 Flash Live API** (Google)
+  - **Purpose**: Real-time voice conversation for customer personas
+  - **Models**: Gemini 2.5 Flash (Live API for voice)
+  - **Status**: Preview product
+  - **Cost**: ~$0.05-0.15 per 20-minute session (estimated)
+
+- **OpenAI Realtime API** (OpenAI)
+  - **Purpose**: Alternative real-time voice conversation provider
+  - **Models**: GPT-4 Realtime Preview
+  - **Status**: Preview product
+  - **Cost**: TBD (usage-based)
+
+- **Amazon Bedrock (Nova Sonic)** (AWS)
+  - **Purpose**: Cost-effective real-time voice conversation
+  - **Models**: Amazon Nova Sonic speech-to-speech
+  - **Status**: Available
+  - **Cost**: Usage-based pricing
+
+- **Gemini 2.0 Flash** (Google)
+  - **Purpose**: Coach analysis and evaluation
+  - **Models**: Gemini 2.0 Flash (standard API)
+  - **Status**: Available
+
+- **Text Embedding** (Google)
+  - **Purpose**: RAG embeddings for product knowledge
+  - **Models**: text-embedding-004
+  - **Status**: Available
+
+- **Configuration**: Environment variable `VOICE_PROVIDER` (gemini|openai|nova) selects primary provider with automatic fallback
 
 ---
 
@@ -1636,10 +1672,10 @@ class CustomerPersona:
 
 ### 8.1 Technical Constraints
 
-**CONST-TECH-001: Gemini Live API Preview Status**
-- **Constraint**: Gemini 2.5 Flash Live API is in preview (not GA)
+**CONST-TECH-001: Preview API Status**
+- **Constraint**: Gemini 2.5 Flash Live API and OpenAI Realtime API are in preview (not GA)
 - **Risk**: Breaking API changes, no SLA, potential deprecation
-- **Mitigation**: Monitor release notes, maintain API version flexibility
+- **Mitigation**: Multi-provider strategy (Gemini, OpenAI, Nova) ensures fallback; monitor release notes for each provider
 
 **CONST-TECH-002: Firestore Vector Search Preview**
 - **Constraint**: Firestore vector search in preview (not GA)
@@ -1793,8 +1829,8 @@ class CustomerPersona:
   - Stage requirements, techniques, key phrases
   - PBM framework, objection handling
 
-- **E.A.S.Y. Reference** (legacy industry example): `/documentation/AshleyFurnitureEASYSellingSystem.md`
-  - Original Ashley Furniture methodology used as prototype reference
+- **Legacy Reference**: `/documentation/STAKEHOLDER_FEEDBACK_ANALYSIS.md`
+  - Original methodology reference from prototype phase (documentation purposes only)
 
 - **Stakeholder Feedback Analysis** (520 lines): `/documentation/STAKEHOLDER_FEEDBACK_ANALYSIS.md`
   - Legacy system limitations

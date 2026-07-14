@@ -19,6 +19,7 @@ System design, data models, and component interactions.
 **Key docs:**
 - [[PRODUCT_REQUIREMENTS|Architecture & Design/PRODUCT_REQUIREMENTS.md]] - Project vision and goals
 - [[AGENT_FLOW|Architecture & Design/AGENT_FLOW.md]] - Conversation flow and agent architecture
+- [[AGENTIC_ENGINEERING|Architecture & Design/AGENTIC_ENGINEERING.md]] - AI-engineering deep dive: models, memory, RAG, design defenses + practice questions
 - [[DATABASE_SCHEMA|Architecture & Design/DATABASE_SCHEMA.md]] - Firestore collections and relationships
 - [[SESSION_STATE_RESUMPTION|Architecture & Design/SESSION_STATE_RESUMPTION.md]] - Session persistence patterns
 
@@ -47,9 +48,8 @@ Deployment, CI/CD, and operational guides.
 Archived docs and past iterations. Review for context but not active development.
 
 **Legacy content:**
-- RAG Phase implementations (1, 2, 3)
-- Analysis and testing artifacts
-- Deprecated feature specs
+- User testing and stakeholder-feedback analysis (needs human review before archiving further)
+- Deprecated feature specs (cut features)
 
 ---
 
@@ -78,5 +78,7 @@ When updating docs:
 
 ---
 
-**Last updated:** 2026-04-30
+**Last updated:** 2026-07-13
 **Vault:** SalesTrainer Pro
+
+**Recent changes:** Agent-hardening hardened (agent-hardening branch) - multi-provider voice support, C.O.R.E. system coaching framework, Python 3.13+

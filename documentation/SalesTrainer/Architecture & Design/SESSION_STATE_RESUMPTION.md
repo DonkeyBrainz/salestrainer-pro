@@ -104,7 +104,7 @@ These fields are saved to `agent_state_snapshot`:
 ✓ objections_available: list[str]        # PBMs customer COULD raise
 ✓ objections_raised: list[str]           # PBMs customer DID raise
 ✓ objections_resolved: list[str]         # PBMs customer RESOLVED
-✓ stage_progress: CoreStageProgress      # Checklist completion per stage
+✓ stage_progress: EASYStageProgress      # Checklist completion per stage
 ✓ session_id: str
 ✓ user_id: str
 ```
@@ -249,7 +249,7 @@ def resume_session(
    state_dict = json.loads(session.agent_state_snapshot)
    mood = Mood(state_dict["mood"])
    regard = RegardLevel(state_dict["regard_level"])
-   stage = CoreStageProgress.model_validate(state_dict["stage_progress"])
+   stage = EASYStageProgress.model_validate(state_dict["stage_progress"])
    ```
 
 5. **Merge Into Complete State**:
@@ -325,7 +325,7 @@ def deserialize_state(
         "objections_available": data["objections_available"],
         "objections_raised": data["objections_raised"],
         "objections_resolved": data["objections_resolved"],
-        "stage_progress": CoreStageProgress.model_validate(data["stage_progress"]),
+        "stage_progress": EASYStageProgress.model_validate(data["stage_progress"]),
         "session_id": data["session_id"],
         "user_id": data["user_id"],
         "persona": persona,

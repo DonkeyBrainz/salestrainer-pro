@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document addresses stakeholder feedback from an earlier version of the AI Sales Coach platform. The feedback identified critical limitations in conversation accuracy, session reliability, and E.A.S.Y. system tracking. The current platform (Gemini 2.5 Flash-based architecture) has been redesigned from the ground up to address these concerns.
+This document addresses stakeholder feedback from an earlier version of the AI Sales Coach platform. The feedback identified critical limitations in conversation accuracy, session reliability, and C.O.R.E. system tracking. The current platform (Gemini 2.5 Flash-based architecture) has been redesigned from the ground up to address these concerns.
 
 **Status**: Most feedback items have been architecturally addressed in the current system. See detailed analysis below.
 
@@ -52,7 +52,7 @@ config = types.LiveConnectConfig(
 - **Stateful LangGraph Agent**: Customer persona behavior is managed by a stateful agent that maintains conversation context across turns
 - **Session Resumption**: Gemini Live API sessions can resume after disconnects, preserving conversation state
 - **Error Handling & Reconnection**: Automatic reconnection logic with up to 3 retry attempts on transient failures
-- **Structured State Management**: Conversation state tracks EASY stage progress, PBMs, objections, and buying signals separately
+- **Structured State Management**: Conversation state tracks C.O.R.E. stage progress, PBMs, objections, and buying signals separately
 
 **Code Reference**:
 - `/backend/app/agents/customer_agent.py` - LangGraph-based stateful agent
@@ -92,7 +92,7 @@ config = types.LiveConnectConfig(
   - **Hard**: Stays guarded until trust is earned
 
 **Code Reference**:
-- `/backend/app/data/easy_system.py:59-88` - Engage stage requirements
+- `/backend/app/data/core_system.py:59-88` - Engage stage requirements
 - `/backend/app/agents/prompts.py:DIFFICULTY_BEHAVIORS` - Persona behavior guidelines
 - `/backend/app/agents/coach/analyzer.py` - LLM-based technique detection
 
@@ -140,7 +140,7 @@ DIFFICULTY_BEHAVIORS[Difficulty.EASY] = """
 - **PBM Identification**: Minimum 2 PBMs must be identified before progressing to SHOW stage
 
 **Code Reference**:
-- `/backend/app/data/easy_system.py:122-132` - Critical questions definition
+- `/backend/app/data/core_system.py:122-132` - Critical questions definition
 - `/backend/app/agents/coach/analyzer.py:52-100` - Analysis logic
 
 **Prompt Example**:
@@ -194,7 +194,7 @@ It returns JSON with `stage_items_completed` indicating which questions were det
 - **Protection Plan Tracking**: Distinct requirement for presenting No Use, No Lose guarantee
 
 **Code Reference**:
-- `/backend/app/data/easy_system.py:186-214` - SHOW stage requirements
+- `/backend/app/data/core_system.py:186-214` - SHOW stage requirements
 - `/backend/app/agents/coach/analyzer.py` - Detects demonstration patterns
 
 **Detection Criteria** (in coach prompt):

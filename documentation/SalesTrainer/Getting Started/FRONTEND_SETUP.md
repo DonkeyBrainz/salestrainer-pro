@@ -1,6 +1,6 @@
-# Frontend: Luxe Sales Coach v2
+# Frontend: SalesTrainer Pro
 
-React TypeScript frontend for the E.A.S.Y. Selling System training platform.
+React TypeScript frontend for the C.O.R.E. Selling System training platform.
 
 ## Getting Started
 
@@ -30,7 +30,7 @@ Frontend (React 19 + TypeScript)
 ├── Components (Reusable UI)
 |   ├── VoiceSession - Main session container
 |   ├── CoachHUD - Real-time coaching hints display
-|   ├── EASYChecklist - E.A.S.Y. methodology tracker
+|   ├── CoreChecklist - C.O.R.E. methodology tracker
 |   ├── ControlBar - Play/stop/settings controls
 |   ├── Visualizer - Audio waveform display
 |   ├── Transcript - Session transcript viewer
@@ -64,7 +64,7 @@ Data Flow:
 
 - **Real-time Voice Sessions**: WebSocket connection for bidirectional communication with Gemini Live API
 - **CoachHUD**: Displays real-time coaching hints during conversations
-- **E.A.S.Y. Checklist**: Interactive checklist for the E.A.S.Y. selling methodology
+- **C.O.R.E. Checklist**: Interactive checklist for the C.O.R.E. selling methodology
 - **Audio Pipeline**: 16kHz capture, 24kHz playback with PCM codec
 - **OAuth Authentication**: Google Sign-In with JWT token management
 - **Responsive Design**: Mobile-friendly UI with Lucide icons
@@ -94,7 +94,7 @@ frontend/
 |   ├── services/       # Business logic and API clients
 |   ├── contexts/       # React context providers
 |   ├── types/          # TypeScript definitions
-|   ├── data/           # Static data (E.A.S.Y. content)
+|   ├── data/           # Static data (C.O.R.E. content)
 |   ├── test/           # Test setup and mocks
 |   ├── App.tsx         # Main router
 |   └── main.tsx        # Entry point
@@ -109,11 +109,12 @@ frontend/
 The frontend communicates with the backend via:
 
 1. **REST API**: `/api/*` endpoints for CRUD operations
-2. **WebSocket**: `/ws` for real-time voice sessions
-3. **OAuth**: `/auth/callback` for login flow
+2. **WebSocket**: `/ws/gemini/live` for real-time voice sessions (supports Gemini, OpenAI, Nova providers)
+3. **OAuth**: `/auth/callback` for login flow (Google, Microsoft Azure optional)
 4. **Health Check**: `/health` for monitoring
+5. **Voice Configuration**: Backend automatically selects voice provider based on server configuration
 
-Vite proxy routes all backend calls automatically in development.
+Vite proxy routes all backend calls automatically in development. Frontend doesn't need to know which voice provider is active — backend handles selection and fallback.
 
 ## Testing
 

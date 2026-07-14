@@ -15,10 +15,10 @@ tags: [#features, #troubleshooting, #debugging]
 
 You should see:
 ```
-UserMenu - Current user: {email: "mpuerto@ashleyfurniture.com", name: "..."}
-UserMenu - User email: mpuerto@ashleyfurniture.com
+UserMenu - Current user: {email: "miklpuerto69@gmail.com", name: "..."}
+UserMenu - User email: miklpuerto69@gmail.com
 UserMenu - Is admin? true
-UserMenu - Admin emails: ["mpuerto@ashleyfurniture.com"]
+UserMenu - Admin emails: ["miklpuerto69@gmail.com"]
 ```
 
 ### Step 2: Verify Your Email
@@ -26,8 +26,8 @@ UserMenu - Admin emails: ["mpuerto@ashleyfurniture.com"]
 **If "Is admin?" shows `false`:**
 
 1. Check what email is logged in the console
-2. Make sure it matches **exactly**: `mpuerto@ashleyfurniture.com`
-3. If your email is different (like `MPuerto@ashleyfurniture.com` or `michael.puerto@ashleyfurniture.com`), you need to:
+2. Make sure it matches **exactly**: `miklpuerto69@gmail.com`
+3. If your email is different, you need to:
    - Update `ADMIN_EMAILS` in both files to match your actual email
    - Or log in with the correct email
 
@@ -65,7 +65,7 @@ Your email is not in the backend `ADMIN_EMAILS` list.
 1. Update `backend/app/api/admin.py` line 18:
    ```python
    ADMIN_EMAILS = [
-       "your-actual-email@ashleyfurniture.com",  # Use your real email
+       "miklpuerto69@gmail.com",  # Use your real email
    ]
    ```
 
@@ -161,14 +161,14 @@ const isAdmin = user && user.email; // Show button for any logged-in user
 ## Common Issues
 
 ### Issue: Email has different casing
-**Example:** You're logged in as `MPuerto@ashleyfurniture.com` but ADMIN_EMAILS has `mpuerto@ashleyfurniture.com`
+**Example:** You're logged in as `MiklPuerto69@gmail.com` but ADMIN_EMAILS has `miklpuerto69@gmail.com`
 
 **Solution:** Email check is now case-insensitive, but double-check both are the same.
 
 ### Issue: Wrong OAuth provider
 **Example:** You logged in with Google but your Microsoft account is the admin
 
-**Solution:** Log out and log in with the correct provider that has `mpuerto@ashleyfurniture.com`
+**Solution:** Log out and log in with the correct provider that has `miklpuerto69@gmail.com`
 
 ### Issue: Frontend not updated
 **Example:** You changed ADMIN_EMAILS but button still doesn't show

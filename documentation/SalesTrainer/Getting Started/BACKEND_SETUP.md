@@ -1,13 +1,16 @@
-# Backend: Luxe Sales Coach v2
+# Backend: SalesTrainer Pro
 
 FastAPI backend for real-time voice roleplay training using Gemini Live API.
 
 ## Getting Started
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.13+ (required)
 - uv package manager
-- Google Cloud Project with Gemini API key
+- Google Cloud Project with at least one voice provider:
+  - **Gemini 2.5 Flash** (default): Google Cloud API key
+  - **OpenAI Realtime** (alternative): OpenAI API key
+  - **Amazon Nova** (alternative): AWS credentials with Bedrock access
 
 ### Setup
 
@@ -24,7 +27,7 @@ Backend runs on `http://localhost:8000`. Swagger docs available at `/docs`.
 ## Architecture
 
 ```
-Backend (FastAPI + Python 3.11)
+Backend (FastAPI + Python 3.13)
 |
 ├── API Routes
 |   ├── /auth/* - Google OAuth and session management
@@ -58,7 +61,7 @@ Backend (FastAPI + Python 3.11)
 |
 ├── Data & Configuration
 |   ├── /data/
-|   |   ├── easy_system.py - E.A.S.Y. selling methodology
+|   |   ├── core_system.py - C.O.R.E. selling methodology
 |   |   └── objections.py - Common sales objections
 |   ├── /agents/
 |   |   ├── coach/ - Coach agent (scorer, hints, prompts)
@@ -80,12 +83,13 @@ Data Flow:
 
 ## Key Features
 
-- **Google OAuth 2.0**: Secure authentication with JWT tokens
-- **Gemini Live API**: Real-time bidirectional audio streaming
-- **WebSocket Relay**: 30-minute session timeout, reconnection support
-- **Customer Personas**: 3 personas (Assistant, Executive, Skeptic) with difficulty levels
+- **Multi-Provider Voice Support**: Gemini 2.5 Flash, OpenAI Realtime, Amazon Nova with automatic fallback
+- **Google OAuth 2.0**: Secure authentication with JWT tokens (Microsoft Azure optional)
+- **Real-Time Voice Streaming**: Bidirectional audio with WebSocket relay
+- **30-Minute Sessions**: Configurable timeout with reconnection support
+- **Configurable Personas**: 10 personas across configurable domains (Real Estate, SaaS, Insurance, etc.)
 - **Coach Agent**: Real-time hint generation and turn-by-turn analysis
-- **Session Evaluation**: Post-session scoring and E.A.S.Y. checklist verification
+- **Session Evaluation**: Post-session scoring and C.O.R.E. checklist verification
 - **Transcript Storage**: Full session transcripts via Firestore
 - **Error Handling**: Custom WebSocket close codes (4001-4005) for client handling
 
@@ -149,7 +153,7 @@ backend/
 |   |   └── personas.py     # Persona definitions
 |   |
 |   ├── data/               # Static data
-|   |   ├── easy_system.py  # E.A.S.Y. methodology
+|   |   ├── core_system.py  # C.O.R.E. methodology
 |   |   └── objections.py   # Sales objections
 |   |
 |   ├── core/               # Infrastructure
@@ -231,12 +235,30 @@ See `.env.example` for full list. Required:
 
 ### Core Configuration
 ```
-GEMINI_API_KEY             # Google AI API key
 GOOGLE_CLIENT_ID           # OAuth client ID
 GOOGLE_CLIENT_SECRET       # OAuth client secret
 FIREBASE_PROJECT_ID        # Firestore project
 FIREBASE_PRIVATE_KEY       # Service account key
 FIREBASE_CLIENT_EMAIL      # Service account email
+```
+
+### Voice Provider Configuration
+Select primary provider and optional fallbacks:
+```
+VOICE_PROVIDER             # Primary: "gemini" | "openai" | "nova" (default: "gemini")
+VOICE_PROVIDER_FALLBACK    # Fallback chain: e.g., "gemini,openai,nova"
+
+# Gemini Configuration (if VOICE_PROVIDER=gemini or fallback)
+GEMINI_API_KEY             # Google AI API key (required for Gemini)
+
+# OpenAI Configuration (if VOICE_PROVIDER=openai or fallback)
+OPENAI_API_KEY             # OpenAI API key (required for OpenAI)
+OPENAI_ORG_ID              # OpenAI organization ID (optional)
+
+# Amazon Nova Configuration (if VOICE_PROVIDER=nova or fallback)
+AWS_ACCESS_KEY_ID          # AWS IAM access key (optional, uses default credential chain)
+AWS_SECRET_ACCESS_KEY      # AWS IAM secret key (optional, uses default credential chain)
+AWS_REGION                 # AWS region with Bedrock access (default: "us-west-2")
 ```
 
 ### Microsoft Azure/Entra ID (Optional)

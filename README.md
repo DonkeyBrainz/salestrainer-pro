@@ -18,7 +18,7 @@ This repository contains a complete full-stack application for training sales re
 
 ```
 luxe-sales-coach-v2/
-├── backend/                    # FastAPI backend (Python 3.11+)
+├── backend/                    # FastAPI backend (Python 3.13+)
 │   ├── app/
 │   │   ├── agents/            # LangGraph agents (customer & coach)
 │   │   ├── api/               # REST endpoints and WebSocket relay
@@ -120,7 +120,7 @@ The backend uses LangGraph to build two specialized agents:
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | **Frontend** | React 19, TypeScript, Vite | UI and user interactions |
-| **Backend** | FastAPI, Python 3.11 | REST API and WebSocket relay |
+| **Backend** | FastAPI, Python 3.13 | REST API and WebSocket relay |
 | **Agents** | LangGraph, LangChain, Gemini | Customer simulation and coaching |
 | **Voice AI** | Gemini Live API | Real-time voice conversation |
 | **Database** | Firestore / PostgreSQL(pending) | Session persistence |
@@ -191,7 +191,7 @@ gsutil -m cp -r frontend/dist/* gs://luxe-sales-coach-frontend/
 
 ## Code Standards
 
-- **Language Versions**: Python 3.11+, TypeScript 5.8+
+- **Language Versions**: Python 3.13+, TypeScript 5.8+
 - **Package Managers**: uv (backend), npm (frontend)
 - **Formatting**: ruff format (Python), Prettier (TypeScript)
 - **Type Safety**: Full type coverage required on all functions

@@ -2,7 +2,7 @@
 tags: [#database, #schema, #architecture]
 ---
 
-# Database Schema: Luxe Sales Coach v2
+# Database Schema: SalesTrainer Pro
 
 > **Version:** 1.0.0
 > **Last Updated:** 2026-02-05
@@ -13,7 +13,7 @@ tags: [#database, #schema, #architecture]
 
 ## Overview
 
-This document defines the complete database schema for the Luxe Sales Coach v2 backend. The POC uses Firestore for rapid development; production will migrate to PostgreSQL.
+This document defines the complete database schema for the SalesTrainer Pro backend. The POC uses Firestore for rapid development; production will migrate to PostgreSQL.
 
 ### Design Principles
 
@@ -252,7 +252,7 @@ Stores evaluation results and scorecards.
 }
 ```
 
-**stage_progress object:**
+**stage_progress object** (tracked live during a session, `backend/app/agents/state.py`):
 ```json
 {
   "current_stage": "CONNECT",
@@ -298,10 +298,10 @@ Vector-embedded product knowledge chunks for RAG-based coach hint generation and
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | chunkId | string | PRIMARY KEY | Unique chunk identifier |
-| embedding | vector (768-dim) | NOT NULL, INDEXED | Gemini embedding vector (cosine distance) |
+| embedding | vector (2048-dim) | NOT NULL, INDEXED | Gemini embedding vector (cosine distance) |
 | text | string | NOT NULL | Chunk text content |
-| metadata.category | string | NOT NULL, FILTERED | Product category (e.g., "furniture", "mattresses") |
-| metadata.product_type | string | NULLABLE, FILTERED | Product type (e.g., "bedroom_set", "outdoor") |
+| metadata.category | string | NOT NULL, FILTERED | Product category (e.g., "real_estate", "saas") |
+| metadata.product_type | string | NULLABLE, FILTERED | Product type (e.g., "single_family", "enterprise_tier") |
 | metadata.source | string | NULLABLE | Source document or PDF name |
 | metadata.page | integer | NULLABLE | Page number from source |
 | created_at | timestamp | NOT NULL | Creation timestamp |
@@ -313,14 +313,14 @@ Vector-embedded product knowledge chunks for RAG-based coach hint generation and
 
 **RAG Configuration (Queryable):**
 - rag_collection_name: "knowledge_chunks"
-- rag_embedding_model: "gemini-embedding-001"
+- rag_embedding_model: "gemini-embedding-2" (2048-dim via output_dimensionality)
 - rag_top_k: Number of results (default 3)
 - Supports metadata filtering on category and product_type
 
 **Used By:**
 - CoachAgentService: Retrieves relevant product context for hint generation
 - RAGService (FirestoreRAGService): Vector similarity search with metadata filtering
-- Supports hybrid search (semantic + keyword) in Phase 3
+- Supports hybrid search (semantic + keyword)
 
 ---
 
@@ -658,7 +658,7 @@ class Session(Base):
 |-------|------------|
 | grade | One of: A, B, C, D, F |
 | score | Integer 0-100 |
-| scorecard | Valid E.A.S.Y. structure |
+| scorecard | Valid C.O.R.E. structure |
 | scorecard.*.score | Integer 0-100 |
 
 ---

@@ -1,6 +1,6 @@
 # Cut Features Archive
 
-This document preserves the purpose and vision of features removed from the Luxe Sales Coach v2 to streamline the core training experience.
+This document preserves the purpose and vision of features removed from SalesTrainer Pro to streamline the core training experience.
 
 ## 1. Safe Space
 - **Purpose:** Provided a judgment-free, empathetic environment for Sales Agents (RSAs) to vent, debrief difficult customer interactions, or process the emotional toll of the sales floor.
@@ -13,6 +13,6 @@ This document preserves the purpose and vision of features removed from the Luxe
 - **Visuals:** Indigo/Blue ambient background.
 
 ## 3. The Luxe Lounge (Learning Portal)
-- **Purpose:** An asynchronous learning interface featuring "NotebookLM-style" generated podcasts. Two AI hosts (Alex and Sam) would provide high-energy banter and deep-dives into the technical aspects of the Ashley E.A.S.Y. Selling System.
+- **Purpose:** An asynchronous learning interface featuring "NotebookLM-style" generated podcasts. Two AI hosts (Alex and Sam) would provide high-energy banter and deep-dives into the technical aspects of the C.O.R.E. Selling System.
 - **Capabilities:** Included local IndexedDB persistence for generated audio and a custom podcast player UI.
 - **Visuals:** Violet/Purple "Dark Mode" aesthetic.

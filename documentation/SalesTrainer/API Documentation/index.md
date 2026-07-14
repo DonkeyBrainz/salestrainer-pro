@@ -20,14 +20,22 @@ Complete REST and WebSocket API reference for SalesTrainer Pro.
 See [[API_SPECIFICATION]] for details.
 
 ### Sessions & Conversations
-- `POST /api/v1/sessions` - Create a new training session
-- `GET /api/v1/sessions/:id` - Retrieve session details
-- `WebSocket /ws/gemini/live` - Real-time voice conversation
+- `GET /api/v1/sessions` - List current user's session history
+- `GET /api/v1/sessions/:id` - Retrieve session detail (transcript + evaluation)
+- `WebSocket /ws/gemini/live` - Real-time voice conversation with provider support
+  - Query params: `token`, `mode` (training/evaluation), `voice_provider` (gemini/vertex)
+  - Sessions are created implicitly here, not via REST
 
 ### Data & Evaluation
-- `POST /api/v1/evaluate` - Generate post-session evaluation
-- `GET /api/v1/personas` - List available customer personas
+- `GET /personas` - List available customer personas
+- `GET /personas/evaluation` - List evaluation-mode personas
+- `GET /api/v1/products` - Product catalog for RAG context
 - `GET /health` - Health check endpoint
+
+### Admin (requires admin email allowlist)
+- `GET /api/v1/admin/personas/metrics` - Persona performance metrics
+- `GET /api/v1/admin/users/metrics` - User analytics
+- `GET /api/v1/admin/sessions/:id` - Any session's detail (admin view)
 
 ## Integration Guide
 
@@ -53,11 +61,11 @@ API returns standard HTTP status codes:
 - `500` - Server error
 
 WebSocket close codes:
-- `4001` - Invalid token
-- `4002` - Session not found
-- `4003` - Timeout
-- `4004` - Auth failed
-- `4005` - Internal error
+- `1000` - Normal closure
+- `4001` - Invalid/expired token
+- `4003` - Rate limit exceeded
+- `4004` - Invalid request
+- `4005` - Service unavailable
 
 See [[API_SPECIFICATION]] for full error details.
 
@@ -80,3 +88,7 @@ See [[BACKEND_SETUP|../Getting%20Started/BACKEND_SETUP.md]] for full list.
 ---
 
 **Need help?** Check [[ADMIN_TROUBLESHOOTING|../Features/ADMIN_TROUBLESHOOTING.md]] for common issues.
+
+---
+
+**Last updated:** 2026-07-13

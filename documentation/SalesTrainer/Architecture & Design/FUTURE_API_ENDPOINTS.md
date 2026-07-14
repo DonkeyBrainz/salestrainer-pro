@@ -1,10 +1,6 @@
----
-tags: [#api, #planning, #future]
----
-
 # Future API Endpoints
 
-This document outlines planned API endpoints for future phases of Luxe Sales Coach v2. These endpoints were initially designed but are not yet implemented. They are included here as reference for future development phases.
+This document outlines planned API endpoints for future phases of SalesTrainer Pro. These endpoints were initially designed but are not yet implemented. They are included here as reference for future development phases.
 
 ---
 
@@ -98,19 +94,19 @@ Retrieve details of a specific session including transcript and evaluation.
   "transcript": [
     {
       "role": "user",
-      "text": "Hi, I'd like to discuss our furniture collections",
+      "text": "Hi, we're looking for a new home in this area. Can you tell us about this property?",
       "timestamp": "2026-02-05T12:00:05Z"
     },
     {
       "role": "assistant",
-      "text": "Great! I'm interested in learning more about your needs.",
+      "text": "Absolutely! I'd love to learn more about what you're looking for.",
       "timestamp": "2026-02-05T12:00:10Z"
     }
   ],
   "evaluation": {
     "grade": "A-",
     "score": 88,
-    "easyChecklist": {
+    "coreChecklist": {
       "engagement": true,
       "ask": true,
       "satisfaction": true,
@@ -176,7 +172,7 @@ Generate evaluation report for a completed session.
   "sessionId": "550e8400-e29b-41d4-a716-446655440001",
   "grade": "A-",
   "score": 88,
-  "easyChecklist": {
+  "coreChecklist": {
     "engagement": {
       "passed": true,
       "feedback": "Good engagement and rapport building"
@@ -247,7 +243,7 @@ Get aggregated performance statistics for the current user.
     "D": 3,
     "F": 0
   },
-  "easyMastery": {
+  "coreMastery": {
     "engagement": 95,
     "ask": 88,
     "satisfaction": 92,
@@ -287,17 +283,17 @@ Get aggregated performance statistics for the current user.
 
 ## Knowledge Base (Phase 5)
 
-Expose E.A.S.Y. system content and training materials via API.
+Expose C.O.R.E. system content and training materials via API.
 
-### GET /api/v1/knowledge/easy-system
+### GET /api/v1/knowledge/core-system
 
-Retrieve complete E.A.S.Y. selling system content.
+Retrieve complete C.O.R.E. selling system content.
 
 **Response:** `200 OK`
 ```json
 {
-  "title": "E.A.S.Y. Selling System",
-  "description": "A consultative selling approach for furniture retail",
+  "title": "C.O.R.E. Selling System",
+  "description": "A universal 4-stage consultative selling approach applicable across any industry",
   "phases": [
     {
       "phase": "Engagement",
@@ -425,12 +421,107 @@ Update user profile and preferences.
 
 ---
 
+## Voice Provider & Configuration (Phase 6)
+
+Manage voice provider settings and persona voice preferences.
+
+### GET /api/v1/voice/providers
+
+Retrieve available voice providers and current configuration.
+
+**Response:** `200 OK`
+```json
+{
+  "availableProviders": [
+    {
+      "name": "gemini",
+      "label": "Google Gemini 2.5 Flash",
+      "status": "active",
+      "isConfigured": true,
+      "fallbackOrder": 1
+    },
+    {
+      "name": "openai",
+      "label": "OpenAI Realtime",
+      "status": "available",
+      "isConfigured": false,
+      "fallbackOrder": 2
+    },
+    {
+      "name": "nova",
+      "label": "Amazon Nova Sonic",
+      "status": "available",
+      "isConfigured": false,
+      "fallbackOrder": 3
+    }
+  ],
+  "currentProvider": "gemini",
+  "fallbackChain": ["gemini", "openai", "nova"],
+  "lastProviderChange": "2026-02-05T12:00:00Z"
+}
+```
+
+**Rationale:** Allow frontend to display available providers and switch between them at runtime.
+
+---
+
+### PATCH /api/v1/voice/providers/{providerName}
+
+Update voice provider preferences for current session.
+
+**Request:**
+```json
+{
+  "setPrimary": true,
+  "enableFallback": true
+}
+```
+
+**Response:** `200 OK` (same as GET)
+
+**Rationale:** Allow users to select preferred voice provider for training sessions.
+
+---
+
+### GET /api/v1/voice/personas/{personaId}/voices
+
+Retrieve available voice options for a specific persona.
+
+**Response:** `200 OK`
+```json
+{
+  "personaId": "optimistic_renovator",
+  "personaName": "Marcus",
+  "availableVoices": {
+    "gemini": {
+      "voiceId": "puck",
+      "label": "Puck (Male, Energetic)",
+      "sampleUrl": "/media/voices/puck-sample.mp3"
+    },
+    "openai": {
+      "voiceId": "verse",
+      "label": "Verse (Male, Professional)",
+      "sampleUrl": "/media/voices/verse-sample.mp3"
+    },
+    "nova": {
+      "voiceId": "carlos",
+      "label": "Carlos (Male, Friendly)",
+      "sampleUrl": "/media/voices/carlos-sample.mp3"
+    }
+  }
+}
+```
+
+**Rationale:** Enable frontend to display voice samples and allow users to preview persona voices before starting session.
+
+---
+
 ## Implementation Priority
 
 | Phase | Endpoints | Rationale |
 |-------|-----------|-----------|
 | **Phase 5** | Sessions CRUD, Evaluations, Stats, Knowledge Base | Core functionality for session history and analytics |
-| **Phase 6** | User preferences/settings | User customization and account management |
+| **Phase 6** | User preferences/settings, Voice provider management, Persona voice selection | User customization and voice provider flexibility |
 | **Future** | Advanced analytics, integrations, team/admin endpoints | Enterprise features |
 
 ---

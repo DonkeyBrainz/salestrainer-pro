@@ -5,7 +5,7 @@ FastAPI backend for real-time voice roleplay training using Gemini Live API.
 ## Getting Started
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.13+
 - uv package manager
 - Google Cloud Project with Gemini API key
 
@@ -24,7 +24,7 @@ Backend runs on `http://localhost:8000`. Swagger docs available at `/docs`.
 ## Architecture
 
 ```
-Backend (FastAPI + Python 3.11)
+Backend (FastAPI + Python 3.13)
 |
 ├── API Routes
 |   ├── /auth/* - Google OAuth and session management

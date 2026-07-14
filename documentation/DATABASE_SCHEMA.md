@@ -1,4 +1,4 @@
-# Database Schema: Luxe Sales Coach v2
+# Database Schema: SalesTrainer Pro
 
 > **Version:** 1.0.0
 > **Last Updated:** 2026-02-05
@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document defines the complete database schema for the Luxe Sales Coach v2 backend. The POC uses Firestore for rapid development; production will migrate to PostgreSQL.
+This document defines the complete database schema for the SalesTrainer Pro backend. The POC uses Firestore for rapid development; production will migrate to PostgreSQL.
 
 ### Design Principles
 
@@ -97,7 +97,7 @@ Stores user accounts and preferences.
 **preferences object:**
 ```json
 {
-  "voiceName": "Zephyr",
+  "voiceProvider": "gemini",
   "difficulty": "intermediate",
   "theme": "light",
   "notificationsEnabled": true
@@ -106,7 +106,7 @@ Stores user accounts and preferences.
 
 | Field | Type | Default | Options |
 |-------|------|---------|---------|
-| voiceName | string | "Zephyr" | Zephyr, Kore, Charon, etc. |
+| voiceProvider | enum | "gemini" | gemini, openai, nova |
 | difficulty | enum | "intermediate" | beginner, intermediate, advanced |
 | theme | enum | "light" | light, dark |
 | notificationsEnabled | boolean | true | - |
@@ -171,7 +171,7 @@ Stores conversation transcripts for sessions.
 {
   "messageId": "msg-uuid",
   "role": "user",
-  "text": "Hello, welcome!",
+  "text": "Hello, welcome! How can I help you today?",
   "timestamp": "2026-01-27T12:00:05Z",
   "isFinal": true,
   "audioLengthMs": 2500,
@@ -206,7 +206,7 @@ Stores evaluation results and scorecards.
 | userId | string (UUID) | FOREIGN KEY, INDEX | Owner user ID |
 | grade | enum | NOT NULL | A, B, C, D, or F |
 | score | integer | NOT NULL | Score 0-100 |
-| scorecard | object | NOT NULL | E.A.S.Y. checklist results |
+| scorecard | object | NOT NULL | C.O.R.E. checklist results |
 | feedback | text | NULLABLE | Generated feedback text |
 | keyStrengths | array | NULLABLE | List of strengths |
 | areasForImprovement | array | NULLABLE | List of improvements |
@@ -217,36 +217,119 @@ Stores evaluation results and scorecards.
 | createdAt | timestamp | NOT NULL | Record creation time |
 | updatedAt | timestamp | NOT NULL | Last update time |
 
-**scorecard object:**
+**scorecard object** (C.O.R.E. selling system breakdown):
 ```json
 {
-  "engage": {
-    "nonBusinessGreet": true,
-    "establishedRapport": true,
-    "managerMention": false,
+  "connect": {
+    "warm_greeting": true,
+    "establish_credibility": true,
+    "create_comfort": false,
     "score": 67
   },
-  "ask": {
-    "criticalQuestions": 4,
-    "layer2Discovery": 3,
-    "pbmsIdentified": 2,
-    "score": 75
-  },
-  "show": {
-    "powerDemo": true,
-    "featureBenefitPbm": true,
-    "protectionPlan": false,
+  "observe": {
+    "needs_discovery": true,
+    "goal_identification": true,
+    "motivator_mapping": false,
     "score": 67
   },
-  "yes": {
-    "payYourWay": true,
-    "clearConstraint": true,
-    "closedSale": false,
+  "recommend": {
+    "solution_presentation": true,
+    "value_connection": true,
+    "risk_mitigation": false,
     "score": 67
   },
-  "totalScore": 82
+  "execute": {
+    "commitment_request": true,
+    "objection_handling": true,
+    "finalize_agreement": false,
+    "score": 67
+  },
+  "totalScore": 82,
+  "personalBuyingMotivators": {
+    "expressed": ["confidence", "value"],
+    "acknowledged": ["confidence"]
+  }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| connect | object | CONNECT stage checklist (15% weight) |
+| observe | object | OBSERVE stage checklist (30% weight) |
+| recommend | object | RECOMMEND stage checklist (30% weight) |
+| execute | object | EXECUTE stage checklist (25% weight) |
+| totalScore | integer | Weighted score 0-100 |
+| personalBuyingMotivators | object | Track which motivations customer expressed vs. salesperson acknowledged |
+
+**stage_progress object** (tracked live during a session, `backend/app/agents/state.py`):
+```json
+{
+  "current_stage": "CONNECT",
+  "connect": {"warm_greeting": false, "establish_credibility": false, "create_comfort": false},
+  "observe": {"needs_discovery": false, "goal_identification": false, "motivator_mapping": false},
+  "recommend": {"solution_presentation": false, "value_connection": false, "risk_mitigation": false},
+  "execute": {"commitment_request": false, "objection_handling": false, "finalize_agreement": false},
+  "pbms_expressed": [],
+  "pbms_acknowledged": []
+}
+```
+
+---
+
+## LangGraph Customer Agent State
+
+The customer agent's runtime state lives in `backend/app/agents/state.py` as `CustomerAgentState` TypedDict. This state is not directly persisted to Firestore; instead, the LangGraph checkpointer maintains it in-memory during a session.
+
+### Persistent State Channels
+
+| Field | Type | Description |
+|-------|------|-------------|
+| messages | list[BaseMessage] | Conversation history (uses add_messages reducer) |
+| turn_count | integer | Current turn in conversation |
+| persona | CustomerPersona | Immutable persona definition set at session start |
+| mood | Mood enum | Customer's current emotional state (INTERESTED, NEUTRAL, SKEPTICAL, FRUSTRATED, READY_TO_BUY) |
+| regard_level | RegardLevel enum | How much customer "likes" salesperson (HIGH, MEDIUM, LOW, NO) |
+| objections_available | list[str] | Pool of objections persona can raise |
+| objections_raised | list[str] | Already raised during this session |
+| objections_resolved | list[str] | Successfully handled by salesperson |
+| stage_progress | CoreStageProgress | Salesperson's progress through C.O.R.E. stages |
+| session_id | string | UUID of the session |
+| user_id | string | UUID of the trainee user |
+
+### Runtime-Only State Channels
+
+These keys are **declared in TypedDict** (marked `NotRequired`) so LangGraph propagates them between nodes, but they are **NOT persisted** and cleared after the graph completes:
+
+| Field | Type | Description | Lifecycle |
+|-------|------|-------------|-----------|
+| _analysis | dict[str, bool] | Behavior detection from analyze_input node (greetings, questions, pushiness, disrespect) | Overwritten each node, cleared after generate_response |
+| _injected_objection | str \| None | Objection selected for this turn | Set in inject_objection node, cleared after generate_response |
+| _skip_response | bool | Flag for voice mode: True = Gemini Live produces customer reply, skip LLM call | Set at start of voice session, consulted in generate_response |
+| _last_usage | dict[str, int] \| None | Token usage from LLM completion (for analytics) | Set in generate_response, cleared next turn |
+
+**Why runtime-only keys?** LangGraph only propagates channels declared in the state TypedDict. These keys are transient—they're needed to coordinate behavior between nodes (e.g., analyzing input, then deciding to inject an objection), but they don't represent part of the persistent conversation state. They're analogous to local variables in a function call, not database fields.
+
+### Persona Voice Configuration
+
+Each CustomerPersona defines voices for multiple providers:
+
+```python
+voices: dict[str, str] = {
+    "gemini": "puck",      # Gemini Live preset voice ID
+    "openai": "cedar",     # OpenAI TTS voice name
+    "nova": "carlos"       # Google Nova voice preset
+}
+```
+
+At session start, the WebSocket connection parameter `voice_provider` selects which key to use. The selected voice ID is passed to the voice provider's API.
+
+**Supported Voice Providers & Defaults:**
+
+| Provider | Default Voice | Characteristics | Latency | Cost |
+|----------|----------------|-----------------|---------|------|
+| gemini | puck | Conversational, natural | Very Low | Included in Gemini API |
+| openai | echo | High quality, diverse | Low-Medium | Pay-per-request |
+| nova | carlos | Natural prosody | Very Low | Cost-optimized |
 
 **Firestore Path:** `/evaluations/{evaluationId}`
 
@@ -274,7 +357,40 @@ Stores refresh tokens for session management.
 
 ---
 
-### 6. knowledge_items (Optional - for cached knowledge base)
+### 6. knowledge_chunks (RAG Vector Search - Firestore)
+
+Vector-embedded product knowledge chunks for RAG-based coach hint generation and product context retrieval.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| chunkId | string | PRIMARY KEY | Unique chunk identifier |
+| embedding | vector (2048-dim) | NOT NULL, INDEXED | Gemini embedding vector (cosine distance) |
+| text | string | NOT NULL | Chunk text content |
+| metadata.category | string | NOT NULL, FILTERED | Product category (e.g., "real_estate", "saas") |
+| metadata.product_type | string | NULLABLE, FILTERED | Product type (e.g., "single_family", "enterprise_tier") |
+| metadata.source | string | NULLABLE | Source document or PDF name |
+| metadata.page | integer | NULLABLE | Page number from source |
+| created_at | timestamp | NOT NULL | Creation timestamp |
+| updated_at | timestamp | NOT NULL | Last update timestamp |
+
+**Firestore Path:** `/knowledge_chunks/{chunkId}`
+
+**Vector Index:** Composite index on embedding + metadata fields for filtered semantic search.
+
+**RAG Configuration (Queryable):**
+- rag_collection_name: "knowledge_chunks"
+- rag_embedding_model: "gemini-embedding-2" (2048-dim via output_dimensionality)
+- rag_top_k: Number of results (default 3)
+- Supports metadata filtering on category and product_type
+
+**Used By:**
+- CoachAgentService: Retrieves relevant product context for hint generation
+- RAGService (FirestoreRAGService): Vector similarity search with metadata filtering
+- Supports hybrid search (semantic + keyword)
+
+---
+
+### 7. knowledge_items (Optional - for cached knowledge base)
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
@@ -327,6 +443,22 @@ Stores refresh tokens for session management.
     - fieldPath: expiresAt
       order: ASCENDING
     - fieldPath: isRevoked
+      order: ASCENDING
+
+# knowledge_chunks vector search (RAG)
+- collectionGroup: knowledge_chunks
+  fields:
+    - fieldPath: embedding
+      order: VECTOR
+    - fieldPath: metadata.category
+      order: ASCENDING
+
+# knowledge_chunks metadata filtering
+- collectionGroup: knowledge_chunks
+  fields:
+    - fieldPath: metadata.category
+      order: ASCENDING
+    - fieldPath: metadata.product_type
       order: ASCENDING
 ```
 
@@ -592,7 +724,7 @@ class Session(Base):
 |-------|------------|
 | grade | One of: A, B, C, D, F |
 | score | Integer 0-100 |
-| scorecard | Valid E.A.S.Y. structure |
+| scorecard | Valid C.O.R.E. structure |
 | scorecard.*.score | Integer 0-100 |
 
 ---
