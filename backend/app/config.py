@@ -48,7 +48,10 @@ class Settings(BaseSettings):
 
     # Gemini API
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    # Retired models 404 only for keys that were not already using them, so a
+    # stale ID here fails in deployed envs while still working locally. See
+    # gemini_live_model below: Live has its own, separate deprecation clock.
+    gemini_model: str = "gemini-3.5-flash"
     gemini_live_model: str = "gemini-2.5-flash-native-audio-preview-12-2025"
     gemini_temperature: float = 0.7
     # Lower temperature for the live voice persona to tighten instruction
@@ -85,7 +88,7 @@ class Settings(BaseSettings):
     live_provider_allowlist: list[str] = ["gemini"]
 
     # Coach Agent
-    coach_model: str = "gemini-2.5-flash"
+    coach_model: str = "gemini-3.5-flash"
 
     # Database (Firestore)
     gcp_project_id: str = ""
@@ -117,7 +120,7 @@ class Settings(BaseSettings):
     rag_use_reranking: bool = False
     rag_use_conversation_context: bool = False
     rag_use_objection_lookup: bool = True
-    rag_reranking_model: str = "gemini-2.5-flash"
+    rag_reranking_model: str = "gemini-3.5-flash"
     rag_reranking_initial_k: int = 10
     rag_reranking_final_k: int = 3
 
