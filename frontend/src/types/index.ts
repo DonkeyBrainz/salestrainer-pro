@@ -86,6 +86,21 @@ export interface CoachHint {
   timestamp: Date;
 }
 
+// --- CUSTOMER MOOD TYPES ---
+export type CustomerMood =
+  | 'frustrated'
+  | 'skeptical'
+  | 'neutral'
+  | 'interested'
+  | 'ready_to_buy';
+
+export type RegardLevel = 'high' | 'medium' | 'low' | 'no';
+
+export interface CustomerMoodState {
+  mood: CustomerMood;
+  regard_level: RegardLevel;
+}
+
 // --- EVALUATION RESULT TYPES (from backend Evaluation model) ---
 export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
 

@@ -190,6 +190,44 @@ class TestFinalizeAnalysis:
 
 
 # =============================================================================
+# Provider Call Tests
+# =============================================================================
+
+
+class TestCallGemini:
+    """Tests for the provider call itself (not mocked past, unlike TestAnalyze)."""
+
+    @pytest.mark.asyncio
+    async def test_disables_thinking(self) -> None:
+        """Should disable thinking so the output budget covers the JSON.
+
+        Thinking tokens are drawn from max_output_tokens before any JSON is
+        emitted, and on a real coach prompt they alone exceed the 1024 budget —
+        truncating every response into parsed=None and silently suppressing all
+        hints. Regression test for that.
+        """
+        provider = MagicMock()
+        provider.complete_structured = AsyncMock(
+            return_value=MagicMock(parsed=CoachAnalysisResponse())
+        )
+        analyzer = CoachAnalyzer(model="gemini-2.5-flash", provider=provider)
+
+        await analyzer._call_gemini("prompt")
+
+        kwargs = provider.complete_structured.call_args.kwargs
+        assert kwargs["thinking_budget"] == 0
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_provider_yields_no_structured_output(self) -> None:
+        """Should return None when the provider produces no parsed instance."""
+        provider = MagicMock()
+        provider.complete_structured = AsyncMock(return_value=MagicMock(parsed=None))
+        analyzer = CoachAnalyzer(model="gemini-2.5-flash", provider=provider)
+
+        assert await analyzer._call_gemini("prompt") is None
+
+
+# =============================================================================
 # Analyze Tests (with mocked LLM)
 # =============================================================================
 

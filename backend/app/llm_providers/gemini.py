@@ -46,6 +46,7 @@ class GeminiProvider:
         model: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
     ) -> CompletionResult:
         """Generate a free-text completion for the given messages."""
         return await self._generate(
@@ -53,6 +54,7 @@ class GeminiProvider:
             model=model,
             temperature=temperature,
             max_output_tokens=max_output_tokens,
+            thinking_budget=thinking_budget,
         )
 
     async def complete_structured(
@@ -63,6 +65,7 @@ class GeminiProvider:
         model: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
     ) -> CompletionResult:
         """Generate a schema-constrained JSON completion."""
         if not (isinstance(response_schema, type) and issubclass(response_schema, BaseModel)):
@@ -74,6 +77,7 @@ class GeminiProvider:
             model=model,
             temperature=temperature,
             max_output_tokens=max_output_tokens,
+            thinking_budget=thinking_budget,
             response_schema=response_schema,
         )
 
@@ -84,6 +88,7 @@ class GeminiProvider:
         model: str | None,
         temperature: float | None,
         max_output_tokens: int | None,
+        thinking_budget: int | None = None,
         response_schema: type[BaseModel] | None = None,
     ) -> CompletionResult:
         """Shared generate_content path for both completion modes."""
@@ -97,6 +102,8 @@ class GeminiProvider:
             config_kwargs["temperature"] = temperature
         if max_output_tokens is not None:
             config_kwargs["max_output_tokens"] = max_output_tokens
+        if thinking_budget is not None:
+            config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=thinking_budget)
         if response_schema is not None:
             config_kwargs["response_mime_type"] = "application/json"
             config_kwargs["response_schema"] = response_schema
@@ -108,6 +115,8 @@ class GeminiProvider:
             config=types.GenerateContentConfig(**config_kwargs),
         )
         latency_ms = (time.monotonic() - started) * 1000
+
+        self._warn_if_truncated(response, resolved_model, max_output_tokens)
 
         parsed: BaseModel | None = None
         if response_schema is not None:
@@ -122,6 +131,39 @@ class GeminiProvider:
             model=resolved_model,
             latency_ms=latency_ms,
             usage=self._extract_usage(response),
+        )
+
+    @staticmethod
+    def _warn_if_truncated(
+        response: types.GenerateContentResponse,
+        model: str,
+        max_output_tokens: int | None,
+    ) -> None:
+        """Log when the model hit the output cap before emitting an answer.
+
+        A reasoning model spends thinking tokens out of max_output_tokens before
+        any visible text, so an under-budgeted call returns HTTP 200 with a
+        MAX_TOKENS candidate and no content — which callers see only as an empty
+        or unparseable result. Naming it here keeps that failure from being
+        silently swallowed as "the model had nothing to say".
+        """
+        candidates = response.candidates or []
+        if not candidates:
+            return
+        if candidates[0].finish_reason != types.FinishReason.MAX_TOKENS:
+            return
+
+        usage = response.usage_metadata
+        thoughts = getattr(usage, "thoughts_token_count", None) or 0
+        emitted = getattr(usage, "candidates_token_count", None) or 0
+        logger.warning(
+            "Gemini hit max_output_tokens before completing its response "
+            "(model=%s, max_output_tokens=%s, thinking_tokens=%s, output_tokens=%s). "
+            "Raise max_output_tokens or pass thinking_budget=0.",
+            model,
+            max_output_tokens,
+            thoughts,
+            emitted,
         )
 
     @staticmethod

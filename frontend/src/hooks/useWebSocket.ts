@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ConnectionState, Message, CoachHint, EvaluationResult, SalesStage } from '@/types';
+import {
+  ConnectionState,
+  Message,
+  CoachHint,
+  CustomerMoodState,
+  EvaluationResult,
+  SalesStage,
+} from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   websocketService,
@@ -7,6 +14,7 @@ import {
   TranscriptionMessage,
   ServerAudioMessage,
   CoachHintMessage,
+  MoodUpdateMessage,
   StageProgressMessage,
   UserTranscriptionMessage,
   EvaluationResultMessage,
@@ -27,6 +35,7 @@ export interface UseWebSocketReturn {
   currentInput: string;
   onAudioReceived: React.MutableRefObject<((base64Pcm: string) => void) | null>;
   currentHint: CoachHint | null;
+  moodState: CustomerMoodState | null;
   completedItems: string[];
   currentStage: SalesStage;
   userTranscription: string;
@@ -52,6 +61,7 @@ export function useWebSocket(): UseWebSocketReturn {
   const [currentInput, setCurrentInput] = useState('');
   const [currentHint, setCurrentHint] = useState<CoachHint | null>(null);
   const [dismissedHint, setDismissedHint] = useState<CoachHint | null>(null);
+  const [moodState, setMoodState] = useState<CustomerMoodState | null>(null);
   const [userTranscription, setUserTranscription] = useState<string>('');
   const [completedItems, setCompletedItems] = useState<string[]>([]);
   const [currentStage, setCurrentStage] = useState<SalesStage>('CONNECT');
@@ -112,6 +122,15 @@ export function useWebSocket(): UseWebSocketReturn {
             timestamp: new Date(),
           };
           setCurrentHint(hint);
+          break;
+        }
+
+        case 'mood_update': {
+          const moodMessage = message as MoodUpdateMessage;
+          setMoodState({
+            mood: moodMessage.mood,
+            regard_level: moodMessage.regard_level,
+          });
           break;
         }
 
@@ -225,6 +244,7 @@ export function useWebSocket(): UseWebSocketReturn {
     setError(null);
     setCompletedItems([]);
     setCurrentStage('CONNECT');
+    setMoodState(null);
   }, []);
 
   const sendAudio = useCallback((base64Data: string) => {
@@ -291,6 +311,7 @@ export function useWebSocket(): UseWebSocketReturn {
     currentInput,
     onAudioReceived,
     currentHint,
+    moodState,
     completedItems,
     currentStage,
     userTranscription,

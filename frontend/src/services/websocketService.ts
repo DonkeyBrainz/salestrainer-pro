@@ -1,4 +1,4 @@
-import { ConnectionState, EvaluationResult } from '@/types';
+import { ConnectionState, CustomerMood, EvaluationResult } from '@/types';
 import { logger } from './logger';
 import { base64ToBytes, bytesToBase64 } from './audioUtils';
 
@@ -91,6 +91,12 @@ export interface StageProgressMessage {
   all_completed_items: string[];
 }
 
+export interface MoodUpdateMessage {
+  type: 'mood_update';
+  mood: CustomerMood;
+  regard_level: 'high' | 'medium' | 'low' | 'no';
+}
+
 export type ServerMessage =
   | ReadyMessage
   | ServerAudioMessage
@@ -98,6 +104,7 @@ export type ServerMessage =
   | TurnCompleteMessage
   | ErrorMessage
   | CoachHintMessage
+  | MoodUpdateMessage
   | UserTranscriptionMessage
   | ReconnectingMessage
   | SessionResumedMessage

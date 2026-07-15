@@ -712,13 +712,33 @@ Text messages for session control and metadata.
 ```
 
 **Server → Client Example:**
+
+A coaching hint (Training mode only; throttled to one per 10s, and only when
+the coach's intervention level is non-`none`):
 ```json
 {
-  "type": "hint",
-  "hint": "Try asking about their budget to move the conversation forward",
-  "context": "Customer is still in exploration phase"
+  "type": "coach_hint",
+  "level": "warning",
+  "hint": "The customer just raised a price concern — acknowledge it before moving on.",
+  "stage": "CONNECT",
+  "example_phrase": "That's a common concern. What's driving it for you?",
+  "ready_for_next_stage": false
 }
 ```
+
+The customer's current mood, emitted after every analyzed turn (both modes,
+unthrottled) so the mood HUD tracks the same state the persona prompt is
+rebuilt from:
+```json
+{
+  "type": "mood_update",
+  "mood": "skeptical",
+  "regard_level": "low"
+}
+```
+
+`mood` is one of `frustrated`, `skeptical`, `neutral`, `interested`,
+`ready_to_buy`; `regard_level` is one of `high`, `medium`, `low`, `no`.
 
 ### Connection Lifecycle
 

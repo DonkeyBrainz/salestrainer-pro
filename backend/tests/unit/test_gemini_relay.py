@@ -225,3 +225,47 @@ class TestAnalysisCacheKey:
         await relay._analyze_and_send_hint("Hello!", websocket)
 
         assert analyze.await_count == 2
+
+
+class TestSendMoodUpdate:
+    """Tests for pushing customer mood to the client."""
+
+    async def test_sends_mood_after_agent_update(
+        self, relay: GeminiWebSocketRelay, websocket: AsyncMock, agent_state: CustomerAgentState
+    ) -> None:
+        """A successful customer-agent turn should push the new mood."""
+        updated = {**agent_state, "mood": Mood.SKEPTICAL, "regard_level": RegardLevel.LOW}
+        relay.customer_agent_service.process_message = AsyncMock(return_value=(None, updated))
+        relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
+
+        await relay._process_agents(salesperson_message="What's your budget?", websocket=websocket)
+
+        mood_events = [
+            call.args[0]
+            for call in websocket.send_json.call_args_list
+            if call.args[0]["type"] == "mood_update"
+        ]
+        assert mood_events == [{"type": "mood_update", "mood": "skeptical", "regard_level": "low"}]
+
+    async def test_no_mood_sent_when_customer_agent_fails(
+        self, relay: GeminiWebSocketRelay, websocket: AsyncMock
+    ) -> None:
+        """A failed customer-agent turn must not report a stale mood as current."""
+        relay.customer_agent_service.process_message = AsyncMock(side_effect=RuntimeError("boom"))
+        relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
+
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+
+        assert not [
+            c for c in websocket.send_json.call_args_list if c.args[0]["type"] == "mood_update"
+        ]
+
+    async def test_no_mood_sent_without_agent_state(
+        self, relay: GeminiWebSocketRelay, websocket: AsyncMock
+    ) -> None:
+        """Should no-op when there is no agent state to report."""
+        relay._agent_state = None
+
+        await relay._send_mood_update(websocket)
+
+        websocket.send_json.assert_not_awaited()

@@ -78,8 +78,16 @@ class LLMProvider(Protocol):
         model: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
     ) -> CompletionResult:
-        """Generate a free-text completion for the given messages."""
+        """Generate a free-text completion for the given messages.
+
+        ``thinking_budget`` is in tokens: 0 disables thinking, -1 lets the
+        provider choose, None leaves the provider default. On reasoning models
+        thinking tokens are drawn from ``max_output_tokens``, so a caller that
+        sets a tight output budget should disable thinking (see
+        ``complete_structured``). Providers without a thinking mode ignore it.
+        """
         ...
 
     async def complete_structured(
@@ -90,11 +98,18 @@ class LLMProvider(Protocol):
         model: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
     ) -> CompletionResult:
         """Generate a schema-constrained JSON completion.
 
         ``result.parsed`` holds the validated ``response_schema`` instance
         (or None if the provider produced no parseable structured output);
         ``result.text`` holds the raw JSON text.
+
+        On reasoning models thinking tokens count against ``max_output_tokens``
+        and are spent *before* any JSON is emitted, so an output budget that
+        does not also cover thinking yields a truncated response and
+        ``parsed is None``. Either leave headroom for both or pass
+        ``thinking_budget=0``.
         """
         ...
