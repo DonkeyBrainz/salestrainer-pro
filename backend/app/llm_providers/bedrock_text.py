@@ -77,8 +77,13 @@ class BedrockTextProvider:
         model: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
     ) -> CompletionResult:
-        """Generate a free-text completion for the given messages."""
+        """Generate a free-text completion for the given messages.
+
+        ``thinking_budget`` is accepted for interface parity and ignored: the
+        Converse models used here have no configurable thinking mode.
+        """
         return await self._converse(
             messages,
             model=model,
@@ -94,6 +99,7 @@ class BedrockTextProvider:
         model: str | None = None,
         temperature: float | None = None,
         max_output_tokens: int | None = None,
+        thinking_budget: int | None = None,
     ) -> CompletionResult:
         """Generate a JSON completion matching ``response_schema``.
 
@@ -101,6 +107,9 @@ class BedrockTextProvider:
         so this appends a schema + "JSON only" instruction to the prompt and
         parses the result. Less reliable than Gemini's native structured
         output — acceptable for eval-harness comparison, not production use.
+
+        ``thinking_budget`` is accepted for interface parity and ignored: the
+        Converse models used here have no configurable thinking mode.
         """
         if not (isinstance(response_schema, type) and issubclass(response_schema, BaseModel)):
             raise TypeError(

@@ -373,6 +373,10 @@ class FirestoreRAGService:
                 config=types.GenerateContentConfig(
                     temperature=0.0,
                     max_output_tokens=100,
+                    # Thinking is billed against max_output_tokens and would
+                    # consume this entire budget before the query is emitted,
+                    # silently degrading every call to the original query.
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
             if response.text:
@@ -456,6 +460,10 @@ class FirestoreRAGService:
                 config=types.GenerateContentConfig(
                     temperature=0.0,
                     max_output_tokens=50,
+                    # Thinking is billed against max_output_tokens and would
+                    # consume this entire budget before any ranking is emitted,
+                    # silently degrading re-ranking to the unranked order.
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
             if not response.text:

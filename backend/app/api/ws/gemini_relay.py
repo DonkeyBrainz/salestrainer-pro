@@ -775,6 +775,7 @@ class GeminiWebSocketRelay:
                 f"Agent state updated: mood={self._agent_state.get('mood')}, "
                 f"regard={self._agent_state.get('regard_level')}"
             )
+            await self._send_mood_update(websocket)
         except Exception as e:
             logger.warning(f"Customer agent processing failed: {e}", exc_info=True)
 
@@ -785,6 +786,36 @@ class GeminiWebSocketRelay:
             )
         except Exception as e:
             logger.warning(f"Coach analysis failed: {e}", exc_info=True)
+
+    async def _send_mood_update(self, websocket: WebSocket) -> None:
+        """Push the customer's current mood/regard to the client.
+
+        Sent on every turn (unlike hints, which are throttled) so the mood HUD
+        tracks the same state the persona prompt is rebuilt from.
+        """
+        if not self._agent_state:
+            return
+
+        mood = self._agent_state.get("mood")
+        regard = self._agent_state.get("regard_level")
+        if mood is None or regard is None:
+            return
+
+        await websocket.send_json(
+            {
+                "type": "mood_update",
+                "mood": mood.value,
+                "regard_level": regard.value,
+            }
+        )
+        logger.debug(
+            "Sent mood update",
+            extra={
+                "session_id": self._session_id,
+                "mood": mood.value,
+                "regard_level": regard.value,
+            },
+        )
 
     async def _analyze_and_send_hint(
         self,

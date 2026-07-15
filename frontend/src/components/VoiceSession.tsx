@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { AlertCircle, RefreshCw, Loader2, ArrowLeft } from 'lucide-react';
-import { AppMode, ConnectionState, Persona } from '@/types';
+import { AppMode, ConnectionState, CustomerMood, CustomerMoodState, Persona } from '@/types';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAudio } from '@/hooks/useAudio';
 import { fetchEvaluationPersonas, pickRandomPersona } from '@/services/personaService';
@@ -20,14 +20,39 @@ interface VoiceSessionProps {
 }
 
 // ── Small HUD: customer mood bar ──────────────────────────────────────────────
-function MoodHUD() {
+// Needle position along the guarded→open gradient, per backend Mood enum.
+const MOOD_POSITION: Record<CustomerMood, number> = {
+  frustrated: 6,
+  skeptical: 28,
+  neutral: 50,
+  interested: 74,
+  ready_to_buy: 94,
+};
+
+const MOOD_LABEL: Record<CustomerMood, string> = {
+  frustrated: 'frustrated',
+  skeptical: 'skeptical',
+  neutral: 'neutral',
+  interested: 'interested',
+  ready_to_buy: 'ready to buy',
+};
+
+function MoodHUD({ moodState }: { moodState: CustomerMoodState | null }) {
+  // Until the first turn is analyzed there is no mood to report; sit the needle
+  // at neutral and label it as pending rather than implying a real reading.
+  const position = moodState ? MOOD_POSITION[moodState.mood] : 50;
+
   return (
     <div style={{ position: 'absolute', top: 24, left: 24, width: 240, zIndex: 10 }}>
       <HUDPanel title="Customer mood" accent={AT.butter}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
           <div style={{ flex: 1, height: 8, borderRadius: 4, background: AT.hair, position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg, ${AT.terra}, ${AT.butter}, ${AT.sage})` }} />
-            <div style={{ position: 'absolute', left: '52%', top: -3, width: 3, height: 14, background: AT.ink, borderRadius: 1 }} />
+            <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg, ${AT.terra}, ${AT.butter}, ${AT.sage})`, opacity: moodState ? 1 : 0.35 }} />
+            <div style={{
+              position: 'absolute', left: `${position}%`, top: -3, width: 3, height: 14,
+              background: AT.ink, borderRadius: 1,
+              transition: 'left 600ms ease-out',
+            }} />
           </div>
         </div>
         <div style={{
@@ -35,7 +60,9 @@ function MoodHUD() {
           fontFamily: AT.mono, fontSize: 9.5, color: AT.inkMuted, letterSpacing: '0.06em',
         }}>
           <span>guarded</span>
-          <span style={{ color: AT.sage }}>warming</span>
+          <span style={{ color: moodState ? AT.sage : AT.inkMuted }}>
+            {moodState ? MOOD_LABEL[moodState.mood] : 'reading…'}
+          </span>
           <span>open</span>
         </div>
       </HUDPanel>
@@ -167,6 +194,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
     currentInput,
     onAudioReceived,
     currentHint,
+    moodState,
     completedItems,
     currentStage,
     userTranscription,
@@ -593,7 +621,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
         {/* HUD overlays — training mode, connected */}
         {isConnected && mode === AppMode.TRAINING && (
           <>
-            <MoodHUD />
+            <MoodHUD moodState={moodState} />
             <CoachHUD hint={currentHint} onDismiss={dismissHint} />
             <LiveScoreHUD completedItems={completedItems} currentPhaseIdx={Math.max(0, currentPhaseIdx)} />
             <WatchForHUD personaName={selectedPersona?.name} />
