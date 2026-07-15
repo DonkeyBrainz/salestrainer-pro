@@ -48,6 +48,10 @@ class FirestoreRAGService:
         self.db = db
         self.collection_name = settings.rag_collection_name
         self._embedding_model = settings.rag_embedding_model
+        # Model IDs are operational config: hardcoding them here means a
+        # retired ID keeps 404ing after config is corrected.
+        self._text_model = settings.gemini_model
+        self._reranking_model = settings.rag_reranking_model
         self._api_key = settings.gemini_api_key
         self._client: genai.Client | None = None
 
@@ -368,7 +372,7 @@ class FirestoreRAGService:
 
         try:
             response = await self.client.aio.models.generate_content(
-                model="gemini-2.5-flash",
+                model=self._text_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
@@ -423,7 +427,7 @@ class FirestoreRAGService:
         self,
         query: str,
         candidates: list[dict[str, Any]],
-        model: str = "gemini-2.5-flash",
+        model: str | None = None,
         top_k: int = 3,
     ) -> list[dict[str, Any]]:
         """Re-rank candidate chunks using Gemini Flash.
@@ -434,7 +438,8 @@ class FirestoreRAGService:
         Args:
             query: The search query
             candidates: List of candidate dicts with 'id' and 'content'
-            model: Gemini model for re-ranking
+            model: Gemini model for re-ranking. Defaults to the configured
+                rag_reranking_model.
             top_k: Number of top results to return
 
         Returns:
@@ -455,7 +460,7 @@ class FirestoreRAGService:
 
         try:
             response = await self.client.aio.models.generate_content(
-                model=model,
+                model=model or self._reranking_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.0,
@@ -496,7 +501,7 @@ class FirestoreRAGService:
         initial_k: int = 10,
         final_k: int = 3,
         use_hybrid: bool = False,
-        reranking_model: str = "gemini-2.5-flash",
+        reranking_model: str | None = None,
     ) -> str:
         """Retrieve with LLM re-ranking as the final precision layer.
 
@@ -511,7 +516,8 @@ class FirestoreRAGService:
             initial_k: Number of candidates to retrieve before re-ranking
             final_k: Number of results after re-ranking
             use_hybrid: Whether to use hybrid search for initial retrieval
-            reranking_model: Gemini model for re-ranking
+            reranking_model: Gemini model for re-ranking. Defaults to the
+                configured rag_reranking_model.
 
         Returns:
             Concatenated context string from re-ranked results

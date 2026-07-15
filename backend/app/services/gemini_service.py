@@ -205,7 +205,7 @@ class GeminiService:
         """Connect to Gemini Live API for real-time bidirectional streaming.
 
         Args:
-            model: Optional model override (defaults to gemini-2.5-flash for Live API)
+            model: Optional model override (defaults to the configured gemini_live_model)
             system_instruction: Optional system instruction for the session
             voice_name: Optional Gemini voice identifier (e.g., 'leda', 'kore', 'puck', 'charon')
             resumption_handle: Optional handle from previous session for resumption
