@@ -18,11 +18,14 @@ Before starting development or deployment, verify these requirements:
 - [ ] Environment variables configured in `.env` (see `/backend/.env.example`)
 
 ### Voice Provider Selection
-Choose one or more voice providers:
-- [ ] **Gemini** (default): `VOICE_PROVIDER=gemini` + `GEMINI_API_KEY`
-- [ ] **OpenAI Realtime**: `VOICE_PROVIDER=openai` + `OPENAI_API_KEY` + `OPENAI_ORG_ID` (optional)
-- [ ] **Amazon Nova**: `VOICE_PROVIDER=nova` + AWS credentials (IAM role or access keys)
-- [ ] Set `VOICE_PROVIDER_FALLBACK` for automatic fallback chain (e.g., `"gemini,openai,nova"`)
+`LIVE_PROVIDER` picks the server default; `LIVE_PROVIDER_ALLOWLIST` is the set of providers a
+client may request via `?provider=`. Production runs `LIVE_PROVIDER=nova` (lower latency; see
+`documentation/VOICE_EVAL_BENCH.md`) with `gemini` kept in the allowlist as a fallback option.
+- [ ] **Gemini**: `GEMINI_API_KEY` — no extra install
+- [ ] **Amazon Nova** (production default): AWS credentials (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`
+      or an IAM role) with `bedrock:InvokeModel*` on the Nova Sonic model, plus `uv sync --extra nova`
+      locally (the Docker image installs it by default)
+- [ ] **OpenAI Realtime**: `OPENAI_API_KEY`
 
 ### Frontend Setup
 - [ ] Node.js dependencies installed (`npm install`)
