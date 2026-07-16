@@ -10,7 +10,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock README.md ./
 
-RUN uv pip install --system --no-cache .
+# nova extra pulls in the Bedrock bidirectional-stream SDK for the Nova Sonic
+# live provider (LIVE_PROVIDER=nova). See pyproject.toml for why it's not a
+# default dependency.
+RUN uv pip install --system --no-cache ".[nova]"
 
 # Stage 2: Runtime
 FROM python:3.13-slim
