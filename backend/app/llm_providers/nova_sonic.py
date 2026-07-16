@@ -31,6 +31,13 @@ logger = logging.getLogger(__name__)
 _INPUT_SAMPLE_RATE = 16000
 _OUTPUT_SAMPLE_RATE = 24000
 
+# Nova signals barge-in by embedding this literal marker inside a textOutput
+# content field (sometimes directly concatenated with real trailing text),
+# rather than solely via contentEnd.stopReason. Confirmed against AWS's own
+# reference implementation (amazon-nova-samples console-python/nova_sonic.py),
+# which checks for this exact substring.
+_INTERRUPTED_MARKER = '{ "interrupted" : true }'
+
 
 def build_setup_events(
     *,
@@ -148,6 +155,12 @@ class NovaSonicSession:
         self._prompt_name = prompt_name
         self._audio_content_name = audio_content_name
         self._closed = False
+        # Nova emits both a "SPECULATIVE" (low-latency draft) and a later
+        # non-speculative assistant textOutput per turn; only the speculative
+        # one is meant to be shown as it streams (see AWS's reference client),
+        # otherwise the two get concatenated into duplicated transcript text.
+        # Tracked from the preceding contentStart's additionalModelFields.
+        self._display_assistant_text = True
 
     async def send_audio(self, audio_data: bytes, mime_type: str = "audio/pcm") -> None:
         """Send a 16 kHz PCM16 audio chunk as a base64 audioInput event."""
@@ -201,10 +214,30 @@ class NovaSonicSession:
             content = event["audioOutput"].get("content", "")
             return {"type": "audio", "audio_data": base64.b64decode(content), "text": None}
 
+        if "contentStart" in event:
+            content_start = event["contentStart"]
+            additional_fields_raw = content_start.get("additionalModelFields")
+            if additional_fields_raw:
+                try:
+                    additional_fields = json.loads(additional_fields_raw)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+                else:
+                    self._display_assistant_text = (
+                        additional_fields.get("generationStage") == "SPECULATIVE"
+                    )
+            return None
+
         if "textOutput" in event:
             text_out = event["textOutput"]
             role = str(text_out.get("role", "")).upper()
             text = text_out.get("content", "")
+
+            if _INTERRUPTED_MARKER in text:
+                text = text.replace(_INTERRUPTED_MARKER, "").strip()
+                if not text:
+                    return None
+
             if role == "USER":
                 return {
                     "type": "input_transcription",
@@ -212,6 +245,10 @@ class NovaSonicSession:
                     "text": text,
                     "finished": True,
                 }
+            if role == "ASSISTANT" and not self._display_assistant_text:
+                # Non-speculative assistant text duplicates what the
+                # speculative pass already emitted — drop it.
+                return None
             return {
                 "type": "output_transcription",
                 "audio_data": None,
