@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertCircle } from 'lucide-react';
-import AmbientBackground from '@/components/AmbientBackground';
+import { VT } from '@/styles/voiceprint';
+import { Panel } from '@/components/voiceprint/primitives';
 
 const AuthCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -52,39 +53,24 @@ const AuthCallback: React.FC = () => {
   }, [error, navigate]);
 
   return (
-    <div className="flex h-screen bg-[#F9F8F6] text-[#2C2825] font-sans overflow-hidden relative">
-      <AmbientBackground mode={null} audioLevel={0} sentiment="neutral" />
-
-      <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-12 border border-stone-200 shadow-xl max-w-md w-full mx-4 text-center">
-          {error ? (
-            <>
-              <div className="flex justify-center mb-6">
-                <div className="bg-red-50 p-4 rounded-full">
-                  <AlertCircle className="w-10 h-10 text-red-500" />
-                </div>
-              </div>
-              <h2 className="text-2xl font-serif-display text-[#2C2825] mb-4">
-                Authentication Failed
-              </h2>
-              <p className="text-stone-500 mb-4">{error}</p>
-              <p className="text-stone-400 text-sm">Redirecting to login...</p>
-            </>
-          ) : (
-            <>
-              <div className="flex justify-center mb-6">
-                <Loader2 className="w-12 h-12 text-[#8B5E3C] animate-spin" />
-              </div>
-              <h2 className="text-2xl font-serif-display text-[#2C2825] mb-4">
-                Completing Sign In
-              </h2>
-              <p className="text-stone-500">
-                Please wait while we verify your credentials...
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: VT.text }}>
+      <Panel style={{ width: '100%', maxWidth: 420, margin: '0 16px', padding: '48px 36px', textAlign: 'center' }}>
+        {error ? (
+          <>
+            <AlertCircle size={40} style={{ color: VT.hard, marginBottom: 20 }} />
+            <div style={{ fontFamily: VT.anton, fontSize: 22, color: VT.text, marginBottom: 10 }}>Authentication failed</div>
+            <p style={{ color: VT.textMuted, fontSize: 13, marginBottom: 8 }}>{error}</p>
+            <p style={{ color: VT.textMuted, fontSize: 11, fontFamily: VT.mono }}>Redirecting to login…</p>
+          </>
+        ) : (
+          <>
+            <Loader2 size={40} style={{ color: VT.amber, marginBottom: 20, animation: 'spin 1s linear infinite' }} />
+            <div style={{ fontFamily: VT.anton, fontSize: 22, color: VT.text, marginBottom: 10 }}>Completing sign in</div>
+            <p style={{ color: VT.textMuted, fontSize: 13 }}>Please wait while we verify your credentials…</p>
+          </>
+        )}
+      </Panel>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

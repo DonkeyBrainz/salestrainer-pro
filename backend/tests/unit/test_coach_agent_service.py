@@ -722,6 +722,30 @@ class TestGenerateEvaluation:
         assert result.scorecard is not None
 
     @pytest.mark.asyncio
+    async def test_training_mode_never_applies_deviation_penalty(
+        self,
+        service: CoachAgentService,
+        mock_evaluation_repository: MagicMock,
+        sample_state: CustomerAgentState,
+    ) -> None:
+        """Training runs are coached practice, not graded end-to-end — going
+        off-script should never cost points the way it does in an assessment.
+        """
+        mock_evaluation_repository.create = AsyncMock(
+            side_effect=lambda create_obj: MagicMock(scorecard=create_obj.scorecard)
+        )
+
+        result = await service.generate_evaluation(
+            session_id="session-123",
+            user_id="user-456",
+            state=sample_state,
+            session_mode=SessionType.TRAINING,
+        )
+
+        assert result.scorecard.deviation_penalty == 0
+        assert result.scorecard.deviations == []
+
+    @pytest.mark.asyncio
     async def test_evaluation_with_full_progress(
         self,
         service: CoachAgentService,

@@ -585,13 +585,17 @@ Paginated list of the current user's sessions, with grade/score backfilled from 
       "ended_at": "2026-06-19T12:08:15Z",
       "duration": 495,
       "selected_persona": "executive",
+      "persona_name": "David",
       "difficulty": "intermediate",
       "product_category": "bracken",
       "product_type": null,
       "message_count": 18,
       "grade": "B+",
       "score": 82,
-      "has_evaluation": true
+      "has_evaluation": true,
+      "hints_used": [
+        { "t": "03:40", "hint": "He values self-reliance — pitch the fixer as a project, not a compromise." }
+      ]
     }
   ],
   "total": 42,
@@ -623,16 +627,24 @@ Full session detail: session summary, transcript, and evaluation (if present). R
     "ended_at": "2026-06-19T12:08:15Z",
     "duration": 495,
     "selected_persona": "executive",
+    "persona_name": "David",
     "difficulty": "intermediate",
     "message_count": 18,
     "grade": "B+",
     "score": 82,
-    "has_evaluation": true
+    "has_evaluation": true,
+    "hints_used": [
+      { "t": "03:40", "hint": "He values self-reliance — pitch the fixer as a project, not a compromise." }
+    ]
   },
   "transcript": {},
   "evaluation": {}
 }
 ```
+
+**Field notes:**
+- `persona_name` — the persona's display name, resolved server-side from `selected_persona` (the stored id). `null` if the persona can no longer be resolved.
+- `hints_used` — coach hints actually sent to the client during a training session, each with a `t` (elapsed `MM:SS` offset) and `hint` (the tip text). Always `[]` for evaluation-mode sessions, since hints are disabled during assessments.
 
 **Errors:**
 - `403` - Session belongs to another user
@@ -739,6 +751,32 @@ rebuilt from:
 
 `mood` is one of `frustrated`, `skeptical`, `neutral`, `interested`,
 `ready_to_buy`; `regard_level` is one of `high`, `medium`, `low`, `no`.
+
+The post-session scorecard, sent in response to a `{"type": "control", "action": "evaluate"}`
+control message (or generated silently on disconnect once enough of the conversation has
+happened — see [Sessions](#8-sessions-endpoint)):
+```json
+{
+  "type": "evaluation_result",
+  "evaluation": {
+    "evaluation_id": "eval-123",
+    "session_id": "sess-456",
+    "scorecard": {},
+    "final_score": 76,
+    "grade": "C",
+    "summary": "Strong open — you named the fiancé unprompted...",
+    "strengths": [],
+    "improvements": [],
+    "techniques_detected": []
+  },
+  "persona_name": "Jennifer"
+}
+```
+
+`persona_name` is the customer's real name. In evaluation mode the client never learns the
+subject's identity beforehand (`GET /personas/evaluation` omits `name`) — grading is the
+"declassification" moment, so the real name only ships here, once the run is over. In training
+mode the client already knows who it's talking to; this field just confirms it.
 
 ### Connection Lifecycle
 

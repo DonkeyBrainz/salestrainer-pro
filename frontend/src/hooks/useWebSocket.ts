@@ -196,7 +196,7 @@ export function useWebSocket(): UseWebSocketReturn {
 
         case 'evaluation_result': {
           const evalMsg = message as EvaluationResultMessage;
-          setEvaluationResult(evalMsg.evaluation);
+          setEvaluationResult({ ...evalMsg.evaluation, persona_name: evalMsg.persona_name });
           setIsEvaluating(false);
           break;
         }

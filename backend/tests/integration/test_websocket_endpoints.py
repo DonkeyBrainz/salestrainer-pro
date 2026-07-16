@@ -1,6 +1,7 @@
 """Integration tests for WebSocket endpoints."""
 
 import json
+import re
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -532,6 +533,54 @@ class TestConversationPersistence:
         # Verify status is abandoned (disconnect without evaluation)
         assert status == SessionStatus.ABANDONED
 
+    def test_training_session_completes_with_enough_messages(
+        self, client_with_overrides, mock_session_service, mock_live_session
+    ):
+        """Training mode has no explicit "evaluate" control to signal a natural
+        end — a disconnect is its only end signal. A real back-and-forth should
+        still land as completed practice, not get lumped in with abandoned runs.
+        """
+
+        async def mock_receive():
+            for i in range(1, 4):
+                yield {
+                    "type": "output_transcription",
+                    "audio_data": None,
+                    "text": f"Response {i}",
+                    "finished": True,
+                }
+            yield {
+                "type": "end",
+                "audio_data": None,
+                "text": None,
+            }
+
+        mock_live_session.receive.return_value = mock_receive()
+
+        with client_with_overrides.websocket_connect(
+            "/ws/gemini/live?token=valid_token"
+        ) as websocket:
+            # Receive ready message
+            websocket.receive_json()
+
+            for i in range(1, 4):
+                websocket.send_text(json.dumps({"type": "text", "content": f"Message {i}"}))
+                websocket.receive_json()
+
+            import time
+
+            time.sleep(0.2)
+
+        assert mock_session_service.end_session.called
+        call_args = mock_session_service.end_session.call_args
+
+        messages = call_args[1]["messages"]
+        status = call_args[1]["status"]
+
+        # Comfortably clears the training-completion floor (>= 4 messages)
+        assert len(messages) >= 4
+        assert status == SessionStatus.COMPLETED
+
     def test_updates_session_with_final_stats(
         self, client_with_overrides, mock_session_service, mock_live_session
     ):
@@ -1013,6 +1062,92 @@ class TestCoachHintDelivery:
             assert turn_complete["type"] == "turn_complete"
 
             # No coach hint should be received in evaluation mode
+
+    def test_sent_hints_are_persisted_on_session_end(
+        self,
+        client_with_overrides,
+        mock_live_session,
+        mock_coach_agent_service,
+        mock_session_service,
+        mock_customer_agent_service,
+    ):
+        """Hints actually shown to the trainee should end up on the session doc
+        so the archive overlay can render a "hints used" timeline (§B3)."""
+        from app.agents.personas import OPTIMISTIC_RENOVATOR
+
+        # _analyze_and_send_hint short-circuits without an initialized agent state
+        agent_state = {
+            "messages": [],
+            "turn_count": 1,
+            "persona": OPTIMISTIC_RENOVATOR,
+            "mood": Mood.NEUTRAL,
+            "regard_level": RegardLevel.LOW,
+            "objections_available": [],
+            "objections_raised": [],
+            "objections_resolved": [],
+            "stage_progress": CoreStageProgress(current_stage=SalesStage.OBSERVE),
+            "session_id": "test-session-123",
+            "user_id": "test-user-123",
+        }
+        mock_customer_agent_service.start_session = AsyncMock(return_value=agent_state)
+
+        hint = CoachHint(
+            level=InterventionLevel.SUGGESTION,
+            hint="Try asking a discovery question.",
+            stage="OBSERVE",
+        )
+        analysis = CoachAnalysis(
+            techniques_detected=[],
+            stage_items_completed=[],
+            pbms_acknowledged=[],
+            deviations=[],
+            intervention_level=InterventionLevel.SUGGESTION,
+            hint="Try asking a discovery question.",
+            suggested_stage=None,
+            confidence=0.8,
+        )
+        progress = CoreStageProgress(current_stage=SalesStage.OBSERVE)
+        mock_coach_agent_service.analyze_turn = AsyncMock(return_value=(analysis, progress, hint))
+
+        async def mock_receive():
+            yield {
+                "type": "output_transcription",
+                "audio_data": None,
+                "text": "I see...",
+                "finished": True,
+            }
+            yield {
+                "type": "end",
+                "audio_data": None,
+                "text": None,
+            }
+
+        mock_live_session.receive.return_value = mock_receive()
+
+        with client_with_overrides.websocket_connect(
+            "/ws/gemini/live?token=valid_token&mode=training"
+        ) as websocket:
+            websocket.receive_json()  # ready
+
+            websocket.send_text(json.dumps({"type": "text", "content": "Let me show you this!"}))
+
+            # Coach analysis runs concurrently with the transcription/turn_complete
+            # flow (and emits its own "analyzing" status + stage_progress), so
+            # message order and count aren't guaranteed — collect by type.
+            received_types = {websocket.receive_json()["type"] for _ in range(5)}
+            assert "coach_hint" in received_types
+
+            import time
+
+            time.sleep(0.2)
+
+        assert mock_session_service.end_session.called
+        call_args = mock_session_service.end_session.call_args
+        hints_used = call_args[1]["hints_used"]
+
+        assert len(hints_used) == 1
+        assert hints_used[0].hint == "Try asking a discovery question."
+        assert re.match(r"^\d{2}:\d{2}$", hints_used[0].t)
 
     def test_coach_analysis_failure_doesnt_crash_websocket(
         self,

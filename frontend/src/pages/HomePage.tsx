@@ -2,234 +2,64 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchUserStats } from '@/services/statsService';
-import type { UserStatsResponse, COREStageStats } from '@/types/stats';
-import { AT } from '@/styles/tokens';
+import type { UserStatsResponse } from '@/types/stats';
+import { VT } from '@/styles/voiceprint';
+import { FrameLabel, StickyNote } from '@/components/voiceprint/primitives';
+import { getEnabledRoles } from '@/components/dashboard/DashboardChrome';
 import UserMenu from '@/components/UserMenu';
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+const ADMIN_EMAILS = ['user@example.com'];
 
-const STAGE_CONFIG: Record<string, { letter: string; name: string; color: string }> = {
-  CONNECT:   { letter: 'C', name: 'Connect',   color: AT.sage },
-  OBSERVE:   { letter: 'O', name: 'Observe',   color: AT.terra },
-  RECOMMEND: { letter: 'R', name: 'Recommend', color: AT.butter },
-  EXECUTE:   { letter: 'E', name: 'Execute',   color: AT.inkMuted },
+const STAGE_CONFIG: Record<string, { letter: string; name: string }> = {
+  CONNECT: { letter: 'C', name: 'Connect' },
+  OBSERVE: { letter: 'O', name: 'Observe' },
+  RECOMMEND: { letter: 'R', name: 'Recommend' },
+  EXECUTE: { letter: 'E', name: 'Execute' },
 };
-
-const GRADE_COLOR: Record<string, string> = {
-  A: AT.sage,
-  B: '#7ab87a',
-  C: AT.butter,
-  D: AT.terra,
-  F: AT.terra,
-};
-
-function gradeColor(grade: string | null): string {
-  return grade ? (GRADE_COLOR[grade] ?? AT.inkMuted) : AT.inkMuted;
-}
-
-function formatDelta(delta: number | null): { text: string; positive: boolean } {
-  if (delta === null) return { text: '—', positive: true };
-  return { text: `${delta > 0 ? '+' : ''}${delta.toFixed(0)}`, positive: delta >= 0 };
-}
-
-function formatRelativeTime(isoString: string): string {
-  const diff = Date.now() - new Date(isoString).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return 'Yesterday';
-  return `${days}d ago`;
-}
 
 function greeting(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  return 'evening';
 }
 
-// ── Logo ──────────────────────────────────────────────────────────────────────
-function ArenaLogo() {
-  return (
-    <div style={{ position: 'relative', width: 30, height: 30, flexShrink: 0 }}>
-      <div style={{ position: 'absolute', inset: 0, background: AT.terra, transform: 'rotate(45deg)', borderRadius: 4 }} />
-      <div style={{ position: 'absolute', inset: 6, background: AT.bg, transform: 'rotate(45deg)', borderRadius: 2 }} />
-      <div style={{ position: 'absolute', inset: 11, background: AT.sage, transform: 'rotate(45deg)', borderRadius: 1 }} />
-    </div>
-  );
+interface RoomProps {
+  id: string;
+  num: string;
+  name: string;
+  sub: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  restricted?: boolean;
+  onClick?: () => void;
+  children?: React.ReactNode;
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({
-  label,
-  value,
-  unit,
-  accent,
-  right,
-  foot,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  accent: string;
-  right: React.ReactNode;
-  foot: string;
-}) {
+function Room({ id, num, name, sub, x, y, w, h, restricted, onClick, children }: RoomProps) {
   return (
-    <div style={{
-      background: AT.surface,
-      border: `1px solid ${AT.hair}`,
-      borderRadius: 14,
-      padding: '16px 18px',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontFamily: AT.mono, fontSize: 10, letterSpacing: '0.16em', color: AT.inkMuted, textTransform: 'uppercase' }}>{label}</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
-            <div style={{ fontFamily: AT.display, fontSize: 36, color: accent, lineHeight: 1, fontWeight: 700, letterSpacing: '-0.02em' }}>{value}</div>
-            <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.inkSoft }}>{unit}</div>
-          </div>
-        </div>
-        {right}
-      </div>
-      <div style={{ fontSize: 12, color: AT.inkMuted, marginTop: 10 }}>{foot}</div>
-    </div>
-  );
-}
-
-function StreakDots({ sessionsThisWeek, weeklyGoal }: { sessionsThisWeek: number; weeklyGoal: number }) {
-  return (
-    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', width: 98 }}>
-      {Array.from({ length: weeklyGoal }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: i < sessionsThisWeek ? AT.terra : AT.hair,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function WeekBars({ sessionsThisWeek, weeklyGoal }: { sessionsThisWeek: number; weeklyGoal: number }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 40 }}>
-      {Array.from({ length: weeklyGoal }).map((_, i) => (
-        <div
-          key={i}
-          style={{
-            width: 8,
-            height: i < sessionsThisWeek ? `${60 + Math.random() * 40}%` : '10%',
-            background: i < sessionsThisWeek ? AT.sage : AT.hair,
-            borderRadius: 2,
-            opacity: i < sessionsThisWeek ? 1 : 0.4,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ── Section label ─────────────────────────────────────────────────────────────
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      fontFamily: AT.mono,
-      fontSize: 10.5,
-      letterSpacing: '0.18em',
-      color: AT.inkMuted,
-      textTransform: 'uppercase',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-    }}>
-      <span style={{ display: 'inline-block', width: 14, height: 1, background: AT.terra }} />
-      {String(children).toUpperCase()}
-    </div>
-  );
-}
-
-// ── Mode tile ─────────────────────────────────────────────────────────────────
-function ModeTile({
-  num, tag, title, desc, accent, cta, onClick,
-}: {
-  num: string; tag: string; title: string; desc: string;
-  accent: string; cta: string; onClick: () => void;
-}) {
-  const [hovered, setHovered] = React.useState(false);
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: AT.surface,
-        border: `1px solid ${hovered ? accent + '80' : AT.hair}`,
-        borderRadius: 14,
-        padding: 20,
-        minHeight: 200,
-        display: 'flex',
-        flexDirection: 'column',
-        cursor: 'pointer',
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        transition: 'border-color 0.15s, transform 0.15s',
-      }}
+    <g
+      className="vp-room"
+      style={{ cursor: restricted ? 'default' : 'pointer' }}
+      onClick={restricted ? undefined : onClick}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-        <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.inkMuted, letterSpacing: '0.16em' }}>{num}</div>
-        <div style={{ fontFamily: AT.mono, fontSize: 10, letterSpacing: '0.14em', color: accent, fontWeight: 600, textTransform: 'uppercase' }}>{tag}</div>
-      </div>
-      <div style={{ fontFamily: AT.display, fontSize: 24, fontWeight: 600, letterSpacing: '-0.015em', color: AT.ink }}>{title}</div>
-      <div style={{ marginTop: 8, fontSize: 13, color: AT.inkSoft, lineHeight: 1.5, flex: 1 }}>{desc}</div>
-      <div style={{ marginTop: 16, display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: accent, fontWeight: 500 }}>
-        {cta} <span>→</span>
-      </div>
-    </div>
+      <rect x={x} y={y} width={w} height={h} className="vp-room-fill" fill="transparent" />
+      <text x={x + 28} y={y + 38} fontFamily={VT.mono} fontSize={10} letterSpacing="0.14em" fill={VT.amber} opacity={restricted ? 0.4 : 1}>
+        {num}
+      </text>
+      <text x={x + 28} y={y + 73} fontFamily={VT.anton} fontSize={23} letterSpacing="0.03em" fill={VT.line} opacity={restricted ? 0.35 : 1}>
+        {name}
+      </text>
+      <text x={x + 28} y={y + 94} fontFamily={VT.mono} fontSize={10} letterSpacing="0.1em" fill={restricted ? VT.hard : VT.textMuted} opacity={restricted ? 0.75 : 1}>
+        {restricted ? 'RESTRICTED · NO ACCESS' : sub}
+      </text>
+      {!restricted && children}
+    </g>
   );
 }
 
-// ── Skill bar ─────────────────────────────────────────────────────────────────
-function SkillBar({ stage }: { stage: COREStageStats }) {
-  const config = STAGE_CONFIG[stage.stage];
-  if (!config) return null;
-  const { text: deltaText, positive } = formatDelta(stage.delta);
-  const pct = Math.round(stage.mastery_pct);
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '36px 1fr 56px 50px', alignItems: 'center', gap: 14 }}>
-      <div style={{
-        width: 36, height: 36, borderRadius: 8,
-        background: config.color + '22', color: config.color,
-        fontFamily: AT.display, fontSize: 18, fontWeight: 700,
-        display: 'grid', placeItems: 'center',
-      }}>
-        {config.letter}
-      </div>
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-          <div style={{ fontFamily: AT.mono, fontSize: 11, letterSpacing: '0.14em', color: AT.ink, textTransform: 'uppercase' }}>{config.name}</div>
-          <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.inkMuted }}>{pct}/100</div>
-        </div>
-        <div style={{ height: 6, borderRadius: 3, background: AT.hair, overflow: 'hidden' }}>
-          <div style={{ width: `${pct}%`, height: '100%', background: config.color, boxShadow: `0 0 8px ${config.color}80` }} />
-        </div>
-      </div>
-      <div style={{ fontFamily: AT.mono, fontSize: 11, color: positive ? AT.sage : AT.terra, fontWeight: 600 }}>{deltaText}</div>
-      <div style={{ fontFamily: AT.mono, fontSize: 9.5, color: AT.inkMuted, letterSpacing: '0.1em', textAlign: 'right' }}>
-        {positive ? 'on track' : 'work on'}
-      </div>
-    </div>
-  );
-}
-
-// ── Home Page ─────────────────────────────────────────────────────────────────
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { accessToken, user } = useAuth();
@@ -244,283 +74,148 @@ const HomePage: React.FC = () => {
     return () => { cancelled = true; };
   }, [accessToken]);
 
-  // Derived display values (fall back to design-spec placeholders while loading)
-  const currentStreak  = stats?.current_streak  ?? 0;
-  const longestStreak  = stats?.longest_streak  ?? 0;
-  const sessionsWeek   = stats?.sessions_this_week ?? 0;
-  const weeklyGoal     = stats?.weekly_goal     ?? 7;
-  const avgScore       = stats?.avg_score_this_week ?? null;
-  const sessionsLeft   = Math.max(0, weeklyGoal - sessionsWeek);
+  const isAdmin = !!user && ADMIN_EMAILS.some((e) => e.toLowerCase() === user.email?.toLowerCase());
+  const enabledRoles = getEnabledRoles(user, isAdmin);
+  const managerEnabled = enabledRoles.includes('Manager');
+  const adminEnabled = enabledRoles.includes('Admin');
 
-  const userName = user?.name ?? 'there';
-
-  const streakFoot = longestStreak > 0 && currentStreak >= longestStreak
-    ? `Your longest streak ever. Keep it going.`
-    : longestStreak > 0
-    ? `Record: ${longestStreak} days.`
-    : 'Start a streak today.';
-
-  const weekFoot = sessionsLeft === 0
-    ? `Weekly goal hit!${avgScore != null ? ` Avg score ${avgScore}.` : ''}`
-    : `${sessionsLeft} to go.${avgScore != null ? ` Avg score ${avgScore}.` : ''}`;
-
-  const heroDesc = stats
-    ? sessionsLeft === 0
-      ? `You hit your weekly goal this week. Push further — keep the streak alive.`
-      : `You're ${sessionsLeft} session${sessionsLeft !== 1 ? 's' : ''} from your weekly goal. Streak: ${currentStreak} day${currentStreak !== 1 ? 's' : ''}.`
-    : `Start a session to begin tracking your progress.`;
-
-  // Most recently practiced persona for hero
-  const latestPersona = stats?.recent_activity?.[0]?.persona_name ?? null;
-  const heroSub = latestPersona ? ` ${latestPersona} is waiting.` : '';
-
-  // CORE bars — use live data or zero-state placeholders
-  const coreBars: COREStageStats[] = stats?.core_mastery ?? [
-    { stage: 'CONNECT',   mastery_pct: 0, delta: null },
-    { stage: 'OBSERVE',   mastery_pct: 0, delta: null },
+  const coreBars = stats?.core_mastery ?? [
+    { stage: 'CONNECT', mastery_pct: 0, delta: null },
+    { stage: 'OBSERVE', mastery_pct: 0, delta: null },
     { stage: 'RECOMMEND', mastery_pct: 0, delta: null },
-    { stage: 'EXECUTE',   mastery_pct: 0, delta: null },
+    { stage: 'EXECUTE', mastery_pct: 0, delta: null },
   ];
 
-  // Coach note — highlight the best-improving stage
   const bestStage = stats
     ? [...stats.core_mastery].sort((a, b) => (b.delta ?? 0) - (a.delta ?? 0))[0]
     : null;
   const coachNote = bestStage && (bestStage.delta ?? 0) > 0
-    ? `Your ${STAGE_CONFIG[bestStage.stage]?.name ?? bestStage.stage} scores climbed ${bestStage.delta!.toFixed(0)} pts. Keep pushing.`
+    ? `Your ${STAGE_CONFIG[bestStage.stage]?.name ?? bestStage.stage} scores climbed ${bestStage.delta!.toFixed(0)} pts this week. Try a high-regard customer to push further.`
     : stats
     ? 'Complete more sessions to unlock personalized coaching notes.'
-    : 'Complete your first session to see your C.O.R.E. breakdown.';
+    : 'Complete your first session to see your C.O.R.E. breakdown here.';
+
+  const firstName = (user?.name ?? 'there').split(' ')[0];
+  const avgScore = stats?.avg_score_this_week;
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: AT.bg, color: AT.ink, fontFamily: AT.sans }}>
-      {/* Nav */}
-      <div style={{
-        height: 60, padding: '0 28px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        borderBottom: `1px solid ${AT.hair}`,
-        position: 'sticky', top: 0, background: AT.bg, zIndex: 10,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <ArenaLogo />
-          <div style={{ fontFamily: AT.display, fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em' }}>
-            SalesTrainer<span style={{ color: AT.terra, fontStyle: 'italic', fontWeight: 500 }}> Pro</span>
+    <div style={{ width: '100%', minHeight: '100vh', color: VT.text, display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        .vp-room:hover .vp-room-fill { fill: rgba(255,255,255,0.07); }
+      `}</style>
+
+      <div style={{ padding: '32px 40px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontFamily: VT.anton, fontSize: 'clamp(24px,3vw,40px)', letterSpacing: '0.02em', color: VT.line, textShadow: '0 0 18px rgba(255,255,255,0.18)' }}>
+            SALESTRAINER
+          </div>
+          <div style={{ fontFamily: VT.caveat, fontSize: 20, color: VT.amber, marginLeft: 4, marginTop: -4 }}>
+            an AI voice coach for real estate
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {currentStreak > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '6px 10px', background: AT.surface,
-              border: `1px solid ${AT.hair}`, borderRadius: 8,
-            }}>
-              <div style={{ fontFamily: AT.mono, fontSize: 10, letterSpacing: '0.14em', color: AT.terra, textTransform: 'uppercase' }}>Streak</div>
-              <div style={{ width: 1, height: 12, background: AT.hair }} />
-              <div style={{ fontFamily: AT.mono, fontSize: 11, color: AT.ink }}>{currentStreak} day{currentStreak !== 1 ? 's' : ''}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
+          <div style={{ fontFamily: VT.caveat, fontSize: 22, color: VT.lineDim }}>
+            « {greeting()}, {firstName} — pick a room
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, letterSpacing: '0.05em', color: VT.textMuted }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, background: VT.special, display: 'inline-block' }} />
+              Avg score <b style={{ color: VT.text, fontFamily: VT.oswald, fontSize: 14, fontWeight: 600 }}>{avgScore != null ? Math.round(avgScore) : '—'}</b>
             </div>
-          )}
-          <UserMenu />
+            <UserMenu />
+          </div>
         </div>
       </div>
 
-      {/* Body */}
-      <div style={{ padding: '32px 40px 48px' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44, minHeight: 0, padding: '0 40px 26px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <svg viewBox="0 0 940 640" xmlns="http://www.w3.org/2000/svg" style={{ height: 'min(66vh, 560px)', maxWidth: '100%' }}>
+            <rect x={40} y={30} width={840} height={540} stroke={VT.line} strokeWidth={2.5} fill="none" />
 
-        {/* Hero strip */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16, marginBottom: 24 }}>
-          {/* Mission card */}
-          <div style={{
-            background: `linear-gradient(135deg, ${AT.surface} 0%, ${AT.surface2} 100%)`,
-            border: `1px solid ${AT.hair}`,
-            borderRadius: 18,
-            padding: 28,
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `linear-gradient(${AT.hair} 1px, transparent 1px), linear-gradient(90deg, ${AT.hair} 1px, transparent 1px)`,
-              backgroundSize: '32px 32px',
-              opacity: 0.4,
-              maskImage: 'radial-gradient(ellipse at top right, black 0%, transparent 70%)',
-              WebkitMaskImage: 'radial-gradient(ellipse at top right, black 0%, transparent 70%)',
-            }} />
+            <path d="M 470 30 L 470 130 M 470 190 L 470 300" stroke="rgba(255,255,255,0.7)" strokeWidth={1.6} fill="none" />
+            <path d="M 40 300 L 200 300 M 260 300 L 560 300 M 620 300 L 880 300" stroke="rgba(255,255,255,0.7)" strokeWidth={1.6} fill="none" />
+            <path d="M 330 300 L 330 430 M 330 490 L 330 570" stroke="rgba(255,255,255,0.7)" strokeWidth={1.6} fill="none" />
+            <path d="M 610 300 L 610 380 M 610 440 L 610 570" stroke="rgba(255,255,255,0.7)" strokeWidth={1.6} fill="none" />
 
-            <div style={{
-              position: 'absolute', top: 22, right: 22,
-              padding: '6px 10px',
-              background: AT.sage + '18',
-              border: `1px solid ${AT.sageDim}`,
-              borderRadius: 8,
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: AT.sage }} />
-              <div style={{ fontFamily: AT.mono, fontSize: 10, color: AT.sage, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Recommended next</div>
-            </div>
+            <path d="M 470 130 A 60 60 0 0 1 530 190" stroke={VT.lineDim} strokeWidth={1} strokeDasharray="3 3" fill="none" transform="rotate(90 470 160)" />
+            <path d="M 200 300 A 60 60 0 0 1 260 360" stroke={VT.lineDim} strokeWidth={1} strokeDasharray="3 3" fill="none" />
 
-            <div style={{ position: 'relative' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: AT.terra, boxShadow: `0 0 10px ${AT.terra}` }} />
-                <div style={{ fontFamily: AT.mono, fontSize: 11, letterSpacing: '0.16em', color: AT.terra, textTransform: 'uppercase', fontWeight: 600 }}>
-                  {greeting()}, {userName.split(' ')[0]}
-                </div>
-              </div>
-              <div style={{ fontFamily: AT.display, fontSize: 52, lineHeight: 0.95, letterSpacing: '-0.025em', fontWeight: 600, color: AT.ink }}>
-                Ready to <span style={{ color: AT.terra, fontStyle: 'italic' }}>close one</span>?
-              </div>
-              <div style={{ marginTop: 16, fontSize: 14, color: AT.inkSoft, maxWidth: 460, lineHeight: 1.5 }}>
-                {heroDesc}{heroSub}
-              </div>
-              <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
-                <button
-                  onClick={() => navigate('/training')}
-                  style={{
-                    padding: '12px 22px',
-                    background: AT.terra, color: AT.bg,
-                    border: 'none', borderRadius: 10,
-                    fontWeight: 600, fontSize: 13.5, fontFamily: AT.sans,
-                    cursor: 'pointer',
-                    display: 'inline-flex', alignItems: 'center', gap: 8,
-                    boxShadow: `0 0 24px ${AT.terra}66`,
-                  }}
-                >
-                  ▶ Start coached session
-                </button>
-                <button
-                  onClick={() => navigate('/evaluation')}
-                  style={{
-                    padding: '12px 18px',
-                    background: 'transparent', color: AT.ink,
-                    border: `1px solid ${AT.hair}`, borderRadius: 10,
-                    fontWeight: 500, fontSize: 13.5, fontFamily: AT.sans,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Take assessment
-                </button>
-              </div>
-            </div>
-          </div>
+            <Room id="roomLive" num="RM 01" name="LIVE PRACTICE" sub="COACHED · CUES + MOOD READ" x={42} y={32} w={426} h={266} onClick={() => navigate('/training')}>
+              <rect x={290} y={180} width={120} height={56} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <circle cx={330} cy={164} r={11} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <circle cx={372} cy={252} r={11} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <path d="M 70 200 q 24 -18 48 0 q -24 18 -48 0" stroke={VT.lineDim} strokeWidth={1} fill="none" />
+            </Room>
 
-          {/* Stat cards */}
-          <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 16 }}>
-            <StatCard
-              label="Streak"
-              value={String(currentStreak)}
-              unit="days"
-              accent={AT.terra}
-              right={<StreakDots sessionsThisWeek={sessionsWeek} weeklyGoal={weeklyGoal} />}
-              foot={streakFoot}
-            />
-            <StatCard
-              label="This week"
-              value={`${sessionsWeek}/${weeklyGoal}`}
-              unit="sessions"
-              accent={AT.sage}
-              right={<WeekBars sessionsThisWeek={sessionsWeek} weeklyGoal={weeklyGoal} />}
-              foot={weekFoot}
-            />
-          </div>
+            <Room id="roomAssess" num="RM 02" name="PERFORMANCE ASSESSMENT" sub="NO HINTS · GRADED END-TO-END" x={472} y={32} w={406} h={266} onClick={() => navigate('/evaluation')}>
+              <rect x={740} y={170} width={100} height={46} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <rect x={762} y={230} width={56} height={36} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <path d="M 766 240 h 48 M 766 250 h 48 M 766 260 h 30" stroke={VT.lineDim} strokeWidth={1} fill="none" />
+            </Room>
+
+            <Room id="roomHistory" num="RM 03" name="SESSION ARCHIVE" sub="TRANSCRIPTS + SCORECARDS" x={42} y={302} w={286} h={266} onClick={() => navigate('/history')}>
+              <rect x={70} y={470} width={180} height={18} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <rect x={70} y={496} width={180} height={18} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <rect x={70} y={522} width={180} height={18} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+            </Room>
+
+            <Room
+              id="roomManager"
+              num="RM 04"
+              name="MANAGER OFFICE"
+              sub={`TEAM ROSTER${user?.storeId ? ` · ${user.storeId}` : ''}`}
+              x={332} y={302} w={276} h={266}
+              restricted={!managerEnabled}
+              onClick={() => navigate('/team/manager')}
+            >
+              <rect x={360} y={480} width={110} height={46} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <rect x={500} y={430} width={80} height={56} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <path d="M 508 444 h 30 M 508 456 h 46 M 508 468 h 38" stroke={VT.lineDim} strokeWidth={1} fill="none" />
+            </Room>
+
+            <Room
+              id="roomAdmin"
+              num="RM 05"
+              name="ADMIN WING"
+              sub="REGIONAL SURVEY"
+              x={612} y={302} w={266} h={266}
+              restricted={!adminEnabled}
+              onClick={() => navigate('/team/admin')}
+            >
+              <rect x={660} y={450} width={160} height={80} stroke={VT.lineDim} strokeWidth={1} fill="none" />
+              <path d="M 676 470 l 30 20 l 26 -12 l 34 24 M 700 520 l 22 -16" stroke={VT.lineDim} strokeWidth={1} fill="none" />
+            </Room>
+
+            <line x1={40} y1={600} x2={880} y2={600} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <line x1={40} y1={595} x2={40} y2={605} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <line x1={880} y1={595} x2={880} y2={605} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <text x={460} y={592} textAnchor="middle" fontFamily={VT.mono} fontSize={9.5} letterSpacing="0.06em" fill="rgba(255,255,255,0.6)">64&apos;-0&quot;</text>
+            <line x1={912} y1={30} x2={912} y2={570} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <line x1={907} y1={30} x2={917} y2={30} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <line x1={907} y1={570} x2={917} y2={570} stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
+            <text x={928} y={304} textAnchor="middle" fontFamily={VT.mono} fontSize={9.5} letterSpacing="0.06em" fill="rgba(255,255,255,0.6)" transform="rotate(90 928 304)">41&apos;-0&quot;</text>
+          </svg>
+          <FrameLabel>FIG. 01 — <b style={{ color: VT.text }}>TRAINING FLOOR</b>, PLAN VIEW · SCALE 1:100 · CLICK A ROOM TO ENTER</FrameLabel>
         </div>
 
-        {/* Mode tiles */}
-        <div style={{ marginBottom: 28 }}>
-          <SectionLabel>Modes</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 12 }}>
-            <ModeTile
-              num="01" tag="Coached" title="Live Practice"
-              desc="A coached, real-time conversation with on-screen cues, mood read, and CORE prompts."
-              accent={AT.sage} cta="Start coached session" onClick={() => navigate('/training')}
-            />
-            <ModeTile
-              num="02" tag="Test yourself" title="Performance Assessment"
-              desc="No hints, no coaching. Full conversation graded end-to-end."
-              accent={AT.terra} cta="Take assessment" onClick={() => navigate('/evaluation')}
-            />
-            <ModeTile
-              num="03" tag="Look back" title="Session History"
-              desc="Replay transcripts, scorecards, and coach notes from past sessions."
-              accent={AT.butter} cta="Browse sessions" onClick={() => navigate('/history')}
-            />
-          </div>
-        </div>
-
-        {/* CORE mastery + Recent activity */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
-          {/* CORE mastery */}
-          <div style={{ background: AT.surface, border: `1px solid ${AT.hair}`, borderRadius: 14, padding: 22 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <SectionLabel>C.O.R.E. mastery</SectionLabel>
-              <div style={{ fontFamily: AT.mono, fontSize: 10, color: AT.inkMuted, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Last 30 days</div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {coreBars.map((stage) => (
-                <SkillBar key={stage.stage} stage={stage} />
-              ))}
-            </div>
-            <div style={{
-              marginTop: 18, padding: '12px 14px', borderRadius: 10,
-              background: AT.sage + '14',
-              border: `1px solid ${AT.sageDim}`,
-              fontSize: 13, color: AT.inkSoft, lineHeight: 1.5,
-            }}>
-              <span style={{ color: AT.sage, marginRight: 6 }}>✦</span>
-              <b style={{ color: AT.ink }}>Coach's note:</b> {coachNote}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: 250, flexShrink: 0 }}>
+          <div>
+            <FrameLabel><div style={{ textAlign: 'left', marginBottom: 12 }}>C.O.R.E. mastery · 30d</div></FrameLabel>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'flex-start' }}>
+              {coreBars.map((stage) => {
+                const cfg = STAGE_CONFIG[stage.stage];
+                if (!cfg) return null;
+                return (
+                  <div key={stage.stage} style={{ textAlign: 'center' }}>
+                    <div style={{ fontFamily: VT.anton, fontSize: 14, color: VT.lineDim }}>{cfg.letter}</div>
+                    <div style={{ fontFamily: VT.oswald, fontSize: 19, fontWeight: 600, color: VT.line }}>{Math.round(stage.mastery_pct)}</div>
+                    <div style={{ fontSize: 8.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: VT.textMuted, marginTop: 2 }}>{cfg.name}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          {/* Recent activity */}
-          <div style={{ background: AT.surface, border: `1px solid ${AT.hair}`, borderRadius: 14, padding: 22 }}>
-            <div style={{ marginBottom: 8 }}>
-              <SectionLabel>Recent activity</SectionLabel>
-            </div>
-
-            {stats && stats.recent_activity.length === 0 ? (
-              <div style={{ paddingTop: 24, textAlign: 'center', color: AT.inkMuted, fontSize: 13 }}>
-                No sessions yet. Start one to see your activity here.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {(stats?.recent_activity ?? []).map((session, i) => {
-                  const gc = gradeColor(session.grade);
-                  return (
-                    <div
-                      key={session.session_id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '1fr auto auto',
-                        gap: 16,
-                        alignItems: 'center',
-                        padding: '12px 2px',
-                        borderBottom: i < (stats?.recent_activity.length ?? 0) - 1 ? `1px solid ${AT.hair}` : 'none',
-                      }}
-                    >
-                      <div>
-                        <div style={{ fontFamily: AT.display, fontSize: 16, fontWeight: 500, color: AT.ink }}>
-                          {session.persona_name ?? 'Session'}
-                        </div>
-                        <div style={{ fontFamily: AT.mono, fontSize: 10.5, color: AT.inkMuted, marginTop: 2, letterSpacing: '0.06em' }}>
-                          {formatRelativeTime(session.started_at)}
-                        </div>
-                      </div>
-                      <div style={{
-                        background: gc + '22',
-                        color: gc,
-                        fontFamily: AT.mono, fontSize: 12, fontWeight: 600,
-                        padding: '4px 10px', borderRadius: 999,
-                      }}>
-                        {session.score ?? '—'}
-                      </div>
-                      <div
-                        style={{ color: AT.inkMuted, fontSize: 16, cursor: 'pointer' }}
-                        onClick={() => navigate('/history')}
-                      >›</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <StickyNote title="Coach's note">{coachNote}</StickyNote>
         </div>
       </div>
     </div>
