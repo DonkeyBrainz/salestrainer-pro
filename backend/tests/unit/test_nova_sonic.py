@@ -161,6 +161,58 @@ class TestReceiveTranslation:
         assert out[0]["type"] == "output_transcription"
         assert out[0]["text"] == "It's $450k."
 
+    async def test_strips_interrupted_marker_from_text(self) -> None:
+        out = await self._run(
+            [
+                {
+                    "textOutput": {
+                        "role": "ASSISTANT",
+                        "content": '{ "interrupted" : true }Hi, thanks for having me.',
+                    }
+                }
+            ]
+        )
+        assert out[0]["type"] == "output_transcription"
+        assert out[0]["text"] == "Hi, thanks for having me."
+        assert "interrupted" not in out[0]["text"]
+
+    async def test_drops_text_that_is_only_the_interrupted_marker(self) -> None:
+        out = await self._run(
+            [{"textOutput": {"role": "ASSISTANT", "content": '{ "interrupted" : true }'}}]
+        )
+        assert out == []
+
+    async def test_drops_non_speculative_assistant_text(self) -> None:
+        speculative_start = {
+            "contentStart": {"additionalModelFields": json.dumps({"generationStage": "FINAL"})}
+        }
+        out = await self._run(
+            [speculative_start, {"textOutput": {"role": "ASSISTANT", "content": "duplicate text"}}]
+        )
+        assert out == []
+
+    async def test_keeps_speculative_assistant_text(self) -> None:
+        speculative_start = {
+            "contentStart": {
+                "additionalModelFields": json.dumps({"generationStage": "SPECULATIVE"})
+            }
+        }
+        out = await self._run(
+            [speculative_start, {"textOutput": {"role": "ASSISTANT", "content": "real text"}}]
+        )
+        assert len(out) == 1
+        assert out[0]["text"] == "real text"
+
+    async def test_user_text_ignores_speculative_stage(self) -> None:
+        final_start = {
+            "contentStart": {"additionalModelFields": json.dumps({"generationStage": "FINAL"})}
+        }
+        out = await self._run(
+            [final_start, {"textOutput": {"role": "USER", "content": "how much?"}}]
+        )
+        assert len(out) == 1
+        assert out[0]["type"] == "input_transcription"
+
     async def test_content_end_turn_is_end(self) -> None:
         out = await self._run([{"contentEnd": {"stopReason": "END_TURN"}}])
         assert out == [{"type": "end", "audio_data": None, "text": None}]
