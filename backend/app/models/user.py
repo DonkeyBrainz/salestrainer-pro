@@ -28,7 +28,6 @@ class UserCreate(UserBase):
     """User creation model (from OAuth providers)."""
 
     google_id: str | None = None
-    microsoft_id: str | None = None
     picture_url: str | None = None
 
 
@@ -37,7 +36,6 @@ class User(UserBase):
 
     user_id: str
     google_id: str | None = None
-    microsoft_id: str | None = None
     picture_url: str | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     role: Literal["agent", "manager", "regional_director"] = "agent"

@@ -180,12 +180,6 @@ Refer to `CUSTOM_DOMAIN_SETUP.md` for detailed command instructions.
 - [ ] Add redirect URI: `https://your-domain.example.com/auth/callback`
 - [ ] Save
 
-### Microsoft OAuth (if configured)
-- [ ] Go to [Azure Portal → App Registrations](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
-- [ ] Click app → Authentication
-- [ ] Add redirect URI: `https://your-domain.example.com/auth/callback`
-- [ ] Save
-
 ---
 
 ## Step 13: Wait for SSL Certificate

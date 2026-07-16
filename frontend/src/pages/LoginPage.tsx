@@ -8,7 +8,6 @@ const LoginPage: React.FC = () => {
   const { login, isLoading, error, clearError } = useAuth();
 
   const handleGoogleLogin = async () => { clearError(); await login('google'); };
-  const handleMicrosoftLogin = async () => { clearError(); await login('microsoft'); };
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: VT.text }}>
@@ -40,23 +39,7 @@ const LoginPage: React.FC = () => {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Cta variant="active" disabled={isLoading} onClick={handleMicrosoftLogin} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              {isLoading ? (
-                <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Redirecting…</>
-              ) : (
-                <>
-                  <svg width="16" height="16" viewBox="0 0 21 21">
-                    <rect x="1" y="1" width="9" height="9" fill="#f25022" />
-                    <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
-                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
-                    <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
-                  </svg>
-                  Sign in with Microsoft
-                </>
-              )}
-            </Cta>
-
-            <Cta variant="ghost" disabled={isLoading} onClick={handleGoogleLogin} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+            <Cta variant="active" disabled={isLoading} onClick={handleGoogleLogin} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
               {isLoading ? (
                 <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Redirecting…</>
               ) : (

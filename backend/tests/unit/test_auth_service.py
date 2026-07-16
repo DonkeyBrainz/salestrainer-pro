@@ -13,7 +13,7 @@ from app.core.exceptions import (
     TokenExpiredError,
     UnauthorizedError,
 )
-from app.models.auth import GoogleUserInfo, MicrosoftUserInfo
+from app.models.auth import GoogleUserInfo
 from app.models.user import User, UserPreferences
 from app.repositories.token_repository import TokenRepository
 from app.repositories.user_repository import UserRepository
@@ -32,10 +32,6 @@ def mock_settings() -> Settings:
         jwt_expire_minutes=60,
         refresh_token_expire_days=30,
         allowed_email_domains=[],
-        azure_client_id="test-azure-client-id",
-        azure_client_secret="test-azure-client-secret",
-        azure_tenant_id="test-tenant-id",
-        azure_redirect_uri="http://localhost:5173/auth/callback",
     )
 
 
@@ -493,112 +489,3 @@ class TestExchangeCodeDomainValidation:
             )
 
         mock_user_repository.upsert_from_google.assert_not_called()
-
-
-class TestGenerateMicrosoftAuthUrl:
-    """Tests for Microsoft auth URL generation."""
-
-    def test_returns_microsoft_auth_url(self, auth_service: AuthService) -> None:
-        """Should return URL pointing to Microsoft login."""
-        result = auth_service.generate_auth_url(
-            "http://localhost:3000/callback", provider="microsoft"
-        )
-
-        assert "login.microsoftonline.com" in result.auth_url
-        assert "test-tenant-id" in result.auth_url
-        assert "client_id=test-azure-client-id" in result.auth_url
-
-    def test_includes_microsoft_scopes(self, auth_service: AuthService) -> None:
-        """Should include required Microsoft scopes."""
-        result = auth_service.generate_auth_url(
-            "http://localhost:3000/callback", provider="microsoft"
-        )
-
-        assert "User.Read" in result.auth_url
-
-    def test_generates_state_parameter(self, auth_service: AuthService) -> None:
-        """Should generate random state for CSRF protection."""
-        result = auth_service.generate_auth_url(
-            "http://localhost:3000/callback", provider="microsoft"
-        )
-
-        assert result.state
-        assert len(result.state) > 20
-
-
-class TestExchangeCodeMicrosoft:
-    """Tests for Microsoft code exchange flow."""
-
-    async def test_exchanges_microsoft_code_and_returns_tokens(
-        self,
-        auth_service: AuthService,
-        mock_user_repository: AsyncMock,
-        mock_token_repository: AsyncMock,
-        sample_user: User,
-    ) -> None:
-        """Should exchange Microsoft code and return JWT tokens."""
-        mock_user_repository.upsert_from_microsoft.return_value = sample_user
-
-        with (
-            patch.object(
-                auth_service,
-                "_exchange_microsoft_code",
-                return_value={"access_token": "ms-token"},
-            ),
-            patch.object(
-                auth_service,
-                "_fetch_microsoft_user_info",
-                return_value=MicrosoftUserInfo(
-                    id="ms-123",
-                    email="test@example.com",
-                    name="Test User",
-                ),
-            ),
-        ):
-            result = await auth_service.exchange_code(
-                code="valid-code",
-                state="same-state",
-                expected_state="same-state",
-                redirect_uri="http://localhost:3000/callback",
-                provider="microsoft",
-            )
-
-        assert result.access_token
-        assert result.refresh_token
-        assert result.user.email == "test@example.com"
-        mock_user_repository.upsert_from_microsoft.assert_called_once()
-
-    async def test_microsoft_domain_validation(
-        self,
-        auth_service: AuthService,
-        mock_user_repository: AsyncMock,
-    ) -> None:
-        """Should apply domain validation to Microsoft provider."""
-        auth_service.settings.allowed_email_domains = ["allowed.com"]
-
-        with (
-            patch.object(
-                auth_service,
-                "_exchange_microsoft_code",
-                return_value={"access_token": "ms-token"},
-            ),
-            patch.object(
-                auth_service,
-                "_fetch_microsoft_user_info",
-                return_value=MicrosoftUserInfo(
-                    id="ms-456",
-                    email="user@disallowed.com",
-                    name="Bad User",
-                ),
-            ),
-            pytest.raises(ForbiddenError, match="Email domain not allowed"),
-        ):
-            await auth_service.exchange_code(
-                code="valid-code",
-                state="same-state",
-                expected_state="same-state",
-                redirect_uri="http://localhost:3000/callback",
-                provider="microsoft",
-            )
-
-        mock_user_repository.upsert_from_microsoft.assert_not_called()

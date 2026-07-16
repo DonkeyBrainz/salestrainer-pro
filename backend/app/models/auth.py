@@ -11,7 +11,7 @@ from app.models.user import UserResponse
 class LoginRequest(BaseModel):
     """Request to initiate OAuth flow."""
 
-    provider: Literal["google", "microsoft"] = "google"
+    provider: Literal["google"] = "google"
 
 
 class CallbackRequest(BaseModel):
@@ -86,12 +86,3 @@ class GoogleUserInfo(BaseModel):
     name: str
     picture: str | None = None
     verified_email: bool = True
-
-
-class MicrosoftUserInfo(BaseModel):
-    """User info from Microsoft Graph API."""
-
-    id: str
-    email: str
-    name: str
-    picture: str | None = None
