@@ -40,12 +40,6 @@ class Settings(BaseSettings):
     # Email domain allowlist (empty = allow all)
     allowed_email_domains: list[str] = []
 
-    # Azure OAuth (Entra ID)
-    azure_client_id: str = ""
-    azure_client_secret: str = ""
-    azure_tenant_id: str = "common"
-    azure_redirect_uri: str = "http://localhost:5173/auth/callback"
-
     # Gemini API
     gemini_api_key: str = ""
     # Retired models 404 only for keys that were not already using them, so a

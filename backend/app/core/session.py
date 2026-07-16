@@ -29,7 +29,7 @@ class StateManager:
 
         Args:
             state: The OAuth state parameter to sign
-            provider: The OAuth provider ("google" or "microsoft")
+            provider: The OAuth provider ("google")
 
         Returns:
             Signed token that can be stored in a cookie

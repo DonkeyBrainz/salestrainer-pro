@@ -49,8 +49,6 @@ OAUTH_STATE_COOKIE = "oauth_state"
 
 def _get_redirect_uri(settings: Settings, provider: str) -> str:
     """Get the redirect URI for the given provider."""
-    if provider == "microsoft":
-        return settings.azure_redirect_uri
     return settings.google_redirect_uri
 
 
@@ -63,8 +61,7 @@ async def login_redirect(
 ) -> RedirectResponse:
     """Initiate OAuth flow with direct redirect (for manual testing).
 
-    Supports Google and Microsoft providers via the `provider` query parameter.
-    Sets the oauth_state cookie and redirects to the provider.
+    Sets the oauth_state cookie and redirects to Google.
 
     For SPA frontends, use POST /auth/login instead to get the URL as JSON.
     """
@@ -98,7 +95,6 @@ async def login(
 ) -> LoginResponse:
     """Initiate OAuth flow (SPA/API mode).
 
-    Accepts an optional `provider` field ("google" or "microsoft", default "google").
     Returns the OAuth URL as JSON for client-side redirect handling.
     Sets a signed cookie with the state and provider for validation on callback.
     """
@@ -177,8 +173,8 @@ async def callback_post(
 
     SPA flow:
     1. Frontend calls POST /auth/login with provider, receives authUrl, cookie is set
-    2. Frontend redirects to provider (Google or Microsoft)
-    3. Provider redirects to frontend /auth/callback with code and state in URL
+    2. Frontend redirects to Google
+    3. Google redirects to frontend /auth/callback with code and state in URL
     4. Frontend calls this POST endpoint with code and state in body
     5. Backend validates state against cookie and exchanges code for tokens
 

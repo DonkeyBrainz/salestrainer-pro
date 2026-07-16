@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from google.cloud.firestore import AsyncClient
 
-from app.models.auth import GoogleUserInfo, MicrosoftUserInfo
+from app.models.auth import GoogleUserInfo
 from app.models.user import User, UserCreate, UserPreferences
 from app.repositories.base import BaseRepository
 
@@ -52,7 +52,6 @@ class UserRepository(BaseRepository):
             "email": user_data.email,
             "name": user_data.name,
             "google_id": user_data.google_id,
-            "microsoft_id": user_data.microsoft_id,
             "picture_url": user_data.picture_url,
             "preferences": UserPreferences().model_dump(),
             "role": "agent",
@@ -69,7 +68,6 @@ class UserRepository(BaseRepository):
             email=user_data.email,
             name=user_data.name,
             google_id=user_data.google_id,
-            microsoft_id=user_data.microsoft_id,
             picture_url=user_data.picture_url,
             preferences=UserPreferences(),
             role="agent",
@@ -92,56 +90,6 @@ class UserRepository(BaseRepository):
 
         updated_doc = await doc_ref.get()
         return self._doc_to_user(updated_doc.id, updated_doc.to_dict())
-
-    async def get_by_microsoft_id(self, microsoft_id: str) -> User | None:
-        """Get user by Microsoft ID."""
-        query = self.collection.where("microsoft_id", "==", microsoft_id).limit(1)
-        docs = query.stream()
-        async for doc in docs:
-            return self._doc_to_user(doc.id, doc.to_dict())
-        return None
-
-    async def upsert_from_microsoft(self, microsoft_info: MicrosoftUserInfo) -> User:
-        """Create or update user from Microsoft OAuth info.
-
-        Lookup order:
-        1. By microsoft_id (returning user)
-        2. By email (cross-provider account linking)
-        3. Create new user
-        """
-        existing = await self.get_by_microsoft_id(microsoft_info.id)
-
-        if existing:
-            updates: dict[str, Any] = {
-                "name": microsoft_info.name,
-                "picture_url": microsoft_info.picture,
-            }
-            updated = await self.update(existing.user_id, updates)
-            if updated:
-                return updated
-            return existing
-
-        # Check for existing user by email (link accounts)
-        existing_by_email = await self.get_by_email(microsoft_info.email)
-        if existing_by_email:
-            updates = {
-                "microsoft_id": microsoft_info.id,
-                "name": microsoft_info.name,
-                "picture_url": microsoft_info.picture,
-            }
-            updated = await self.update(existing_by_email.user_id, updates)
-            if updated:
-                return updated
-            return existing_by_email
-
-        return await self.create(
-            UserCreate(
-                email=microsoft_info.email,
-                name=microsoft_info.name,
-                microsoft_id=microsoft_info.id,
-                picture_url=microsoft_info.picture,
-            )
-        )
 
     async def upsert_from_google(self, google_info: GoogleUserInfo) -> User:
         """Create or update user from Google OAuth info.
@@ -200,7 +148,6 @@ class UserRepository(BaseRepository):
             email=data["email"],
             name=data["name"],
             google_id=data.get("google_id"),
-            microsoft_id=data.get("microsoft_id"),
             picture_url=data.get("picture_url"),
             preferences=preferences,
             role=data.get("role", "agent"),

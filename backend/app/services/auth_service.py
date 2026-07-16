@@ -18,7 +18,6 @@ from app.core.exceptions import (
 from app.models.auth import (
     GoogleUserInfo,
     LoginResponse,
-    MicrosoftUserInfo,
     RefreshResponse,
     TokenPayload,
     TokenResponse,
@@ -34,10 +33,6 @@ class AuthService:
     GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
     GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
     GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
-
-    MICROSOFT_AUTH_URL = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize"
-    MICROSOFT_TOKEN_URL = "https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
-    MICROSOFT_USERINFO_URL = "https://graph.microsoft.com/v1.0/me"
 
     def __init__(
         self,
@@ -61,15 +56,12 @@ class AuthService:
 
         Args:
             redirect_uri: Where the provider should redirect after auth
-            provider: OAuth provider ("google" or "microsoft")
+            provider: OAuth provider ("google")
 
         Returns:
             LoginResponse with auth URL and state
         """
         state = secrets.token_urlsafe(32)
-
-        if provider == "microsoft":
-            return self._generate_microsoft_auth_url(redirect_uri, state)
 
         params = {
             "client_id": self.settings.google_client_id,
@@ -82,24 +74,6 @@ class AuthService:
         }
 
         auth_url = f"{self.GOOGLE_AUTH_URL}?{urlencode(params)}"
-
-        return LoginResponse(auth_url=auth_url, state=state)
-
-    def _generate_microsoft_auth_url(self, redirect_uri: str, state: str) -> LoginResponse:
-        """Generate Microsoft Entra ID authorization URL."""
-        tenant = self.settings.azure_tenant_id
-        base_url = self.MICROSOFT_AUTH_URL.format(tenant=tenant)
-
-        params = {
-            "client_id": self.settings.azure_client_id,
-            "redirect_uri": redirect_uri,
-            "response_type": "code",
-            "scope": "openid email profile User.Read",
-            "state": state,
-            "response_mode": "query",
-        }
-
-        auth_url = f"{base_url}?{urlencode(params)}"
 
         return LoginResponse(auth_url=auth_url, state=state)
 
@@ -118,7 +92,7 @@ class AuthService:
             state: State parameter from callback
             expected_state: State we generated (for CSRF protection)
             redirect_uri: Redirect URI used in initial request
-            provider: OAuth provider ("google" or "microsoft")
+            provider: OAuth provider ("google")
 
         Returns:
             TokenResponse with access and refresh tokens
@@ -131,10 +105,7 @@ class AuthService:
         if state != expected_state:
             raise InvalidRequestError("Invalid state parameter")
 
-        if provider == "microsoft":
-            user = await self._exchange_microsoft_flow(code, redirect_uri)
-        else:
-            user = await self._exchange_google_flow(code, redirect_uri)
+        user = await self._exchange_google_flow(code, redirect_uri)
 
         # Generate our JWT tokens
         access_token = self.create_access_token(user)
@@ -161,13 +132,6 @@ class AuthService:
         google_user = await self._fetch_google_user_info(google_tokens["access_token"])
         self._validate_email_domain(google_user.email)
         return await self.user_repository.upsert_from_google(google_user)
-
-    async def _exchange_microsoft_flow(self, code: str, redirect_uri: str) -> User:
-        """Complete Microsoft OAuth flow: exchange code, fetch user, validate, upsert."""
-        ms_tokens = await self._exchange_microsoft_code(code, redirect_uri)
-        ms_user = await self._fetch_microsoft_user_info(ms_tokens["access_token"])
-        self._validate_email_domain(ms_user.email)
-        return await self.user_repository.upsert_from_microsoft(ms_user)
 
     async def refresh_tokens(self, refresh_token: str) -> RefreshResponse:
         """Refresh access token using refresh token.
@@ -400,78 +364,4 @@ class AuthService:
                 name=data.get("name", data["email"]),
                 picture=data.get("picture"),
                 verified_email=data.get("verified_email", True),
-            )
-
-    async def _exchange_microsoft_code(self, code: str, redirect_uri: str) -> dict[str, Any]:
-        """Exchange authorization code with Microsoft token endpoint.
-
-        Args:
-            code: Authorization code from Microsoft
-            redirect_uri: Redirect URI used in initial request
-
-        Returns:
-            Dict with access_token, etc.
-
-        Raises:
-            UnauthorizedError: If exchange fails
-        """
-        tenant = self.settings.azure_tenant_id
-        token_url = self.MICROSOFT_TOKEN_URL.format(tenant=tenant)
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                token_url,
-                data={
-                    "client_id": self.settings.azure_client_id,
-                    "client_secret": self.settings.azure_client_secret,
-                    "code": code,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": redirect_uri,
-                    "scope": "openid email profile User.Read",
-                },
-            )
-
-            if response.status_code != 200:
-                error_detail = response.text
-                try:
-                    error_json = response.json()
-                    error_msg = error_json.get(
-                        "error_description", error_json.get("error", error_detail)
-                    )
-                except Exception:
-                    error_msg = error_detail
-                raise UnauthorizedError(
-                    f"Failed to exchange Microsoft authorization code: {error_msg}"
-                )
-
-            result: dict[str, Any] = response.json()
-            return result
-
-    async def _fetch_microsoft_user_info(self, access_token: str) -> MicrosoftUserInfo:
-        """Fetch user info from Microsoft Graph API.
-
-        Args:
-            access_token: Microsoft access token
-
-        Returns:
-            MicrosoftUserInfo with user details
-
-        Raises:
-            UnauthorizedError: If fetch fails
-        """
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                self.MICROSOFT_USERINFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
-
-            if response.status_code != 200:
-                raise UnauthorizedError("Failed to fetch user info from Microsoft")
-
-            data = response.json()
-            email = data.get("mail") or data.get("userPrincipalName", "")
-            return MicrosoftUserInfo(
-                id=data["id"],
-                email=email,
-                name=data.get("displayName", email),
             )

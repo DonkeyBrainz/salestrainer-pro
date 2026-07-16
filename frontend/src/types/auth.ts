@@ -47,4 +47,4 @@ export interface LoginResponse {
   state: string;
 }
 
-export type OAuthProvider = 'google' | 'microsoft';
+export type OAuthProvider = 'google';
