@@ -80,6 +80,19 @@ def check_no_forbidden_phrases(
     return CheckResult(name=name, passed=True)
 
 
+def check_no_forbidden_regex(
+    expected: VoiceTurnTrigger, turn: VoiceTurnRecord
+) -> CheckResult | None:
+    """Spoken reply must not match any forbidden pattern (e.g. any dollar figure)."""
+    if not expected.forbid_regex:
+        return None
+    name = f"turn{turn.turn_index}_forbid_regex"
+    hits = [p for p in expected.forbid_regex if re.search(p, turn.response_text, re.IGNORECASE)]
+    if hits:
+        return CheckResult(name=name, passed=False, reason=f"matched forbidden pattern: {hits}")
+    return CheckResult(name=name, passed=True)
+
+
 def check_first_audio_latency(
     expected: VoiceTurnTrigger, turn: VoiceTurnRecord
 ) -> CheckResult | None:
@@ -129,6 +142,7 @@ def run_voice_checks(scenario: VoiceScenario, result: ScenarioResult) -> list[Ch
         for check_fn in (
             check_asr_comprehension,
             check_no_forbidden_phrases,
+            check_no_forbidden_regex,
             check_first_audio_latency,
             check_spoke_audibly,
         ):

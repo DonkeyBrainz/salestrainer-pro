@@ -4,6 +4,8 @@ This module contains the prompt templates used to instruct the LLM
 to roleplay as different customer personas during sales training.
 """
 
+import re
+
 from app.agents.state import CustomerAgentState, CustomerPersona, Difficulty, RegardLevel, Timeline
 
 # Difficulty-based conversational behavior guidelines
@@ -95,6 +97,80 @@ CUSTOMER_SYSTEM_PROMPT = """You are {name}, a customer in a sales roleplay scena
 
 Respond as {name} would in this moment of the conversation. Keep responses conversational (1-3 sentences typically).
 """
+
+
+NOVA_ROLE_GUARDRAIL = (
+    "CRITICAL — READ CAREFULLY BEFORE YOU SPEAK: You are {name}, the CUSTOMER walking into a "
+    "real estate showing. You are a homebuyer, not staff and not an assistant. The salesperson "
+    "is the one helping you today — you never help them, and you never offer to help them. "
+    "Never say things like 'how can I help you', 'what can I do for you', 'how may I assist "
+    "you', or 'welcome, how can I help' — those are lines a salesperson or receptionist says, "
+    "and {name} would never say them."
+)
+
+NOVA_ROLE_RECAP = (
+    "One more reminder before you respond: you are {name}, the customer, not the salesperson "
+    "and not an assistant. If you ever feel like offering to help the other person, stop — "
+    "that's backwards. You are here to be helped, and you speak the way a real, slightly "
+    "guarded person shopping for a home would, in short natural sentences."
+)
+
+NOVA_RESERVED_DISCLOSURE_GUARDRAIL = (
+    "You are naturally guarded with strangers. In your very first reply, do not state your "
+    "full name, your budget, or exactly what you're looking for unless the salesperson directly "
+    "asks. A brief, non-committal opener is realistic; a full self-introduction with your "
+    "budget and needs on the first line is not — that reads as an assistant reciting facts, not "
+    "a cautious buyer."
+)
+
+
+def build_live_system_instruction(
+    persona: CustomerPersona, state: CustomerAgentState, provider_name: str
+) -> str:
+    """Build the system instruction for a live speech-to-speech session.
+
+    Nova Sonic's speech tuning defaults toward assistant-speak (AWS's own reference
+    prompt opens "You are a friendly assistant") and loses track of long, densely
+    formatted instructions, so beyond flattening markdown it needs the customer-not-
+    staff rule anchored at both the start and end of the prompt (primacy/recency),
+    plus an extra reminder for guarded personas not to volunteer their info upfront.
+    Other providers get the shared prompt unchanged.
+    """
+    prompt = build_customer_prompt(persona=persona, state=state)
+    if provider_name != "nova":
+        return prompt
+
+    parts = [NOVA_ROLE_GUARDRAIL.format(name=persona.name), flatten_for_speech(prompt)]
+    if persona.difficulty in (Difficulty.LOW_REGARD, Difficulty.NO_REGARD):
+        parts.append(NOVA_RESERVED_DISCLOSURE_GUARDRAIL)
+    parts.append(NOVA_ROLE_RECAP.format(name=persona.name))
+    return " ".join(parts)
+
+
+def flatten_for_speech(prompt: str) -> str:
+    """Rewrite a markdown-structured prompt as flowing prose.
+
+    AWS's own Nova Sonic prompting guidance is explicit: avoid bullet points,
+    headers, and other visual formatting — it's tuned for natural spoken
+    instruction, not document structure. CUSTOMER_SYSTEM_PROMPT below is
+    written as a markdown doc (##-headers, bulleted/numbered lists, bold)
+    because that works well for Gemini/OpenAI; Nova Sonic needs it flattened
+    to plain sentences or it loses track of which role it's supposed to play.
+    """
+    out: list[str] = []
+    for raw in prompt.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        line = re.sub(r"^#{1,6}\s*", "", line)
+        line = re.sub(r"^[-*]\s+", "", line)
+        line = re.sub(r"^\d+\.\s+", "", line)
+        line = re.sub(r"\*\*(.+?)\*\*", r"\1", line)
+        line = re.sub(r"(?<!\*)\*([^*]+?)\*(?!\*)", r"\1", line)
+        if not line.endswith((".", "!", "?", ":")):
+            line += "."
+        out.append(line)
+    return " ".join(out)
 
 
 def get_timeline_description(timeline: Timeline) -> str:

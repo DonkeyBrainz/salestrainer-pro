@@ -11,7 +11,7 @@ from uuid import uuid4
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.agents.personas import get_persona
-from app.agents.prompts import build_customer_prompt
+from app.agents.prompts import build_live_system_instruction
 from app.agents.state import CustomerAgentState, CustomerPersona
 from app.api.products import get_product_details
 from app.core.exceptions import (
@@ -747,7 +747,9 @@ class GeminiWebSocketRelay:
         """
         if not (self._persona and self._agent_state):
             return None
-        return build_customer_prompt(persona=self._persona, state=self._agent_state)
+        return build_live_system_instruction(
+            persona=self._persona, state=self._agent_state, provider_name=self.provider_name
+        )
 
     async def _process_agents(
         self,

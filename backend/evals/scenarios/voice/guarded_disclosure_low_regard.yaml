@@ -1,0 +1,27 @@
+# Guarded disclosure: a low-regard persona should stay brief and non-committal
+# on a neutral opener, not volunteer their name/budget/needs unprompted — only
+# once directly asked (turn 2) is disclosure expected, which is why turn 2 has
+# no disclosure restrictions (positive control: guarded, not mute).
+id: guarded_disclosure_low_regard
+tags: [persona:landlord_investor, voice:character, difficulty:low_regard, behavior:premature_disclosure]
+persona_id: landlord_investor
+turns:
+  - salesperson_text: "Hi there, thanks for coming in — make yourself at home."
+    forbid_phrases:
+      [
+        "as an AI",
+        "language model",
+        "my name is",
+        "i'm looking for",
+        "my budget is",
+        "how can i help you",
+      ]
+    forbid_regex: ["\\$\\s?\\d{2,3}[,]?\\d{3}"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300
+  - salesperson_text: "So what's your budget looking like for this?"
+    forbid_phrases: ["as an AI", "language model"]
+    max_wer: 0.5
+    max_first_audio_ms: 25000
+    min_output_audio_ms: 300

@@ -73,6 +73,9 @@ class VoiceTurnTrigger(BaseModel):
 
     salesperson_text: str
     forbid_phrases: list[str] = Field(default_factory=list)
+    # Regex variant of forbid_phrases, for patterns that can't be a fixed string
+    # (e.g. "any dollar figure" to catch unprompted budget disclosure).
+    forbid_regex: list[str] = Field(default_factory=list)
     # Comprehension: word-error-rate between the script and the provider's ASR
     # of our synthesized audio (input_transcription). None = don't check.
     max_wer: float | None = 0.5

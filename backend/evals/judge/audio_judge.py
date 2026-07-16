@@ -20,7 +20,7 @@ from evals.report.models import JudgeDimensionScore, ScenarioResult
 
 logger = logging.getLogger(__name__)
 
-AUDIO_JUDGE_MODEL = "gemini-2.5-flash"
+AUDIO_JUDGE_MODEL = "gemini-3.5-flash"
 
 AUDIO_DIMENSIONS: tuple[RubricDimension, ...] = (
     RubricDimension(
