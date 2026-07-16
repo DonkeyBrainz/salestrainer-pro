@@ -40,6 +40,7 @@ export interface Persona {
   backstory: string;
   looking_for?: string; // Optional for evaluation personas
   difficulty: Difficulty;
+  objections?: string[]; // Absent for evaluation personas (identity withheld)
 }
 
 // --- EVALUATION TYPES ---
@@ -136,11 +137,18 @@ export interface EvaluationResult {
   strengths: string[];
   improvements: string[];
   techniques_detected: string[];
+  /** Subject identity was withheld during the live run; revealed once grading completes. */
+  persona_name?: string | null;
 }
 
 // --- SESSION HISTORY TYPES ---
 export type SessionType = 'training' | 'evaluation';
 export type SessionStatus = 'active' | 'paused' | 'completed' | 'abandoned';
+
+export interface SessionHint {
+  t: string; // elapsed time offset, formatted MM:SS
+  hint: string;
+}
 
 export interface SessionSummary {
   sessionId: string;
@@ -150,11 +158,13 @@ export interface SessionSummary {
   endedAt: string | null;
   duration: number | null;
   selectedPersona: string | null;
+  personaName: string | null;
   difficulty: Difficulty;
   messageCount: number;
   grade: Grade | null;
   score: number | null;
   hasEvaluation: boolean;
+  hintsUsed: SessionHint[];
 }
 
 export interface SessionListResponse {

@@ -5,7 +5,15 @@ tags: [persona:lifestyle_retiree, voice:context, voice:multi_turn]
 persona_id: lifestyle_retiree
 turns:
   - salesperson_text: "Welcome! Before we look around, tell me, what does your ideal week look like once you're settled?"
-    forbid_phrases: ["as an AI", "language model"]
+    forbid_phrases:
+      [
+        "as an AI",
+        "language model",
+        "how can i help you",
+        "how may i help you",
+        "what can i do for you",
+        "welcome, how can i",
+      ]
     max_wer: 0.5
     max_first_audio_ms: 25000
     min_output_audio_ms: 300

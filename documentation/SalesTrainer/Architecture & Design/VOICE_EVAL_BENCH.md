@@ -1,3 +1,7 @@
+---
+tags: [#architecture, #testing, #voice, #evaluation]
+---
+
 # Voice Eval Bench — Speech-to-Speech Model Evaluation
 
 **Status:** Live and validated (2026-07-13) · **Suite:** `--suite voice` in `backend/evals/`

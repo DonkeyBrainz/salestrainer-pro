@@ -78,6 +78,7 @@ export interface SessionResumedMessage {
 export interface EvaluationResultMessage {
   type: 'evaluation_result';
   evaluation: EvaluationResult;
+  persona_name?: string | null;
 }
 
 export interface EvaluationErrorMessage {

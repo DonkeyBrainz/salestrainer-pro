@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from app.agents.personas import get_persona
-from app.agents.prompts import build_customer_prompt
+from app.agents.prompts import build_live_system_instruction
 from app.agents.state import CoreStageProgress, CustomerAgentState, Mood, SalesStage
 from app.config import Settings
 from app.llm_providers.streaming import LiveSession, LLMStreamProvider
@@ -214,7 +214,9 @@ async def run_voice_scenario(
     if persona is None:
         raise ValueError(f"Unknown persona_id: {scenario.persona_id!r}")
 
-    system_instruction = build_customer_prompt(persona, _connect_state(scenario))
+    system_instruction = build_live_system_instruction(
+        persona, _connect_state(scenario), provider.name
+    )
     voice = resolve_voice(persona, provider.name)
     audio_dir = (artifacts_dir or RESULTS_AUDIO_DIR) / run_id / scenario.id
 

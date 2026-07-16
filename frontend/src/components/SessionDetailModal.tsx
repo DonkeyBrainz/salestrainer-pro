@@ -1,281 +1,212 @@
 import React, { useEffect, useState } from 'react';
-import { X, User, Calendar, Clock, MessageSquare, Award, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { SessionDetail, Grade, StageScore } from '@/types';
-import Transcript from './Transcript';
+import { SessionDetail } from '@/types';
+import { VT, scoreColor, TIER_LABEL } from '@/styles/voiceprint';
+import { ModeTag, GradeCell, StickyNote } from '@/components/voiceprint/primitives';
 
 interface SessionDetailModalProps {
   sessionId: string;
   onClose: () => void;
   onFetchSession: (sessionId: string) => Promise<SessionDetail>;
+  /** Precomputed "Δ best" / "personal best" label from the archive table row, if known. */
+  deltaLabel?: string | null;
 }
 
-const GRADE_COLORS: Record<Grade, { bg: string; text: string; ring: string }> = {
-  A: { bg: 'bg-emerald-100', text: 'text-emerald-700', ring: 'ring-emerald-300' },
-  B: { bg: 'bg-blue-100', text: 'text-blue-700', ring: 'ring-blue-300' },
-  C: { bg: 'bg-amber-100', text: 'text-amber-700', ring: 'ring-amber-300' },
-  D: { bg: 'bg-orange-100', text: 'text-orange-700', ring: 'ring-orange-300' },
-  F: { bg: 'bg-red-100', text: 'text-red-700', ring: 'ring-red-300' },
-};
+const STAGE_ORDER = ['CONNECT', 'OBSERVE', 'RECOMMEND', 'EXECUTE'] as const;
+const STAGE_LETTER: Record<string, string> = { CONNECT: 'C', OBSERVE: 'O', RECOMMEND: 'R', EXECUTE: 'E' };
+const STAGE_NAME: Record<string, string> = { CONNECT: 'Connect', OBSERVE: 'Observe', RECOMMEND: 'Recommend', EXECUTE: 'Execute' };
 
-const STAGE_ORDER = ['CONNECT', 'OBSERVE', 'RECOMMEND', 'EXECUTE'];
-const STAGE_LABELS: Record<string, string> = {
-  CONNECT: 'Connect',
-  OBSERVE: 'Observe',
-  RECOMMEND: 'Recommend',
-  EXECUTE: 'Execute',
-};
-
-function ScoreBar({ score }: { score: number }) {
-  const clampedScore = Math.max(0, Math.min(100, score));
-  const barColor =
-    clampedScore >= 80
-      ? 'bg-emerald-500'
-      : clampedScore >= 60
-        ? 'bg-blue-500'
-        : clampedScore >= 40
-          ? 'bg-amber-500'
-          : 'bg-red-500';
-
-  return (
-    <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden">
-      <div
-        className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
-        style={{ width: `${clampedScore}%` }}
-      />
-    </div>
-  );
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
 }
 
-function StageRow({ stage }: { stage: StageScore }) {
-  const label = STAGE_LABELS[stage.stage] || stage.stage;
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-bold uppercase tracking-wider text-stone-600">
-          {label}
-        </span>
-        <span className="text-sm font-bold text-stone-700">
-          {Math.round(stage.score)}
-        </span>
-      </div>
-      <ScoreBar score={stage.score} />
-      {stage.feedback && (
-        <p className="text-xs text-stone-500 mt-1">{stage.feedback}</p>
-      )}
-    </div>
-  );
+function formatLen(seconds: number | null): string {
+  if (!seconds) return '—';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-const SessionDetailModal: React.FC<SessionDetailModalProps> = ({ sessionId, onClose, onFetchSession }) => {
-  const [sessionDetail, setSessionDetail] = useState<SessionDetail | null>(null);
+const SessionDetailModal: React.FC<SessionDetailModalProps> = ({ sessionId, onClose, onFetchSession, deltaLabel }) => {
+  const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const fetchSession = async () => {
-      try {
-        setLoading(true);
-        const detail = await onFetchSession(sessionId);
-        setSessionDetail(detail);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load session');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSession();
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    onFetchSession(sessionId)
+      .then((d) => { if (!cancelled) setDetail(d); })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load session'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [sessionId, onFetchSession]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setOpen(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const backdropStyle: React.CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 100,
+    background: 'rgba(4,10,20,0.88)', backdropFilter: 'blur(4px)',
+    opacity: open ? 1 : 0, transition: 'opacity .25s ease',
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const wrapStyle: React.CSSProperties = {
+    position: 'fixed', inset: 0, zIndex: 101,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
   };
 
-  const formatDuration = (seconds: number | null) => {
-    if (!seconds) return 'N/A';
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const sheetStyle: React.CSSProperties = {
+    width: '100%', maxWidth: 880, maxHeight: '86vh', overflowY: 'auto',
+    background: `linear-gradient(180deg, ${VT.blueDeep}, #0c2140)`,
+    border: `1px solid ${VT.lineFaint}`, padding: '32px 36px 36px', position: 'relative',
+    transform: `translateY(${open ? 0 : 24}px) rotate(${open ? 0 : -0.4}deg)`,
+    opacity: open ? 1 : 0,
+    transition: 'transform .3s cubic-bezier(0.2,0.9,0.3,1.1), opacity .3s ease',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
   };
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl">
-          <p className="text-stone-600">Loading session...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !sessionDetail) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md">
-          <p className="text-red-600 mb-4">{error || 'Session not found'}</p>
-          <button
-            onClick={onClose}
-            className="w-full py-2 bg-stone-800 text-white rounded-lg hover:bg-black transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const { session, transcript, evaluation } = sessionDetail;
-  const gradeStyle = evaluation?.grade ? GRADE_COLORS[evaluation.grade] : undefined;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl mx-4 custom-scrollbar">
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-full text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors z-10"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div>
+      <div style={backdropStyle} onClick={onClose} />
+      <div style={wrapStyle}>
+        <div style={sheetStyle}>
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute', top: 20, right: 20,
+              background: 'transparent', border: `1px solid ${VT.lineDim}`, color: VT.textMuted,
+              fontFamily: VT.mono, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+              padding: '6px 12px', cursor: 'pointer',
+            }}
+          >
+            Close ✕
+          </button>
 
-        <div className="p-8 space-y-8">
-          {/* Session Summary */}
-          <div className="space-y-4">
-            <h2 className="text-3xl font-serif-display text-stone-800">Session Details</h2>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="flex items-center gap-2 text-sm">
-                <User className="w-4 h-4 text-stone-400" />
-                <div>
-                  <p className="text-xs text-stone-400 uppercase tracking-wider">Persona</p>
-                  <p className="text-stone-700 font-medium">{session.selectedPersona || 'Unknown'}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-stone-400" />
-                <div>
-                  <p className="text-xs text-stone-400 uppercase tracking-wider">Date</p>
-                  <p className="text-stone-700 font-medium">{formatDate(session.startedAt)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-stone-400" />
-                <div>
-                  <p className="text-xs text-stone-400 uppercase tracking-wider">Duration</p>
-                  <p className="text-stone-700 font-medium">{formatDuration(session.duration)}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 text-sm">
-                <MessageSquare className="w-4 h-4 text-stone-400" />
-                <div>
-                  <p className="text-xs text-stone-400 uppercase tracking-wider">Messages</p>
-                  <p className="text-stone-700 font-medium">{session.messageCount}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Transcript */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-stone-400">Transcript</h3>
-            <div className="border border-stone-200 rounded-xl overflow-hidden bg-[#F9F8F6] h-96">
-              <Transcript messages={transcript.messages} readOnly={true} />
-            </div>
-          </div>
-
-          {/* Evaluation (if exists) */}
-          {evaluation && gradeStyle && (
-            <div className="space-y-6 pt-6 border-t border-stone-200">
-              <div className="flex items-center gap-3">
-                <Award className="w-6 h-6 text-stone-400" />
-                <h3 className="text-xl font-serif-display text-stone-800">Evaluation Results</h3>
-              </div>
-
-              {/* Grade + Score */}
-              <div className="flex items-center gap-6">
-                <div
-                  className={`w-16 h-16 rounded-full flex items-center justify-center ring-4 ${gradeStyle.bg} ${gradeStyle.text} ${gradeStyle.ring}`}
-                >
-                  <span className="text-3xl font-bold">{evaluation.grade}</span>
-                </div>
-                <div>
-                  <p className="text-sm text-stone-400 uppercase tracking-wider">Final Score</p>
-                  <p className="text-2xl font-bold text-stone-700">
-                    {Math.round(evaluation.final_score)} / 100
-                  </p>
-                </div>
-              </div>
-
-              {evaluation.summary && (
-                <p className="text-sm text-stone-600 leading-relaxed">{evaluation.summary}</p>
-              )}
-
-              {/* Stage Breakdown */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-widest text-stone-400">
-                  Stage Breakdown
-                </h4>
-                {STAGE_ORDER.map((key) => {
-                  const stage = evaluation.scorecard.stage_scores[key];
-                  if (!stage) return null;
-                  return <StageRow key={key} stage={stage} />;
-                })}
-              </div>
-
-              {/* Strengths */}
-              {evaluation.strengths.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-stone-400">
-                    Strengths
-                  </h4>
-                  <ul className="space-y-2">
-                    {evaluation.strengths.map((s, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-stone-700">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                        <span>{s}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Improvements */}
-              {evaluation.improvements.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold uppercase tracking-widest text-stone-400">
-                    Areas for Improvement
-                  </h4>
-                  <ul className="space-y-2">
-                    {evaluation.improvements.map((item, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-stone-700">
-                        <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+          {loading && (
+            <div style={{ padding: '60px 0', textAlign: 'center', fontFamily: VT.mono, fontSize: 11, color: VT.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              Loading session…
             </div>
           )}
 
-          {/* Close button */}
-          <div className="pt-2">
-            <button
-              onClick={onClose}
-              className="w-full py-3 bg-[#2C2825] text-[#F9F8F6] rounded-full text-sm font-bold uppercase tracking-widest hover:bg-black transition-colors"
-            >
-              Close
-            </button>
-          </div>
+          {!loading && (error || !detail) && (
+            <div style={{ padding: '60px 0', textAlign: 'center', color: VT.hard, fontSize: 13 }}>
+              {error || 'Session not found'}
+            </div>
+          )}
+
+          {!loading && detail && (() => {
+            const { session, transcript, evaluation } = detail;
+            const mode = session.sessionType === 'evaluation' ? 'assess' : 'practice';
+            return (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 24, paddingRight: 90 }}>
+                  <div>
+                    <div style={{ fontFamily: VT.anton, fontSize: 'clamp(20px,2.4vw,30px)', letterSpacing: '0.02em', color: VT.text }}>
+                      {(session.personaName ?? 'Unknown').toUpperCase()} · {formatDate(session.startedAt)}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8, fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: VT.textMuted, flexWrap: 'wrap' }}>
+                      <ModeTag mode={mode} />
+                      <span>{formatLen(session.duration)}</span>
+                      <span>regard: {TIER_LABEL[session.difficulty]?.toLowerCase() ?? session.difficulty}</span>
+                      {deltaLabel && <span>{deltaLabel}</span>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: VT.anton, fontSize: 58, lineHeight: 1, color: scoreColor(session.score) }}>
+                      {session.score ?? '—'}
+                    </div>
+                    <div style={{ fontSize: 9, letterSpacing: '0.18em', color: VT.textMuted, textTransform: 'uppercase' }}>/ 100</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+                  <div style={{ flex: 2, minWidth: 320 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: VT.textMuted, borderBottom: `1px solid ${VT.lineFaint}`, paddingBottom: 8, marginBottom: 12 }}>
+                      <span>Transcript — key exchange</span>
+                      <span style={{ fontFamily: VT.mono }}>SHEET T-{session.startedAt.replace(/\D/g, '').slice(0, 8)}</span>
+                    </div>
+                    {transcript.messages.length === 0 && (
+                      <div style={{ fontSize: 12, color: VT.textMuted }}>No transcript recorded for this session.</div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {transcript.messages.map((m) => (
+                        <div key={m.id} style={{ display: 'flex', gap: 10 }}>
+                          <span style={{
+                            width: 64, flexShrink: 0, fontSize: 8.5, letterSpacing: '0.1em', textTransform: 'uppercase',
+                            color: m.role === 'user' ? VT.standard : VT.amber, paddingTop: 2,
+                          }}>
+                            {m.role === 'user' ? 'You' : (session.personaName ?? 'Customer')}
+                          </span>
+                          <span style={{ fontSize: 12, lineHeight: 1.6, color: VT.text }}>&ldquo;{m.text}&rdquo;</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <div>
+                      <div style={{ fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: VT.textMuted, marginBottom: 10 }}>
+                        C.O.R.E. grades
+                      </div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {STAGE_ORDER.map((stage) => {
+                          const stat = evaluation?.scorecard.stage_scores[stage];
+                          const val = stat ? Math.round(stat.score) : null;
+                          return (
+                            <GradeCell
+                              key={stage}
+                              letter={STAGE_LETTER[stage]}
+                              value={val ?? '—'}
+                              name={STAGE_NAME[stage]}
+                              color={scoreColor(val)}
+                              compact
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: VT.textMuted, marginBottom: 8 }}>
+                        <span>Hints used</span>
+                        <span style={{ fontFamily: VT.mono }}>{session.hintsUsed.length || 'NONE'}</span>
+                      </div>
+                      {session.hintsUsed.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {session.hintsUsed.map((h, i) => (
+                            <div key={i} style={{ display: 'flex', gap: 8, fontSize: 10.5, lineHeight: 1.5 }}>
+                              <span style={{ fontFamily: VT.mono, color: VT.amber, flexShrink: 0 }}>{h.t}</span>
+                              <span style={{ color: VT.textMuted }}>{h.hint}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 10.5, color: VT.textMuted, letterSpacing: '0.02em', lineHeight: 1.6 }}>
+                          {mode === 'assess'
+                            ? 'Hints are disabled during assessments.'
+                            : 'Ran clean — no hints requested.'}
+                        </div>
+                      )}
+                    </div>
+
+                    <StickyNote title="Coach note" width="100%" rotate={1.2}>
+                      {evaluation?.summary ?? (session.hasEvaluation ? 'No summary recorded.' : 'This session was not graded.')}
+                    </StickyNote>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>

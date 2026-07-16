@@ -175,11 +175,13 @@ const AdminPage: React.FC = () => {
         endedAt: data.session.ended_at,
         duration: data.session.duration,
         selectedPersona: data.session.selected_persona,
+        personaName: data.session.persona_name ?? null,
         difficulty: data.session.difficulty,
         messageCount: data.session.message_count,
         grade: data.session.grade,
         score: data.session.score,
         hasEvaluation: data.session.has_evaluation,
+        hintsUsed: data.session.hints_used ?? [],
       },
       transcript: {
         messages: data.transcript.messages.map((msg: any) => ({

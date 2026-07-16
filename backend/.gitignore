@@ -37,6 +37,12 @@ dmypy.json
 # Test artifacts
 cookies.txt
 
+# Raw log dumps — DEBUG level logs request headers (incl. API keys) in
+# plaintext; never let one of these end up committed again.
+session.json
+*.session.json
+*.log
+
 # OS
 .DS_Store
 Thumbs.db

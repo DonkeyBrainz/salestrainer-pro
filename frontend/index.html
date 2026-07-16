@@ -6,23 +6,25 @@
     <title>SalesTrainer Pro</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@500;600&family=Oswald:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
       :root {
-        --bg:         #0e1410;
-        --surface:    #161d18;
-        --surface-2:  #1d2620;
-        --hair:       #2a342c;
-        --hair-soft:  #202a23;
-        --ink:        #eef2ec;
-        --ink-soft:   #a9b3a8;
-        --ink-muted:  #6a7569;
-        --terra:      #ff7a48;
-        --terra-dim:  #5a3424;
-        --sage:       #9bd07c;
-        --sage-dim:   #3e5a3a;
-        --butter:     #f0c14a;
-        --off:        #f1ebe0;
+        --blue: #2058A6;
+        --blue-deep: #123157;
+        --blue-panel: rgba(255,255,255,0.045);
+        --blue-panel-hover: rgba(255,255,255,0.09);
+        --line: #FFFFFF;
+        --line-dim: rgba(255,255,255,0.35);
+        --line-faint: rgba(255,255,255,0.10);
+        --amber: #F0A24E;
+        --text: #EFF5FF;
+        --text-muted: rgba(239,245,255,0.6);
+        --hard: #E4574A;
+        --standard: #7EB0EE;
+        --rapport: #8FBF6B;
+        --special: #C79BEE;
+        --sticky: #CFE6A8;
+        --sticky-ink: #2C3B1E;
       }
 
       *, *::before, *::after {
@@ -30,26 +32,35 @@
       }
 
       body {
-        font-family: 'Inter', system-ui, sans-serif;
-        background-color: var(--bg);
-        color: var(--ink);
+        font-family: 'IBM Plex Mono', ui-monospace, monospace;
+        color: var(--text);
         margin: 0;
+        min-height: 100vh;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        background:
+          radial-gradient(ellipse at 50% 35%, var(--blue) 0%, var(--blue-deep) 85%),
+          repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 34px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 34px);
+        background-attachment: fixed;
       }
 
+      a { color: var(--amber); }
+      a:hover { color: var(--text); }
+
       ::-webkit-scrollbar {
-        width: 4px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
         background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: var(--hair);
+        background: rgba(255,255,255,0.15);
         border-radius: 2px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: var(--ink-muted);
+        background: rgba(255,255,255,0.28);
       }
 
       @keyframes fadeInUp {
@@ -74,6 +85,14 @@
       }
       .slide-in-right {
         animation: slide-in-right 0.2s ease-out forwards;
+      }
+
+      @keyframes stickyPulse {
+        0%, 100% { box-shadow: 3px 4px 10px rgba(0,0,0,0.3); }
+        50% { box-shadow: 0 0 0 4px rgba(240,162,78,0.85), 3px 4px 14px rgba(0,0,0,0.4); }
+      }
+      .sticky-pulse {
+        animation: stickyPulse 0.8s ease 2;
       }
     </style>
   </head>

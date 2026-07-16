@@ -94,7 +94,12 @@ class SessionRepository(BaseRepository):
         return self._doc_to_session(session_id, updated_doc.to_dict())
 
     async def list_by_user(self, user_id: str, limit: int = 50) -> list[Session]:
-        """List sessions for user, excluding deleted and abandoned sessions."""
+        """List sessions for user, excluding deleted sessions.
+
+        Abandoned sessions are included: a session is only marked COMPLETED when
+        the client explicitly requests an evaluation, so ordinary practice runs
+        that the user simply walked away from are abandoned but still real work.
+        """
         query = (
             self.collection.where("user_id", "==", user_id)
             .where("is_deleted", "==", False)
@@ -103,12 +108,7 @@ class SessionRepository(BaseRepository):
         )
 
         docs = await query.get()
-        # Filter out abandoned sessions
-        return [
-            self._doc_to_session(doc.id, doc.to_dict())
-            for doc in docs
-            if doc.to_dict().get("status") != SessionStatus.ABANDONED.value
-        ]
+        return [self._doc_to_session(doc.id, doc.to_dict()) for doc in docs]
 
     async def list_all_completed_by_user(self, user_id: str) -> list[Session]:
         """List all completed sessions for a user, sorted newest-first.
@@ -157,7 +157,6 @@ class SessionRepository(BaseRepository):
             self._doc_to_session(doc.id, doc.to_dict())
             for doc in docs
             if not doc.to_dict().get("is_deleted", False)
-            and doc.to_dict().get("status") != SessionStatus.ABANDONED.value
         ]
 
         # Apply session_type filter if provided
@@ -197,6 +196,7 @@ class SessionRepository(BaseRepository):
             grade=data.get("grade"),
             score=data.get("score"),
             message_count=data.get("message_count", 0),
+            hints_used=data.get("hints_used", []),
             created_at=data["created_at"],
             updated_at=data["updated_at"],
             is_deleted=data.get("is_deleted", False),

@@ -11,7 +11,7 @@ from uuid import uuid4
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.agents.personas import get_persona
-from app.agents.prompts import build_customer_prompt
+from app.agents.prompts import build_live_system_instruction
 from app.agents.state import CustomerAgentState, CustomerPersona
 from app.api.products import get_product_details
 from app.core.exceptions import (
@@ -24,7 +24,7 @@ from app.core.exceptions import (
 )
 from app.llm_providers.streaming import LLMStreamProvider
 from app.llm_providers.voices import resolve_voice
-from app.models.session import Difficulty, SessionCreate, SessionStatus, SessionType
+from app.models.session import Difficulty, SessionCreate, SessionHint, SessionStatus, SessionType
 from app.models.transcript import MessageRole, TranscriptMessage
 from app.services.auth_service import AuthService
 from app.services.coach_agent_service import CoachAgentService
@@ -32,6 +32,11 @@ from app.services.customer_agent_service import CustomerAgentService
 from app.services.session_service import SessionService
 
 logger = logging.getLogger(__name__)
+
+# Training sessions never send an explicit "evaluate" control (only assessment
+# mode does), so a disconnect is their only natural end signal. A session with
+# at least this many messages is real practice, not an abandoned false start.
+MIN_MESSAGES_FOR_TRAINING_COMPLETION = 4
 
 
 class GeminiWebSocketRelay:
@@ -88,6 +93,11 @@ class GeminiWebSocketRelay:
         self._min_hint_interval: float = 10.0  # 10 seconds minimum between hints
         self._coach_quota_exhausted: bool = False
         self._analysis_cache: dict[str, tuple[Any, Any, Any]] = {}  # Cache analysis results
+        # Log of hints actually sent to the client, for the archive's hints-used
+        # timeline. One relay instance lives for exactly one WS connection, so
+        # wall-clock-since-init is a fine proxy for "time since session start".
+        self._session_started_at: datetime = datetime.now(UTC)
+        self._hint_log: list[SessionHint] = []
 
     async def handle_connection(
         self,
@@ -737,7 +747,9 @@ class GeminiWebSocketRelay:
         """
         if not (self._persona and self._agent_state):
             return None
-        return build_customer_prompt(persona=self._persona, state=self._agent_state)
+        return build_live_system_instruction(
+            persona=self._persona, state=self._agent_state, provider_name=self.provider_name
+        )
 
     async def _process_agents(
         self,
@@ -1000,6 +1012,10 @@ class GeminiWebSocketRelay:
                     "ready_for_next_stage": hint.ready_for_next_stage,
                 }
             )
+            elapsed = int((datetime.now(UTC) - self._session_started_at).total_seconds())
+            self._hint_log.append(
+                SessionHint(t=f"{elapsed // 60:02d}:{elapsed % 60:02d}", hint=hint.hint)
+            )
             logger.info(
                 "Sent coach hint",
                 extra={
@@ -1089,6 +1105,10 @@ class GeminiWebSocketRelay:
                         "improvements": evaluation.improvements,
                         "techniques_detected": evaluation.techniques_detected,
                     },
+                    # Subject identity is withheld during evaluation mode (see
+                    # persona.py EvaluationPersonaResponse); grading is the
+                    # "declassification" moment, so the real name ships here.
+                    "persona_name": self._persona.name if self._persona else None,
                 }
             )
 
@@ -1119,12 +1139,19 @@ class GeminiWebSocketRelay:
         if self._agent_state:
             agent_state_snapshot = self.customer_agent_service.serialize_state(self._agent_state)
 
-        # Determine session status based on how conversation ended
-        status = (
-            SessionStatus.COMPLETED
-            if self._conversation_ended_naturally
-            else SessionStatus.ABANDONED
-        )
+        # Determine session status based on how conversation ended.
+        # Evaluation mode only ends "naturally" via the explicit evaluate
+        # control; training mode has no such signal, so a disconnect with
+        # enough real exchange still counts as a completed practice run.
+        if self._conversation_ended_naturally:
+            status = SessionStatus.COMPLETED
+        elif (
+            self._session_mode == SessionType.TRAINING
+            and len(self._message_buffer) >= MIN_MESSAGES_FOR_TRAINING_COMPLETION
+        ):
+            status = SessionStatus.COMPLETED
+        else:
+            status = SessionStatus.ABANDONED
 
         # Delegate to SessionService
         await self.session_service.end_session(
@@ -1132,6 +1159,7 @@ class GeminiWebSocketRelay:
             messages=self._message_buffer,
             status=status,
             agent_state_snapshot=agent_state_snapshot,
+            hints_used=self._hint_log,
         )
 
         logger.info(
@@ -1147,6 +1175,11 @@ class GeminiWebSocketRelay:
                     user_id=user_id,
                     state=self._agent_state,
                     session_mode=self._session_mode,
+                )
+                await self.session_service.record_evaluation_result(
+                    session_id=self._session_id,
+                    grade=evaluation.scorecard.grade.value,
+                    score=evaluation.scorecard.final_score,
                 )
                 logger.info(
                     f"Generated evaluation for session {self._session_id}: "

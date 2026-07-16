@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import VoiceSession from '@/components/VoiceSession';
 import { AppMode } from '@/types';
-import { AT } from '@/styles/tokens';
+import { VT } from '@/styles/voiceprint';
 
 const SessionPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,8 +17,7 @@ const SessionPage: React.FC = () => {
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: AT.bg, color: AT.ink,
-      fontFamily: AT.sans,
+      color: VT.text,
       overflow: 'hidden',
     }}>
       <VoiceSession mode={appMode} onBack={handleBack} />

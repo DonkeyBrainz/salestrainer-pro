@@ -2,7 +2,7 @@ import React from 'react';
 import { LogOut, Shield, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { AT } from '@/styles/tokens';
+import { VT } from '@/styles/voiceprint';
 import { getEnabledRoles } from '@/components/dashboard/DashboardChrome';
 
 // Admin user emails (same as backend)
@@ -14,13 +14,12 @@ function pillButtonStyle(accent: string): React.CSSProperties {
     alignItems: 'center',
     gap: 6,
     padding: '6px 12px',
-    borderRadius: 999,
-    background: accent + '18',
-    border: `1px solid ${accent}40`,
+    background: 'transparent',
+    border: `1px solid ${accent}66`,
     color: accent,
-    fontFamily: AT.mono,
+    fontFamily: VT.mono,
     fontSize: 11,
-    fontWeight: 600,
+    fontWeight: 500,
     letterSpacing: '0.08em',
     textTransform: 'uppercase',
     cursor: 'pointer',
@@ -52,13 +51,13 @@ const UserMenu: React.FC = () => {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       {hasManagerAccess && (
-        <button onClick={() => navigate('/team/manager')} style={pillButtonStyle(AT.sage)}>
+        <button onClick={() => navigate('/team/manager')} style={pillButtonStyle(VT.rapport)}>
           <Users size={14} />
           Team
         </button>
       )}
       {hasAdminAccess && (
-        <button onClick={() => navigate('/team/admin')} style={pillButtonStyle(AT.butter)}>
+        <button onClick={() => navigate('/team/admin')} style={pillButtonStyle(VT.amber)}>
           <Shield size={14} />
           Admin
         </button>
@@ -69,9 +68,8 @@ const UserMenu: React.FC = () => {
           alignItems: 'center',
           gap: 8,
           padding: '4px 12px 4px 4px',
-          borderRadius: 999,
-          background: AT.surface,
-          border: `1px solid ${AT.hair}`,
+          background: VT.bluePanel,
+          border: `1px solid ${VT.lineFaint}`,
         }}
       >
         <div
@@ -79,19 +77,20 @@ const UserMenu: React.FC = () => {
             width: 24,
             height: 24,
             borderRadius: '50%',
-            background: AT.terra,
-            color: AT.bg,
+            background: VT.amber,
+            color: '#1a1206',
             display: 'grid',
             placeItems: 'center',
             fontSize: 11,
             fontWeight: 700,
+            fontFamily: VT.oswald,
           }}
         >
           {userInitial}
         </div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: AT.ink }}>{user.name}</div>
+        <div style={{ fontSize: 13, fontFamily: VT.mono, color: VT.text }}>{user.name}</div>
       </div>
-      <button onClick={handleLogout} style={pillButtonStyle(AT.inkSoft)}>
+      <button onClick={handleLogout} style={pillButtonStyle(VT.textMuted)}>
         <LogOut size={14} />
         Sign Out
       </button>

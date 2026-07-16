@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from app.models.session import (
     Session,
     SessionCreate,
+    SessionHint,
     SessionStatus,
     SessionUpdate,
 )
@@ -46,6 +47,7 @@ class SessionService:
         messages: list[TranscriptMessage],
         status: SessionStatus = SessionStatus.COMPLETED,
         agent_state_snapshot: str | None = None,
+        hints_used: list[SessionHint] | None = None,
     ) -> None:
         """Update session with final stats and save transcript.
 
@@ -54,6 +56,8 @@ class SessionService:
             messages: Conversation messages to save as transcript.
             status: Final session status.
             agent_state_snapshot: Optional JSON serialized agent state.
+            hints_used: Coach hints actually sent to the client during the
+                session, for the archive's "hints used" timeline.
         """
         # Get session to calculate duration
         session = await self.session_repo.get_by_id(session_id)
@@ -71,6 +75,7 @@ class SessionService:
             duration=duration,
             message_count=len(messages),
             agent_state_snapshot=agent_state_snapshot,
+            hints_used=hints_used if hints_used is not None else [],
         )
         await self.session_repo.update(session_id, session_update)
 
@@ -81,6 +86,15 @@ class SessionService:
             messages=messages,
         )
         await self.transcript_repo.create(transcript_create)
+
+    async def record_evaluation_result(self, session_id: str, grade: str, score: float) -> None:
+        """Write the evaluation's grade/score back onto the session doc.
+
+        Archive list/detail endpoints join against the evaluation repository
+        at read time, but stats/streak queries (list_all_completed_by_user)
+        read the session doc directly — this keeps that path in sync too.
+        """
+        await self.session_repo.update(session_id, SessionUpdate(grade=grade, score=round(score)))
 
     async def get_session(self, session_id: str) -> Session | None:
         """Get session by ID."""

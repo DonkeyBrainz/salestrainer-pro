@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 
+from app.agents.personas import get_persona
 from app.core.dependencies import (
     CurrentUserDep,
     EvaluationRepositoryDep,
@@ -20,7 +21,15 @@ router = APIRouter(prefix="/api/v1/sessions")
 
 
 def _session_to_summary(session: "Session", has_evaluation: bool = False) -> SessionSummary:
-    """Convert Session model to SessionSummary."""
+    """Convert Session model to SessionSummary.
+
+    Sessions store the persona *id* (a stable slug); the archive display
+    needs the human name, so it's resolved here rather than in every caller.
+    Evaluation-mode identity redaction only applies to the *live* run — once
+    a session is filed, showing the real name is exactly what "declassified"
+    means.
+    """
+    persona = get_persona(session.selected_persona) if session.selected_persona else None
     return SessionSummary(
         session_id=session.session_id,
         session_type=session.session_type,
@@ -29,11 +38,13 @@ def _session_to_summary(session: "Session", has_evaluation: bool = False) -> Ses
         ended_at=session.ended_at,
         duration=session.duration,
         selected_persona=session.selected_persona,
+        persona_name=persona.name if persona else None,
         difficulty=session.difficulty,
         message_count=session.message_count,
         grade=session.grade,
         score=session.score,
         has_evaluation=has_evaluation,
+        hints_used=session.hints_used,
     )
 
 

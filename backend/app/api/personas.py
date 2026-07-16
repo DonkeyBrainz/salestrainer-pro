@@ -18,6 +18,7 @@ class PersonaResponse(BaseModel):
     looking_for: str
     difficulty: str
     property_id: str | None = None
+    objections: list[str] = []
 
 
 class EvaluationPersonaResponse(BaseModel):
@@ -55,6 +56,7 @@ def _persona_to_response(persona: CustomerPersona) -> PersonaResponse:
         looking_for=persona.looking_for,
         difficulty=persona.difficulty.value,
         property_id=persona.property_id if reveals_property else None,
+        objections=persona.objections,
     )
 
 

@@ -10,6 +10,8 @@ from app.agents.customer_agent import CustomerAgentGraph
 from app.agents.personas import ANXIOUS_FIRST_TIMER, OPTIMISTIC_RENOVATOR, WEALTHY_SKEPTIC
 from app.agents.prompts import (
     build_customer_prompt,
+    build_live_system_instruction,
+    flatten_for_speech,
     get_regard_description,
     get_timeline_description,
 )
@@ -135,6 +137,88 @@ class TestBuildCustomerPrompt:
 # =============================================================================
 # CustomerAgentGraph Node Tests
 # =============================================================================
+
+
+class TestFlattenForSpeech:
+    """Nova Sonic docs explicitly say to avoid visual formatting in prompts —
+    these lock in that the markdown gets stripped rather than just hidden."""
+
+    def test_strips_headers(self) -> None:
+        assert flatten_for_speech("## Your Background") == "Your Background."
+
+    def test_strips_bullets(self) -> None:
+        assert flatten_for_speech("- Item: a house") == "Item: a house."
+
+    def test_strips_numbered_list_markers(self) -> None:
+        assert flatten_for_speech("1. Stay in character") == "Stay in character."
+
+    def test_strips_bold(self) -> None:
+        assert flatten_for_speech("**Stay in Character**: never break") == (
+            "Stay in Character: never break."
+        )
+
+    def test_joins_multiple_lines_into_prose(self) -> None:
+        result = flatten_for_speech("## Heading\n- one\n- two")
+        assert "\n" not in result
+        assert result == "Heading. one. two."
+
+    def test_full_persona_prompt_has_no_markdown_markers(
+        self, sample_state: CustomerAgentState
+    ) -> None:
+        prompt = build_customer_prompt(persona=OPTIMISTIC_RENOVATOR, state=sample_state)
+        flattened = flatten_for_speech(prompt)
+        assert "#" not in flattened
+        assert "**" not in flattened
+        assert "\n" not in flattened
+
+
+class TestBuildLiveSystemInstruction:
+    """Nova needs extra role-anchoring beyond flatten_for_speech (AWS's own reference
+    prompt defaults to assistant-speak); other providers must be unaffected."""
+
+    def test_non_nova_providers_unchanged(self, sample_state: CustomerAgentState) -> None:
+        persona = sample_state["persona"]
+        expected = build_customer_prompt(persona=persona, state=sample_state)
+        assert build_live_system_instruction(persona, sample_state, "gemini") == expected
+        assert build_live_system_instruction(persona, sample_state, "openai") == expected
+
+    def test_nova_prompt_has_no_markdown_markers(self, sample_state: CustomerAgentState) -> None:
+        result = build_live_system_instruction(sample_state["persona"], sample_state, "nova")
+        assert "#" not in result
+        assert "**" not in result
+        assert "\n" not in result
+
+    def test_nova_role_guardrail_near_start(self, sample_state: CustomerAgentState) -> None:
+        result = build_live_system_instruction(sample_state["persona"], sample_state, "nova")
+        assert result.startswith("CRITICAL")
+        assert "how can i help you" in result.lower()
+
+    def test_nova_role_recap_near_end(self, sample_state: CustomerAgentState) -> None:
+        result = build_live_system_instruction(sample_state["persona"], sample_state, "nova")
+        assert result.rstrip().endswith("in short natural sentences.")
+
+    def test_reserved_disclosure_guardrail_present_for_low_regard(self) -> None:
+        state: CustomerAgentState = {
+            "messages": [],
+            "turn_count": 0,
+            "persona": WEALTHY_SKEPTIC,
+            "mood": Mood.NEUTRAL,
+            "regard_level": RegardLevel.LOW,
+            "objections_available": list(WEALTHY_SKEPTIC.objections),
+            "objections_raised": [],
+            "objections_resolved": [],
+            "stage_progress": CoreStageProgress(),
+            "session_id": "test-session",
+            "user_id": "test-user",
+        }
+        result = build_live_system_instruction(WEALTHY_SKEPTIC, state, "nova")
+        assert "do not state your" in result.lower()
+
+    def test_reserved_disclosure_guardrail_absent_for_high_regard(
+        self, sample_state: CustomerAgentState
+    ) -> None:
+        result = build_live_system_instruction(sample_state["persona"], sample_state, "nova")
+        assert "do not state your" not in result.lower()
 
 
 class TestAnalyzeInput:

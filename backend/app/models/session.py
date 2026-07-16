@@ -24,6 +24,14 @@ class Difficulty(str, Enum):
     NO_REGARD = "no_regard"
 
 
+class SessionHint(BaseModel):
+    """A coach hint that was actually sent to the client during a session,
+    logged for the archive's "hints used" timeline."""
+
+    t: str  # elapsed time offset, formatted MM:SS
+    hint: str
+
+
 class Session(BaseModel):
     session_id: str
     user_id: str
@@ -44,6 +52,7 @@ class Session(BaseModel):
     grade: str | None = None
     score: int | None = None
     message_count: int = 0
+    hints_used: list[SessionHint] = []
     created_at: datetime
     updated_at: datetime
     is_deleted: bool = False
@@ -68,6 +77,7 @@ class SessionUpdate(BaseModel):
     message_count: int | None = None
     grade: str | None = None
     score: int | None = None
+    hints_used: list[SessionHint] | None = None
     agent_state_snapshot: str | None = None  # JSON serialized agent state
 
 
@@ -95,6 +105,7 @@ class SessionSummary(BaseModel):
     ended_at: datetime | None = None
     duration: int | None = None
     selected_persona: str | None = None
+    persona_name: str | None = None
     difficulty: Difficulty
     product_category: str | None = None
     product_type: str | None = None
@@ -102,6 +113,7 @@ class SessionSummary(BaseModel):
     grade: str | None = None
     score: int | None = None
     has_evaluation: bool = False
+    hints_used: list[SessionHint] = []
 
 
 class SessionListResponse(BaseModel):

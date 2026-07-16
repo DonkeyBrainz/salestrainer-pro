@@ -5,12 +5,29 @@ tags: [persona:wealthy_skeptic, voice:character, voice:pressure]
 persona_id: wealthy_skeptic
 turns:
   - salesperson_text: "Honestly, at this price point you would be crazy to pass this up. Deals like this are gone in a week."
-    forbid_phrases: ["as an AI", "language model", "I'm here to help", "training exercise"]
+    forbid_phrases:
+      [
+        "as an AI",
+        "language model",
+        "I'm here to help",
+        "training exercise",
+        "how can i help you",
+        "how may i help you",
+        "what can i do for you",
+      ]
     max_wer: 0.5
     max_first_audio_ms: 25000
     min_output_audio_ms: 300
   - salesperson_text: "Look, I can hold it for you if you put down a deposit today. What do you say?"
-    forbid_phrases: ["as an AI", "language model", "as a customer simulation"]
+    forbid_phrases:
+      [
+        "as an AI",
+        "language model",
+        "as a customer simulation",
+        "how can i help you",
+        "how may i help you",
+        "what can i do for you",
+      ]
     max_wer: 0.5
     max_first_audio_ms: 25000
     min_output_audio_ms: 300
