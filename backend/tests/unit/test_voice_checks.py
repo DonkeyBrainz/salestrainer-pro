@@ -97,13 +97,13 @@ class TestForbidPhrases:
 class TestForbidRegex:
     def test_flags_forbidden(self) -> None:
         turn = _turn(response_text="Well, I'm looking at around $350,000 for this.")
-        result = check_no_forbidden_regex(
-            _trigger(forbid_regex=[r"\$\s?\d{2,3}[,]?\d{3}"]), turn
-        )
+        result = check_no_forbidden_regex(_trigger(forbid_regex=[r"\$\s?\d{2,3}[,]?\d{3}"]), turn)
         assert result is not None and not result.passed
 
     def test_passes_clean(self) -> None:
-        result = check_no_forbidden_regex(_trigger(forbid_regex=[r"\$\s?\d{2,3}[,]?\d{3}"]), _turn())
+        result = check_no_forbidden_regex(
+            _trigger(forbid_regex=[r"\$\s?\d{2,3}[,]?\d{3}"]), _turn()
+        )
         assert result is not None and result.passed
 
     def test_disabled_without_patterns(self) -> None:

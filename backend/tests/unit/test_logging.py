@@ -7,8 +7,13 @@ from app.core.logging import RedactSecretsFilter
 
 def _filtered_message(raw: str) -> str:
     record = logging.LogRecord(
-        name="test", level=logging.DEBUG, pathname=__file__, lineno=1,
-        msg=raw, args=(), exc_info=None,
+        name="test",
+        level=logging.DEBUG,
+        pathname=__file__,
+        lineno=1,
+        msg=raw,
+        args=(),
+        exc_info=None,
     )
     RedactSecretsFilter().filter(record)
     return record.getMessage()

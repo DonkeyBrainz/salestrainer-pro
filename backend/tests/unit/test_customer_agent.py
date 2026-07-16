@@ -195,9 +195,7 @@ class TestBuildLiveSystemInstruction:
 
     def test_nova_role_recap_near_end(self, sample_state: CustomerAgentState) -> None:
         result = build_live_system_instruction(sample_state["persona"], sample_state, "nova")
-        assert result.rstrip().endswith(
-            "in short natural sentences."
-        )
+        assert result.rstrip().endswith("in short natural sentences.")
 
     def test_reserved_disclosure_guardrail_present_for_low_regard(self) -> None:
         state: CustomerAgentState = {
