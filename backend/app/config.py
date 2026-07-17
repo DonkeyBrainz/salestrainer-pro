@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     )
 
     # Application
-    app_name: str = "Luxe Sales Coach API"
+    app_name: str = "SalesTrainer Pro API"
     app_version: str = "0.1.0"
     environment: Literal["development", "staging", "production"] = "development"
     debug: bool = False

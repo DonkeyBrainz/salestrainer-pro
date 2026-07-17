@@ -1,7 +1,7 @@
 """Coach analyzer using Gemini 2.0 Flash for LLM-based analysis.
 
 This module provides the CoachAnalyzer class that analyzes salesperson
-messages for E.A.S.Y. technique usage and provides coaching feedback.
+messages for C.O.R.E. technique usage and provides coaching feedback.
 """
 
 import logging
@@ -24,7 +24,7 @@ class CoachAnalyzer:
     """LLM-based analyzer for salesperson messages.
 
     Uses Gemini 2.5 Flash to analyze salesperson messages and detect
-    E.A.S.Y. selling techniques, deviations, and determine interventions.
+    C.O.R.E. selling techniques, deviations, and determine interventions.
     """
 
     def __init__(self, model: str | None = None, provider: LLMProvider | None = None) -> None:
@@ -47,7 +47,7 @@ class CoachAnalyzer:
         persona: CustomerPersona,
         stage_progress: CoreStageProgress,
     ) -> CoachAnalysis:
-        """Analyze a salesperson message for E.A.S.Y. technique usage.
+        """Analyze a salesperson message for C.O.R.E. technique usage.
 
         Args:
             salesperson_message: The message to analyze

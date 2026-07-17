@@ -1,1 +1,1 @@
-# Luxe Sales Coach Backend
+# SalesTrainer Pro Backend

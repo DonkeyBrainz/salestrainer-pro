@@ -81,8 +81,9 @@ per provider per run). New speech-to-speech providers register in
 `LIVE_PROVIDERS` (`app/llm_providers/registry.py`) and must emit the LiveEvent
 vocabulary in `app/llm_providers/streaming.py` (including the `usage` event).
 
-**Full documentation** — setup, what's tested and expected, baseline results,
-and the new-provider checklist: `documentation/VOICE_EVAL_BENCH.md`.
+This README is the reference for the harness. Deeper voice-bench notes (baseline
+results, latency budgets, per-provider quirks) live in the local, untracked
+`documentation/` vault.
 
 ## CI
 

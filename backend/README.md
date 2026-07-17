@@ -1,267 +1,65 @@
-# Backend: Luxe Sales Coach v2
+# Backend — SalesTrainer Pro
 
-FastAPI backend for real-time voice roleplay training using Gemini Live API.
+FastAPI (Python 3.13+, `uv`) backend for real-time speech-to-speech sales roleplay. Multi-provider live voice (Gemini / OpenAI Realtime / Nova Sonic), OAuth+JWT auth, Firestore persistence, LangGraph coach/customer agents, optional RAG, Langfuse tracing.
 
-## Getting Started
-
-### Prerequisites
-- Python 3.13+
-- uv package manager
-- Google Cloud Project with Gemini API key
-
-### Setup
+## Run
 
 ```bash
-cd backend
-uv sync
-cp .env.example .env
-# Edit .env with your credentials
+uv sync                                   # add --extra nova for Nova Sonic
+cp .env.example .env                      # fill secrets — source of truth is app/config.py
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-Backend runs on `http://localhost:8000`. Swagger docs available at `/docs`.
+Swagger at `/docs`. See root `CLAUDE.md` for the full command reference (test/lint/type-check).
 
 ## Architecture
 
-```
-Backend (FastAPI + Python 3.13)
-|
-├── API Routes
-|   ├── /auth/* - Google OAuth and session management
-|   ├── /api/v1/* - Core application endpoints
-|   ├── /ws/gemini/live - WebSocket for real-time voice
-|   └── /health - Health check
-|
-├── Core Components
-|   ├── Authentication
-|   |   ├── authService - OAuth flow, token management
-|   |   ├── tokenRepository - JWT token storage
-|   |   └── userRepository - User data persistence
-|   |
-|   ├── Voice Sessions
-|   |   ├── geminiService - Gemini Live API client
-|   |   ├── sessionService - Session lifecycle management
-|   |   ├── geminiRelay - WebSocket relay (audio streaming)
-|   |   └── sessionRepository - Session persistence
-|   |
-|   ├── Conversation Tracking
-|   |   ├── transcriptRepository - Transcript storage
-|   |   ├── customerAgentService - Customer persona simulation
-|   |   └── transcript models - Conversation data
-|   |
-|   └── Coaching & Evaluation
-|       ├── coachAgentService - Real-time hint generation
-|       ├── coachService (scorer, analyzer, hints)
-|       ├── evaluationService - Post-session scoring
-|       ├── evaluationRepository - Evaluation storage
-|       └── coach models - Evaluation data structures
-|
-├── Data & Configuration
-|   ├── /data/
-|   |   ├── easy_system.py - E.A.S.Y. selling methodology
-|   |   └── objections.py - Common sales objections
-|   ├── /agents/
-|   |   ├── coach/ - Coach agent (scorer, hints, prompts)
-|   |   └── customer/ - Customer agent (personas, behavior)
-|   └── models/ - Pydantic schemas for all domains
-|
-└── Infrastructure
-    ├── logging - Structured JSON logging
-    ├── exceptions - Custom error handling
-    ├── middleware - Request/response processing
-    ├── dependencies - FastAPI dependency injection
-    └── session - CSRF and session state management
+The client streams 16kHz PCM over `WS /ws/gemini/live`. The route resolves a live provider from `app/llm_providers/registry.py` (`LIVE_PROVIDERS`, gated by `Settings.live_provider_allowlist`), and `app/api/ws/gemini_relay.py` bridges the browser socket to the provider's bidirectional stream. In `training` mode the coach agent pushes turn-by-turn hints back down the same socket; `evaluation` mode is silent and scored post-session.
 
-Data Flow:
-  Client WebSocket -> Relay -> Gemini Live API -> Relay -> Client
-    ^                                                        |
-    |________ Real-time Coach Hints (via Coach Service) ___|
-```
+Live voice = one-shot persona prompt only. The LangGraph mood/analysis graph is analytics-only and never feeds the live persona — see `app/agents/`.
 
-## Key Features
+Key subsystems:
+- **`app/llm_providers/`** — provider adapters behind a registry. Live speech-to-speech: `gemini_live`, `openai_realtime`, `nova_sonic`. Text/ASR (eval + coach): `gemini`, `bedrock_text` (Nova/Voxtral via Bedrock Converse), `voxtral`, `nova`. Shared: `streaming.py` (LiveEvent vocabulary), `audio.py`, `voices.py`, `aws_credentials.py`.
+- **`app/agents/`** — `customer_agent.py` (persona graph, mood ladder, objection injection), `coach/` (`analyzer`, `scorer`, `hints`), `personas.py`, `prompts.py`, `state.py`.
+- **`app/services/`** — auth, session, customer/coach agent orchestration, `rag_service`, `objection_service`, org/user stats.
+- **`app/repositories/`** — Firestore data access (`base.py` + user/token/session/transcript/evaluation/store).
+- **`app/data/`** — `core_system.py` (C.O.R.E. = Connect, Observe, Recommend, Execute), `objections.py`.
+- **`app/core/`** — infra (exceptions, logging, middleware, DI, RBAC, session). See `core/README.md`.
 
-- **Google OAuth 2.0**: Secure authentication with JWT tokens
-- **Gemini Live API**: Real-time bidirectional audio streaming
-- **WebSocket Relay**: 30-minute session timeout, reconnection support
-- **Customer Personas**: 3 personas (Assistant, Executive, Skeptic) with difficulty levels
-- **Coach Agent**: Real-time hint generation and turn-by-turn analysis
-- **Session Evaluation**: Post-session scoring and E.A.S.Y. checklist verification
-- **Transcript Storage**: Full session transcripts via Firestore
-- **Error Handling**: Custom WebSocket close codes (4001-4005) for client handling
+## Routes
 
-## Development
-
-### Commands
-
-```bash
-uv sync                          # Install dependencies
-uv run uvicorn app.main:app --reload --port 8000  # Start dev server
-uv run pytest                    # Run all tests
-uv run pytest tests/unit/        # Unit tests only
-uv run pytest --cov=app          # With coverage
-uv run ruff check .              # Lint
-uv run ruff format .             # Format
-uv run mypy app/                 # Type check
-```
-
-### Project Structure
+Registered in `app/main.py`:
 
 ```
-backend/
-├── app/
-|   ├── api/                  # FastAPI routes
-|   |   ├── auth.py          # Authentication endpoints
-|   |   ├── gemini.py        # Gemini API proxy
-|   |   ├── health.py        # Health check
-|   |   ├── personas.py      # Persona data
-|   |   ├── websocket.py     # WebSocket router
-|   |   └── ws/
-|   |       └── gemini_relay.py   # Audio relay logic
-|   |
-|   ├── services/            # Business logic
-|   |   ├── auth_service.py
-|   |   ├── gemini_service.py
-|   |   ├── session_service.py
-|   |   ├── customer_agent_service.py
-|   |   └── coach_agent_service.py
-|   |
-|   ├── repositories/        # Database access
-|   |   ├── user_repository.py
-|   |   ├── token_repository.py
-|   |   ├── session_repository.py
-|   |   ├── transcript_repository.py
-|   |   └── evaluation_repository.py
-|   |
-|   ├── models/              # Pydantic schemas
-|   |   ├── user.py
-|   |   ├── auth.py
-|   |   ├── session.py
-|   |   ├── transcript.py
-|   |   ├── coach.py
-|   |   ├── evaluation.py
-|   |   └── gemini.py
-|   |
-|   ├── agents/              # Agent logic
-|   |   ├── coach/          # Coach agent (scorer, hints)
-|   |   ├── customer/       # Customer agent (personas)
-|   |   ├── prompts.py      # LLM prompts
-|   |   ├── state.py        # Conversation state
-|   |   └── personas.py     # Persona definitions
-|   |
-|   ├── data/               # Static data
-|   |   ├── easy_system.py  # E.A.S.Y. methodology
-|   |   └── objections.py   # Sales objections
-|   |
-|   ├── core/               # Infrastructure
-|   |   ├── logging.py      # Structured logging
-|   |   ├── exceptions.py   # Error definitions
-|   |   ├── middleware.py   # Request middleware
-|   |   ├── dependencies.py # FastAPI DI
-|   |   └── session.py      # Session management
-|   |
-|   ├── config.py           # Settings (pydantic-settings)
-|   └── main.py             # FastAPI app entry
-|
-├── tests/
-|   ├── unit/               # Unit tests
-|   ├── integration/        # Integration tests
-|   └── conftest.py        # Test fixtures
-|
-├── scripts/
-|   ├── verify_firestore.py # Firestore connectivity check
-|   └── test_gemini_idle_timeout.py # Performance testing
-|
-├── pyproject.toml         # Dependencies and tool config
-├── .env.example           # Environment variables template
-└── README.md              # This file
+/health                                   health
+/auth/*                                   Google OAuth + JWT (login/callback/refresh/me/logout)
+/api/v1/* (gemini)                        Gemini proxy
+/personas, /products, /sessions, /users   core resources
+/organizations, /admin                    org/admin (RBAC-gated, manager+)
+WS /ws/gemini/live?token=&mode=&provider= real-time voice
 ```
 
-## API Overview
+`mode` = `training` | `evaluation`. `provider` optional (`gemini` | `openai` | `nova`), defaults to `Settings.live_provider`.
 
-### Authentication
+## Errors
 
-```
-GET  /auth/login           # Redirect to Google OAuth
-POST /auth/login           # Get OAuth URL (SPA)
-GET  /auth/callback        # OAuth callback (browser)
-POST /auth/callback        # OAuth callback (SPA)
-POST /auth/refresh         # Refresh token
-GET  /auth/me              # Get current user
-POST /auth/logout          # Logout
+All handlers in `app/main.py`. Custom exceptions inherit `app.core.exceptions.AppError` (code + HTTP status + details) and serialize to:
+
+```json
+{ "error": { "code": "NOT_FOUND", "message": "...", "details": [], "requestId": "..." } }
 ```
 
-### Voice Sessions
+WebSocket failures use custom close codes (4001–4005).
 
-```
-WebSocket /ws/gemini/live  # Real-time audio streaming
-  ?token=<jwt>             # Authentication via query param
-  &mode=training|evaluation # Session mode
-```
+## Tracing
 
-### Data & Evaluation
-
-```
-GET  /api/v1/personas       # List available personas
-POST /api/v1/sessions       # Create session
-GET  /api/v1/sessions/:id   # Get session details
-POST /api/v1/evaluate       # Generate evaluation
-```
-
-## Testing
-
-434 tests with 90%+ coverage:
-- Auth: 100% coverage
-- Gemini API: 100% coverage
-- WebSocket relay: 16 unit + 9 integration tests
-- Session management: 29 tests
-- Coach agent: 60+ tests (scorer, hints, evaluation)
-- Customer agent: 40+ tests (personas, behavior)
-
-Run tests:
-
-```bash
-uv run pytest                  # All tests
-uv run pytest -k coach         # Coach agent tests only
-uv run pytest --cov=app        # With coverage report
-```
-
-## Environment Variables
-
-See `.env.example` for full list. Required:
-
-```
-GEMINI_API_KEY             # Google AI API key
-GOOGLE_CLIENT_ID           # OAuth client ID
-GOOGLE_CLIENT_SECRET       # OAuth client secret
-FIREBASE_PROJECT_ID        # Firestore project
-FIREBASE_PRIVATE_KEY       # Service account key
-FIREBASE_CLIENT_EMAIL      # Service account email
-```
+Langfuse wraps `GeminiProvider._generate`. `get_settings()` mirrors `LANGFUSE_*` from Settings into `os.environ` (the SDK reads env directly). Init failure is non-fatal — the app runs untraced.
 
 ## Deployment
 
-Build Docker image:
-
 ```bash
-docker build -t luxe-sales-coach-backend .
-docker run -p 8000:8000 --env-file .env luxe-sales-coach-backend
+docker build -t salestrainer-backend .
+docker run -p 8000:8000 --env-file .env salestrainer-backend
 ```
 
-Or use docker-compose:
-
-```bash
-docker-compose up
-```
-
-## Code Style
-
-- **Linting**: ruff (line-length: 100)
-- **Formatting**: ruff format
-- **Type Checking**: mypy (strict mode)
-- **Testing**: pytest with 80%+ coverage requirement
-
-Run all checks:
-
-```bash
-uv run ruff check . && uv run ruff format . && uv run mypy app/ && uv run pytest
-```
+Production runs `LIVE_PROVIDER=nova` for latency (needs `uv sync --extra nova` + AWS creds with `bedrock:InvokeModel*`). Provider trade-offs are benched by the voice eval suite — see `evals/README.md`.
