@@ -54,6 +54,24 @@ resource "google_secret_manager_secret_iam_member" "backend_jwt" {
   member    = "serviceAccount:${google_service_account.backend.email}"
 }
 
+resource "google_secret_manager_secret_iam_member" "backend_langfuse" {
+  secret_id = google_secret_manager_secret.langfuse_secret_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_aws_bedrock_access_key_id" {
+  secret_id = google_secret_manager_secret.aws_bedrock_access_key_id.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "backend_aws_bedrock_secret_access_key" {
+  secret_id = google_secret_manager_secret.aws_bedrock_secret_access_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend.email}"
+}
+
 # ---------------------------------------------------------------------------
 # Cloud Build SA permissions
 # ---------------------------------------------------------------------------

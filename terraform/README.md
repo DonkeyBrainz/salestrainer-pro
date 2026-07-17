@@ -38,7 +38,7 @@ Terraform creates the containers; **values (versions) are populated manually** a
 echo -n "VALUE" | gcloud secrets versions add SECRET_NAME --data-file=-
 ```
 
-Backend-consumed secrets: `gemini-api-key`, `jwt-secret-key`, `google-oauth-client-id`, `google-oauth-client-secret`. (CI also wires additional secrets not defined here — `aws-bedrock-*` for Nova, `langfuse-secret-key`.) The backend SA gets `secretAccessor` on each.
+Backend-consumed secrets: `gemini-api-key`, `jwt-secret-key`, `google-oauth-client-id`, `google-oauth-client-secret`, `langfuse-secret-key`, `aws-bedrock-access-key-id`, `aws-bedrock-secret-access-key`. The backend SA gets `secretAccessor` on each. The langfuse/aws-bedrock containers were created out of band before being codified — `terraform import` them before any apply (see the note in `secrets.tf`).
 
 ## Firestore
 
