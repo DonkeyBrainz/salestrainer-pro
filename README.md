@@ -15,3 +15,4 @@ Universal sales-training platform for real-time voice roleplay against AI custom
 # The Voiceprint direction — design walkthrough
 
 ![The Voiceprint direction — design walkthrough](screenshots/readme/design-note.png)
+
