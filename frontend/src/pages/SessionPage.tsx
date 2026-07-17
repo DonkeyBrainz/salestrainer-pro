@@ -16,9 +16,8 @@ const SessionPage: React.FC = () => {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      minHeight: '100vh',
       color: VT.text,
-      overflow: 'hidden',
     }}>
       <VoiceSession mode={appMode} onBack={handleBack} />
     </div>

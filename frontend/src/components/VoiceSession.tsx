@@ -308,7 +308,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
 
   if (showPersonaSelector) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ minHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column' }}>
         <PersonaSelector onSelect={handlePersonaSelect} onCancel={handlePersonaCancel} />
       </div>
     );
@@ -316,7 +316,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
 
   if (showPersonaLoading) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center' }}>
           <Loader2 style={{ width: 32, height: 32, color: VT.amber, margin: '0 auto 16px', animation: 'spin 1s linear infinite' }} />
           <p style={{ fontFamily: VT.mono, fontSize: 12, color: VT.textMuted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
@@ -329,7 +329,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
 
   if (showPersonaFetchError) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ minHeight: '100vh', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div style={{ textAlign: 'center', maxWidth: 420 }}>
           <AlertCircle style={{ width: 48, height: 48, color: VT.hard, margin: '0 auto 16px' }} />
           <h3 style={{ fontFamily: VT.anton, fontSize: 22, color: VT.text, marginBottom: 8 }}>Unable to load evaluation</h3>
@@ -345,7 +345,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
 
   if (showResults && evaluationResult) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '40px 40px 26px' }}>
+      <div style={{ minHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column', padding: '40px 40px 26px' }}>
         <ReportCard
           evaluation={evaluationResult}
           personaName={evaluationResult.persona_name ?? 'the subject'}
@@ -363,7 +363,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
   const transcriptQuote = currentInput || messages[messages.length - 1]?.text || '';
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: '40px 40px 26px' }}>
+    <div style={{ minHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column', padding: '40px 40px 26px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <NavTag lobby onClick={handleBack}>◂ Customers</NavTag>
