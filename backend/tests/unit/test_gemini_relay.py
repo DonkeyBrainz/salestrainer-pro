@@ -6,7 +6,7 @@ Covers the hardening fixes from AGENTIC_ENGINEERING.md §9:
 - Stage-scoped analysis cache key (fix 3)
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -283,3 +283,141 @@ class TestSendMoodUpdate:
         await relay._send_mood_update(websocket)
 
         websocket.send_json.assert_not_awaited()
+
+
+class TestVoiceTurnObservability:
+    """Tests for the customer-voice-turn Langfuse generation (live-voice tracing)."""
+
+    def test_full_turn_updates_and_ends_generation(self, relay: GeminiWebSocketRelay) -> None:
+        """A turn's accumulated transcripts and usage land on one generation."""
+        mock_generation = MagicMock()
+        mock_client = MagicMock()
+        mock_client.start_observation.return_value = mock_generation
+
+        with patch("app.api.ws.gemini_relay.get_client", return_value=mock_client):
+            relay._ensure_turn_observation("user-1")
+            relay._ensure_turn_observation("user-1")  # lazy-open: second call is a no-op
+
+        assert mock_client.start_observation.call_count == 1
+        _, kwargs = mock_client.start_observation.call_args
+        assert kwargs["as_type"] == "generation"
+        assert kwargs["name"] == "customer-voice-turn"
+        assert kwargs["model"] == relay._live_model
+
+        relay._pending_user_transcription = "What's your budget?"
+        relay._pending_assistant_transcription = "Around 450 to 500."
+        relay._pending_usage = {"prompt_tokens": 120, "completion_tokens": 40, "total_tokens": 160}
+
+        relay._finish_turn_observation()
+
+        mock_generation.update.assert_called_once()
+        _, update_kwargs = mock_generation.update.call_args
+        assert update_kwargs["input"] == "What's your budget?"
+        assert update_kwargs["output"] == "Around 450 to 500."
+        assert update_kwargs["usage_details"] == {"input": 120, "output": 40, "total": 160}
+        mock_generation.end.assert_called_once()
+
+        # Per-turn state is reset so the next turn starts clean
+        assert relay._turn_generation is None
+        assert relay._pending_usage is None
+        assert relay._turn_first_audio_at is None
+
+    def test_input_falls_back_to_last_text_input(self, relay: GeminiWebSocketRelay) -> None:
+        """Typed turns have no input_transcription event; the typed text is used instead."""
+        mock_generation = MagicMock()
+        mock_client = MagicMock()
+        mock_client.start_observation.return_value = mock_generation
+
+        with patch("app.api.ws.gemini_relay.get_client", return_value=mock_client):
+            relay._ensure_turn_observation("user-1")
+
+        relay._last_text_input = "typed message"
+        relay._finish_turn_observation()
+
+        _, update_kwargs = mock_generation.update.call_args
+        assert update_kwargs["input"] == "typed message"
+
+    def test_cumulative_usage_reported_as_per_turn_delta(self, relay: GeminiWebSocketRelay) -> None:
+        """Gemini/Nova report cumulative session totals; Langfuse gets the per-turn delta."""
+        mock_generation_1 = MagicMock()
+        mock_generation_2 = MagicMock()
+        mock_client = MagicMock()
+        mock_client.start_observation.side_effect = [mock_generation_1, mock_generation_2]
+
+        assert (
+            relay.provider_name == "gemini"
+        )  # fixture's live_provider.name; a cumulative provider
+
+        with patch("app.api.ws.gemini_relay.get_client", return_value=mock_client):
+            relay._ensure_turn_observation("user-1")
+            relay._pending_usage = {
+                "prompt_tokens": 100,
+                "completion_tokens": 30,
+                "total_tokens": 130,
+            }
+            relay._finish_turn_observation()
+
+            relay._ensure_turn_observation("user-1")
+            relay._pending_usage = {
+                "prompt_tokens": 260,
+                "completion_tokens": 70,
+                "total_tokens": 330,
+            }  # cumulative session total, not this turn's usage alone
+            relay._finish_turn_observation()
+
+        _, kwargs1 = mock_generation_1.update.call_args
+        assert kwargs1["usage_details"] == {"input": 100, "output": 30, "total": 130}
+
+        _, kwargs2 = mock_generation_2.update.call_args
+        assert kwargs2["usage_details"] == {"input": 160, "output": 40, "total": 200}
+
+    def test_usage_baseline_updates_without_open_generation(
+        self, relay: GeminiWebSocketRelay
+    ) -> None:
+        """The delta baseline stays correct even on turns with no Langfuse generation."""
+        relay._pending_usage = {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120}
+
+        relay._finish_turn_observation()
+
+        assert relay._usage_baseline == {
+            "prompt_tokens": 100,
+            "completion_tokens": 20,
+            "total_tokens": 120,
+        }
+
+    def test_no_observation_without_session_id(self, relay: GeminiWebSocketRelay) -> None:
+        """No session means nothing to correlate the trace to — skip entirely."""
+        relay._session_id = None
+        mock_client = MagicMock()
+
+        with patch("app.api.ws.gemini_relay.get_client", return_value=mock_client):
+            relay._ensure_turn_observation("user-1")
+
+        mock_client.start_observation.assert_not_called()
+
+    def test_start_observation_failure_is_non_fatal(self, relay: GeminiWebSocketRelay) -> None:
+        """A Langfuse outage on turn-open must not interrupt the voice session."""
+        mock_client = MagicMock()
+        mock_client.start_observation.side_effect = RuntimeError("langfuse down")
+
+        with patch("app.api.ws.gemini_relay.get_client", return_value=mock_client):
+            relay._ensure_turn_observation("user-1")  # must not raise
+
+        assert relay._turn_generation is None
+
+    def test_update_failure_is_non_fatal_and_resets_state(
+        self, relay: GeminiWebSocketRelay
+    ) -> None:
+        """A Langfuse outage on turn-close must not interrupt the voice session."""
+        mock_generation = MagicMock()
+        mock_generation.update.side_effect = RuntimeError("network blip")
+        mock_client = MagicMock()
+        mock_client.start_observation.return_value = mock_generation
+
+        with patch("app.api.ws.gemini_relay.get_client", return_value=mock_client):
+            relay._ensure_turn_observation("user-1")
+            relay._pending_usage = {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2}
+            relay._finish_turn_observation()  # must not raise
+
+        assert relay._turn_generation is None
+        assert relay._pending_usage is None
