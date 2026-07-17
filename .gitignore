@@ -58,6 +58,8 @@ CLAUDE.md
 # Stray local analysis/status files — not part of the app
 /backend/lriggs_analysis.txt
 /backend/lriggs_analysis_corrected.txt
+/backend/sales_mode_violations.txt
+/backend/volunteer_analysis.txt
 /429_ERROR_ANALYSIS.md
 /CLEANUP_EVALUATION_COMPLETE.md
 /CORE_MIGRATION_PLAN.md

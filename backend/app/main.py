@@ -89,7 +89,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Backend API for Luxe Sales Coach v2 - Voice-enabled AI sales training",
+    description="Backend API for SalesTrainer Pro - Voice-enabled AI sales training",
     lifespan=lifespan,
     docs_url="/docs" if not settings.is_production else None,
     redoc_url="/redoc" if not settings.is_production else None,

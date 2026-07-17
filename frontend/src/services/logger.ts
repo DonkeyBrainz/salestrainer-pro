@@ -138,7 +138,7 @@ export const useLogs = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `luxe_logs_${new Date().toISOString()}.json`;
+        a.download = `salestrainer_logs_${new Date().toISOString()}.json`;
         a.click();
     }
   };

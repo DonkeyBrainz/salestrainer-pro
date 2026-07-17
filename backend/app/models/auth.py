@@ -1,4 +1,4 @@
-"""Authentication models for the Luxe Sales Coach API."""
+"""Authentication models for the SalesTrainer Pro API."""
 
 from datetime import datetime
 from typing import Literal

@@ -1,7 +1,7 @@
 """Coach agent package for real-time sales coaching and evaluation.
 
 The coach agent observes sales training sessions and provides:
-- Real-time technique detection (E.A.S.Y. method analysis)
+- Real-time technique detection (C.O.R.E. method analysis)
 - Stage progression tracking
 - Intervention hints (Training mode) or silent observation (Evaluation mode)
 - Post-session scoring and feedback
