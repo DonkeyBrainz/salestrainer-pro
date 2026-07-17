@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from langfuse import get_client
 from pydantic import ValidationError as PydanticValidationError
 
 from app.api.admin import router as admin_router
@@ -55,6 +56,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     init_objection_service()
     logger.info("Objection service initialized")
 
+    # Initialize Langfuse tracing (skipped when keys are unavailable)
+    try:
+        langfuse = get_client()
+        if langfuse.auth_check():
+            logger.info("Langfuse tracing initialized")
+        else:
+            logger.warning("Langfuse auth check failed — traces will not be sent")
+    except Exception as e:
+        logger.warning(
+            "Langfuse initialization failed — running without tracing", extra={"error": str(e)}
+        )
+
     # Initialize RAG service if enabled (skipped when GCP credentials are unavailable)
     if settings.rag_enabled:
         try:
@@ -70,6 +83,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     yield
     # Shutdown
     logger.info("Application shutting down")
+    get_client().flush()
 
 
 app = FastAPI(

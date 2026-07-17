@@ -9,6 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import WebSocket, WebSocketDisconnect
+from langfuse import get_client, propagate_attributes
 
 from app.agents.personas import get_persona
 from app.agents.prompts import build_live_system_instruction
@@ -512,6 +513,7 @@ class GeminiWebSocketRelay:
                             await self._process_agents(
                                 salesperson_message=content,
                                 websocket=websocket,
+                                user_id=user_id,
                             )
 
                         elif msg_type == "control":
@@ -687,6 +689,7 @@ class GeminiWebSocketRelay:
                         await self._process_agents(
                             salesperson_message=user_text,
                             websocket=websocket,
+                            user_id=user_id,
                         )
 
                         self._pending_user_transcription = ""
@@ -755,6 +758,7 @@ class GeminiWebSocketRelay:
         self,
         salesperson_message: str,
         websocket: WebSocket,
+        user_id: str,
     ) -> None:
         """Run customer-agent state update and coach analysis for a completed turn.
 
@@ -762,13 +766,36 @@ class GeminiWebSocketRelay:
         prevent coach analysis (and vice versa). Both degrade non-fatally while the
         voice session continues.
 
+        Wraps both agents in a Langfuse span so every Gemini generation this turn
+        produces (persona response, coach analysis) is grouped under one session
+        in the Langfuse UI.
+
         Args:
             salesperson_message: The salesperson's completed message
             websocket: WebSocket connection for sending coach events
+            user_id: Salesperson's user ID, for Langfuse session grouping
         """
         if not (self._agent_state and self._session_id):
             return
 
+        langfuse = get_client()
+        with (
+            langfuse.start_as_current_observation(as_type="span", name="sales-training-turn"),
+            propagate_attributes(
+                session_id=self._session_id,
+                user_id=user_id,
+                tags=[self.provider_name, self._session_mode.value],
+            ),
+        ):
+            await self._run_agents(salesperson_message, websocket)
+
+    async def _run_agents(
+        self,
+        salesperson_message: str,
+        websocket: WebSocket,
+    ) -> None:
+        """Body of ``_process_agents``, run inside its Langfuse span."""
+        assert self._agent_state and self._session_id
         try:
             # Preserve coach-maintained stage_progress across
             # LangGraph invocation (graph doesn't manage this field)

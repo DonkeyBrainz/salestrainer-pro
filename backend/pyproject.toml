@@ -26,6 +26,8 @@ dependencies = [
     "websockets>=15.0",
     # AWS SDK (for Bedrock/Nova credential resolution via standard credential chain)
     "boto3>=1.28.0",
+    # LLM observability / tracing
+    "langfuse>=4.14.0",
 ]
 
 [project.optional-dependencies]

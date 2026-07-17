@@ -91,7 +91,7 @@ class TestProcessAgents:
         )
         relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
 
-        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket, user_id="user-1")
 
         relay._analyze_and_send_hint.assert_awaited_once()
 
@@ -107,7 +107,7 @@ class TestProcessAgents:
             side_effect=RuntimeError("coach exploded")
         )
 
-        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket, user_id="user-1")
 
     async def test_skips_response_generation_in_voice_mode(
         self,
@@ -119,7 +119,7 @@ class TestProcessAgents:
         relay.customer_agent_service.process_message = AsyncMock(return_value=("", agent_state))
         relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
 
-        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket, user_id="user-1")
 
         call_kwargs = relay.customer_agent_service.process_message.call_args.kwargs
         assert call_kwargs["generate_response"] is False
@@ -132,7 +132,7 @@ class TestProcessAgents:
         relay.customer_agent_service.process_message = AsyncMock()
         relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
 
-        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket, user_id="user-1")
 
         relay.customer_agent_service.process_message.assert_not_awaited()
         relay._analyze_and_send_hint.assert_not_awaited()
@@ -154,7 +154,7 @@ class TestProcessAgents:
         relay.customer_agent_service.process_message = AsyncMock(return_value=("", returned_state))
         relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
 
-        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket, user_id="user-1")
 
         assert relay._agent_state["stage_progress"] is coach_progress
 
@@ -238,7 +238,7 @@ class TestSendMoodUpdate:
         relay.customer_agent_service.process_message = AsyncMock(return_value=(None, updated))
         relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
 
-        await relay._process_agents(salesperson_message="What's your budget?", websocket=websocket)
+        await relay._process_agents(salesperson_message="What's your budget?", websocket=websocket, user_id="user-1")
 
         mood_events = [
             call.args[0]
@@ -254,7 +254,7 @@ class TestSendMoodUpdate:
         relay.customer_agent_service.process_message = AsyncMock(side_effect=RuntimeError("boom"))
         relay._analyze_and_send_hint = AsyncMock()  # type: ignore[method-assign]
 
-        await relay._process_agents(salesperson_message="Hello!", websocket=websocket)
+        await relay._process_agents(salesperson_message="Hello!", websocket=websocket, user_id="user-1")
 
         assert not [
             c for c in websocket.send_json.call_args_list if c.args[0]["type"] == "mood_update"

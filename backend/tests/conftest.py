@@ -16,6 +16,13 @@ os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 # since websocket tests build a real provider client via get_live_provider()
 # and only mock GeminiService, not the AWS/Bedrock SDK.
 os.environ.setdefault("LIVE_PROVIDER", "gemini")
+# Dummy Langfuse keys + tracing disabled: a missing public_key logs a warning
+# at client-init time regardless of the tracing_enabled flag, which pollutes
+# caplog-based assertions; tracing_enabled=false additionally guarantees no
+# network export attempts happen during tests.
+os.environ.setdefault("LANGFUSE_PUBLIC_KEY", "pk-lf-test-dummy")
+os.environ.setdefault("LANGFUSE_SECRET_KEY", "sk-lf-test-dummy")
+os.environ.setdefault("LANGFUSE_TRACING_ENABLED", "false")
 
 from app.main import app  # noqa: E402
 
