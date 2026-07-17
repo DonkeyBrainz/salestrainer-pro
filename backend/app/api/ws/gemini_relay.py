@@ -9,11 +9,13 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import WebSocket, WebSocketDisconnect
+from langfuse import get_client, propagate_attributes
 
 from app.agents.personas import get_persona
 from app.agents.prompts import build_live_system_instruction
 from app.agents.state import CustomerAgentState, CustomerPersona
 from app.api.products import get_product_details
+from app.config import get_settings
 from app.core.exceptions import (
     InternalError,
     InvalidRequestError,
@@ -37,6 +39,13 @@ logger = logging.getLogger(__name__)
 # mode does), so a disconnect is their only natural end signal. A session with
 # at least this many messages is real practice, not an abandoned false start.
 MIN_MESSAGES_FOR_TRAINING_COMPLETION = 4
+
+# Providers that report cumulative session-total token usage rather than
+# per-response usage (verify per provider on a live smoke run — see
+# evals/runners/voice_runner.py:_accumulate_usage for the same distinction).
+# Per-turn Langfuse usage is derived as a delta against the previous snapshot
+# for these; other providers' usage events are used as-is.
+_CUMULATIVE_USAGE_PROVIDERS = frozenset({"gemini", "nova"})
 
 
 class GeminiWebSocketRelay:
@@ -69,6 +78,13 @@ class GeminiWebSocketRelay:
         self.session_service = session_service
         self.customer_agent_service = customer_agent_service
         self.coach_agent_service = coach_agent_service
+        settings = get_settings()
+        live_model_by_provider = {
+            "gemini": settings.gemini_live_model,
+            "nova": settings.nova_sonic_model,
+            "openai": settings.openai_realtime_model,
+        }
+        self._live_model: str = live_model_by_provider.get(self.provider_name, self.provider_name)
         self._message_buffer: list[TranscriptMessage] = []
         self._session_id: str | None = None
         self._agent_state: CustomerAgentState | None = None
@@ -80,6 +96,14 @@ class GeminiWebSocketRelay:
         # Accumulate transcription chunks for consolidated Firestore storage
         self._pending_user_transcription: str = ""
         self._pending_assistant_transcription: str = ""
+        # Per-turn Langfuse voice observation (lazily opened on the first
+        # mid-turn event, closed and reset in the "end" branch)
+        self._turn_generation: Any | None = None
+        self._turn_first_audio_at: datetime | None = None
+        self._pending_usage: dict[str, int] | None = None
+        self._pending_usage_detail: dict[str, Any] | None = None
+        self._usage_baseline: dict[str, int] | None = None
+        self._last_text_input: str | None = None
         # Session resumption state
         self._enable_resumption: bool = enable_resumption
         self._resumption_handle: str | None = None
@@ -285,6 +309,12 @@ class GeminiWebSocketRelay:
                 pass
 
         finally:
+            # Defensively close a turn generation left dangling by a mid-turn
+            # disconnect or unhandled error (normal turns are already closed
+            # by _finish_turn_observation in the "end" branch).
+            if self._turn_generation is not None:
+                self._finish_turn_observation()
+
             # Resolve the session-create task if a Gemini connection failure (or
             # other error) happened before _run_with_reconnection reached it, so
             # the background write isn't left unawaited.
@@ -350,6 +380,13 @@ class GeminiWebSocketRelay:
                         "Rebuilt system instruction on reconnect",
                         extra={"session_id": self._session_id},
                     )
+                # Defensively close any turn generation left dangling by the
+                # disconnect that triggered this reconnect (using the old
+                # session's usage baseline), then reset the baseline — the
+                # new live session's cumulative usage counters start over.
+                if self._turn_generation is not None:
+                    self._finish_turn_observation()
+                self._usage_baseline = None
 
             try:
                 # Only pass resumption handle if resumption is enabled
@@ -502,6 +539,10 @@ class GeminiWebSocketRelay:
                             # Text input
                             content = data.get("content", "")
                             await live_session.send_text(content)
+                            # Typed turns produce no input_transcription event, so
+                            # stash the text here as the Langfuse turn's input
+                            # fallback (used by _finish_turn_observation).
+                            self._last_text_input = content
                             # Buffer user message
                             self._buffer_message(
                                 role=MessageRole.USER,
@@ -512,6 +553,7 @@ class GeminiWebSocketRelay:
                             await self._process_agents(
                                 salesperson_message=content,
                                 websocket=websocket,
+                                user_id=user_id,
                             )
 
                         elif msg_type == "control":
@@ -631,6 +673,9 @@ class GeminiWebSocketRelay:
 
                 # Audio - relay to client
                 if resp_type == "audio" and response["audio_data"]:
+                    self._ensure_turn_observation(user_id)
+                    if self._turn_first_audio_at is None:
+                        self._turn_first_audio_at = datetime.now(UTC)
                     await websocket.send_bytes(response["audio_data"])
                     logger.debug(
                         f"Relayed {len(response['audio_data'])} bytes to client (user_id={user_id})"
@@ -638,12 +683,14 @@ class GeminiWebSocketRelay:
 
                 # Internal reasoning (from model_turn.parts[].text)
                 elif resp_type == "internal_reasoning" and response["text"]:
+                    self._ensure_turn_observation(user_id)
                     # Store reasoning, don't buffer yet - wait for output_transcription
                     self._pending_reasoning = response["text"]
                     logger.debug(f"Received internal reasoning (user_id={user_id})")
 
                 # Input transcription (salesperson's speech)
                 elif resp_type == "input_transcription" and response["text"]:
+                    self._ensure_turn_observation(user_id)
                     chunk = response["text"]
 
                     # Accumulate for consolidated Firestore storage
@@ -659,6 +706,7 @@ class GeminiWebSocketRelay:
 
                 # Output transcription (customer agent's speech)
                 elif resp_type == "output_transcription" and response["text"]:
+                    self._ensure_turn_observation(user_id)
                     chunk = response["text"]
 
                     # Accumulate for consolidated Firestore storage
@@ -672,8 +720,16 @@ class GeminiWebSocketRelay:
                         }
                     )
 
+                # Token usage for the in-progress turn (last report wins, mirroring
+                # the eval harness's voice_runner._TurnCapture.absorb)
+                elif resp_type == "usage" and response.get("usage"):
+                    self._pending_usage = dict(response["usage"])
+                    self._pending_usage_detail = response.get("detail")
+
                 # Turn complete - flush accumulated transcriptions
                 elif resp_type == "end":
+                    self._finish_turn_observation()
+
                     # Flush user transcription
                     if self._pending_user_transcription:
                         user_text = self._pending_user_transcription.strip()
@@ -687,6 +743,7 @@ class GeminiWebSocketRelay:
                         await self._process_agents(
                             salesperson_message=user_text,
                             websocket=websocket,
+                            user_id=user_id,
                         )
 
                         self._pending_user_transcription = ""
@@ -751,10 +808,91 @@ class GeminiWebSocketRelay:
             persona=self._persona, state=self._agent_state, provider_name=self.provider_name
         )
 
+    def _ensure_turn_observation(self, user_id: str) -> None:
+        """Lazily open a Langfuse generation for the in-progress voice turn.
+
+        Called from every mid-turn event branch so the observation captures
+        whichever event happens to arrive first (audio, transcription, or
+        reasoning) without assuming a fixed event ordering across providers.
+        Non-fatal: a Langfuse outage must never interrupt the voice session.
+        """
+        if self._turn_generation is not None or not self._session_id:
+            return
+        try:
+            with propagate_attributes(
+                session_id=self._session_id,
+                user_id=user_id,
+                tags=[self.provider_name, self._session_mode.value],
+            ):
+                self._turn_generation = get_client().start_observation(
+                    as_type="generation",
+                    name="customer-voice-turn",
+                    model=self._live_model,
+                )
+        except Exception as e:
+            logger.warning(f"Failed to start voice-turn Langfuse generation: {e}")
+
+    def _finish_turn_observation(self) -> None:
+        """Close out the current turn's Langfuse generation, if one is open.
+
+        Reads accumulated transcripts before the "end" branch clears them,
+        and converts cumulative-session usage counters (Gemini, Nova) into a
+        per-turn delta against the previous snapshot so multi-turn sessions
+        don't report ever-growing totals on every turn. The baseline is kept
+        up to date even when no generation is open, so usage deltas stay
+        correct across turns that happen not to produce Langfuse output.
+        """
+        raw_usage = self._pending_usage
+        turn_usage: dict[str, int] | None
+        if self.provider_name in _CUMULATIVE_USAGE_PROVIDERS:
+            if raw_usage is not None:
+                baseline = self._usage_baseline or {}
+                turn_usage = {
+                    key: max(value - baseline.get(key, 0), 0) for key, value in raw_usage.items()
+                }
+                self._usage_baseline = raw_usage
+            else:
+                turn_usage = None
+        else:
+            turn_usage = raw_usage
+
+        generation = self._turn_generation
+        if generation is not None:
+            try:
+                usage_details = (
+                    {
+                        "input": turn_usage["prompt_tokens"],
+                        "output": turn_usage["completion_tokens"],
+                        "total": turn_usage["total_tokens"],
+                    }
+                    if turn_usage is not None
+                    else None
+                )
+                generation.update(
+                    input=self._pending_user_transcription.strip() or self._last_text_input,
+                    output=self._pending_assistant_transcription.strip() or None,
+                    completion_start_time=self._turn_first_audio_at,
+                    usage_details=usage_details,
+                    metadata={
+                        "usage_raw": raw_usage,
+                        "usage_detail": self._pending_usage_detail,
+                    },
+                )
+                generation.end()
+            except Exception as e:
+                logger.warning(f"Failed to finalize voice-turn Langfuse generation: {e}")
+
+        self._turn_generation = None
+        self._turn_first_audio_at = None
+        self._pending_usage = None
+        self._pending_usage_detail = None
+        self._last_text_input = None
+
     async def _process_agents(
         self,
         salesperson_message: str,
         websocket: WebSocket,
+        user_id: str,
     ) -> None:
         """Run customer-agent state update and coach analysis for a completed turn.
 
@@ -762,13 +900,36 @@ class GeminiWebSocketRelay:
         prevent coach analysis (and vice versa). Both degrade non-fatally while the
         voice session continues.
 
+        Wraps both agents in a Langfuse span so every Gemini generation this turn
+        produces (persona response, coach analysis) is grouped under one session
+        in the Langfuse UI.
+
         Args:
             salesperson_message: The salesperson's completed message
             websocket: WebSocket connection for sending coach events
+            user_id: Salesperson's user ID, for Langfuse session grouping
         """
         if not (self._agent_state and self._session_id):
             return
 
+        langfuse = get_client()
+        with (
+            langfuse.start_as_current_observation(as_type="span", name="sales-training-turn"),
+            propagate_attributes(
+                session_id=self._session_id,
+                user_id=user_id,
+                tags=[self.provider_name, self._session_mode.value],
+            ),
+        ):
+            await self._run_agents(salesperson_message, websocket)
+
+    async def _run_agents(
+        self,
+        salesperson_message: str,
+        websocket: WebSocket,
+    ) -> None:
+        """Body of ``_process_agents``, run inside its Langfuse span."""
+        assert self._agent_state and self._session_id
         try:
             # Preserve coach-maintained stage_progress across
             # LangGraph invocation (graph doesn't manage this field)

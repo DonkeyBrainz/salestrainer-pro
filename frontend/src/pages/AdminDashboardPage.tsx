@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchNationalStats, fetchRegionStats } from '@/services/orgStatsService';
 import { VT, scoreColor } from '@/styles/voiceprint';
 import { Panel, PanelTitle, KpiCard, BlueprintTable, bpThStyle, bpTdStyle } from '@/components/voiceprint/primitives';
+import { DraftingLoader } from '@/components/voiceprint/DraftingLoader';
 import { DashChrome } from '@/components/dashboard/DashboardChrome';
 import type { AgentLeaderboardEntry, RegionSummary, StoreSummary } from '@/types/orgStats';
 
@@ -96,7 +97,7 @@ export default function AdminDashboardPage() {
   );
 
   if (!isAdmin && !scopeRegion) return chrome(<EmptyState message="This dashboard is for regional directors and admins." />);
-  if (loading) return chrome(<LoadingState />);
+  if (loading) return <DraftingLoader show label="admin wing" subtext="loading configuration" />;
   if (error || !regions) return chrome(<EmptyState message={error ?? 'Failed to load stats'} />);
 
   return chrome(
@@ -230,14 +231,6 @@ function SidePerfPanel({ title, entries, color }: { title: string; entries: Agen
         </BlueprintTable>
       )}
     </Panel>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div style={{ padding: '80px 0', textAlign: 'center', fontFamily: VT.mono, fontSize: 11, color: VT.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-      Loading…
-    </div>
   );
 }
 

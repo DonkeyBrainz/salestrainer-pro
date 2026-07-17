@@ -8,6 +8,7 @@ import asyncio
 import logging
 
 from langchain_core.messages import BaseMessage
+from langfuse import get_client
 
 from app.agents.coach.analyzer import CoachAnalyzer
 from app.agents.coach.hints import get_example_phrase_fallback
@@ -483,13 +484,15 @@ Respond with ONLY valid JSON:
 {{"strengths": ["...", "..."], "improvements": ["...", "..."]}}"""
 
         try:
-            result = await self.provider.complete_structured(
-                [ChatMessage(ChatRole.USER, prompt)],
-                response_schema=FeedbackResponse,
-                model=self.settings.coach_model,
-                temperature=0.3,
-                max_output_tokens=1024,
-            )
+            langfuse = get_client()
+            with langfuse.start_as_current_observation(as_type="span", name="evaluation-feedback"):
+                result = await self.provider.complete_structured(
+                    [ChatMessage(ChatRole.USER, prompt)],
+                    response_schema=FeedbackResponse,
+                    model=self.settings.coach_model,
+                    temperature=0.3,
+                    max_output_tokens=1024,
+                )
             if isinstance(result.parsed, FeedbackResponse) and (
                 result.parsed.strengths or result.parsed.improvements
             ):

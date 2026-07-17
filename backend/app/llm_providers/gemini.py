@@ -10,6 +10,7 @@ from typing import Any
 
 from google import genai
 from google.genai import types
+from langfuse import get_client
 from pydantic import BaseModel
 
 from app.config import Settings, get_settings
@@ -108,21 +109,56 @@ class GeminiProvider:
             config_kwargs["response_mime_type"] = "application/json"
             config_kwargs["response_schema"] = response_schema
 
-        started = time.monotonic()
-        response = await self.client.aio.models.generate_content(
-            model=resolved_model,
-            contents=contents,
-            config=types.GenerateContentConfig(**config_kwargs),
+        observation_name = (
+            f"gemini.complete_structured:{response_schema.__name__}"
+            if response_schema is not None
+            else "gemini.complete"
         )
-        latency_ms = (time.monotonic() - started) * 1000
+        langfuse = get_client()
+        with langfuse.start_as_current_observation(
+            as_type="generation",
+            name=observation_name,
+            model=resolved_model,
+            input=[{"role": msg.role.value, "content": msg.content} for msg in messages],
+            model_parameters={
+                k: v
+                for k, v in {
+                    "temperature": temperature,
+                    "max_output_tokens": max_output_tokens,
+                    "thinking_budget": thinking_budget,
+                }.items()
+                if v is not None
+            },
+        ) as generation:
+            started = time.monotonic()
+            response = await self.client.aio.models.generate_content(
+                model=resolved_model,
+                contents=contents,
+                config=types.GenerateContentConfig(**config_kwargs),
+            )
+            latency_ms = (time.monotonic() - started) * 1000
 
-        self._warn_if_truncated(response, resolved_model, max_output_tokens)
+            self._warn_if_truncated(response, resolved_model, max_output_tokens)
 
-        parsed: BaseModel | None = None
-        if response_schema is not None:
-            candidate = response.parsed
-            if isinstance(candidate, response_schema):
-                parsed = candidate
+            parsed: BaseModel | None = None
+            if response_schema is not None:
+                candidate = response.parsed
+                if isinstance(candidate, response_schema):
+                    parsed = candidate
+
+            usage = self._extract_usage(response)
+            generation.update(
+                output=response.text or "",
+                usage_details=(
+                    {
+                        "input": usage["prompt_tokens"],
+                        "output": usage["completion_tokens"],
+                        "total": usage["total_tokens"],
+                    }
+                    if usage is not None
+                    else None
+                ),
+            )
 
         return CompletionResult(
             text=response.text or "",
@@ -130,7 +166,7 @@ class GeminiProvider:
             raw=response,
             model=resolved_model,
             latency_ms=latency_ms,
-            usage=self._extract_usage(response),
+            usage=usage,
         )
 
     @staticmethod

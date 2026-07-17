@@ -168,6 +168,7 @@ These are secrets your backend reads at runtime. Cloud Run injects them as envir
 | `jwt-secret-key` | Random 32+ char string | Backend - JWT signing |
 | `openai-api-key` (optional) | OpenAI API key | Backend - OpenAI voice provider (if enabled) |
 | `google-nova-api-key` (optional) | Google Nova API key | Backend - Google Nova voice provider (if enabled) |
+| `langfuse-secret-key` | Langfuse project secret key | Backend - LLM tracing (Langfuse) |
 
 **How to populate them:**
 
@@ -186,6 +187,13 @@ echo -n "your-oauth-client-secret" | \
 
 openssl rand -base64 32 | tr -d '\n' | \
   gcloud secrets create jwt-secret-key --data-file=-
+
+echo -n "your-langfuse-secret-key" | \
+  gcloud secrets create langfuse-secret-key --data-file=-
+
+gcloud secrets add-iam-policy-binding langfuse-secret-key \
+  --member="serviceAccount:salestrainer-pro-backend-sa@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
 ```
 
 **To update a secret:**
@@ -212,6 +220,14 @@ GitHub Actions reads these as `${{ vars.VARIABLE_NAME }}`. These are **not** sec
 # After running terraform apply:
 terraform output workload_identity_provider
 ```
+
+### Layer 2b: GitHub Repository Secrets (non-runtime-sensitive values)
+
+For values that don't warrant a GCP Secret Manager entry (not truly secret, or read only at deploy time rather than by the running service), set a GitHub Actions repository **secret** — `${{ secrets.NAME }}` — under **Settings → Secrets and variables → Actions → Secrets**. Unlike Layer 2 variables, these are masked in Actions logs, but unlike Layer 1 they still land as a plain env var on the deployed Cloud Run revision (visible via `gcloud run services describe`), so don't use this path for anything where that exposure matters.
+
+| Secret | Value | Purpose |
+|--------|-------|---------|
+| `LANGFUSE_PUBLIC_KEY` | Langfuse project public key | Backend - LLM tracing (public key is safe to expose, per Langfuse's own docs) |
 
 ### Layer 3: Voice Provider Configuration
 
@@ -243,6 +259,7 @@ Regular environment variables go directly in the Cloud Run deploy command, not i
 | `LOG_LEVEL` | Not sensitive |
 | `DEFAULT_VOICE_PROVIDER` | Not sensitive (user-facing feature) |
 | `ENABLED_VOICE_PROVIDERS` | Not sensitive (configuration) |
+| `LANGFUSE_BASE_URL` | Not sensitive (just the API host) |
 
 ---
 

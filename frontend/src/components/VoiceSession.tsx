@@ -189,6 +189,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
   const [personaFetchError, setPersonaFetchError] = useState<string | null>(null);
   const [caseFileId, setCaseFileId] = useState(randomCaseFile);
   const [hintPulseTick, setHintPulseTick] = useState(0);
+  const [tipUnwrapped, setTipUnwrapped] = useState(false);
 
   const {
     connectionState,
@@ -255,6 +256,12 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
   useEffect(() => {
     return () => { stopMic(); disconnect(); cleanupAudio(); };
   }, [stopMic, disconnect, cleanupAudio]);
+
+  useEffect(() => {
+    if (!isConnected) { setTipUnwrapped(false); return; }
+    const t = setTimeout(() => setTipUnwrapped(true), 550);
+    return () => clearTimeout(t);
+  }, [isConnected]);
 
   const handleToggleConnect = useCallback(async () => {
     if (isConnected) {
@@ -461,9 +468,11 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
           {isAssessment ? <SealedRulesPanel /> : (
             <>
               <MoodPanel moodState={moodState} />
-              <StickyNote key={hintPulseTick} title="Coach tip" rotate={1.5} width="100%" pulse={hintPulseTick > 0}>
-                {currentHint?.hint ?? 'Hints will appear here once you start talking with the customer.'}
-              </StickyNote>
+              {tipUnwrapped && (
+                <StickyNote key={hintPulseTick} title="Coach tip" rotate={1.5} width="100%" unwrap>
+                  {currentHint?.hint ?? 'Hints will appear here once you start talking with the customer.'}
+                </StickyNote>
+              )}
               <WatchForPanel objections={selectedPersona?.objections ?? []} />
             </>
           )}

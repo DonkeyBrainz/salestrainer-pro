@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchStoreStats } from '@/services/orgStatsService';
 import { VT, scoreColor } from '@/styles/voiceprint';
 import { Panel, PanelTitle, StickyNote, KpiCard, BlueprintTable, bpThStyle, bpTdStyle } from '@/components/voiceprint/primitives';
+import { DraftingLoader } from '@/components/voiceprint/DraftingLoader';
 import {
   Avatar,
   CoreBar,
@@ -62,7 +63,7 @@ export default function ManagerDashboardPage() {
   );
 
   if (!storeId) return chrome(<EmptyState message="Your account isn't assigned to a store yet." />);
-  if (loading) return chrome(<LoadingState />);
+  if (loading) return <DraftingLoader show label="roster" subtext="compiling team roster" />;
   if (error || !data) return chrome(<EmptyState message={error ?? 'Failed to load stats'} />);
 
   const sorted = data.leaderboard; // already sorted by the API
@@ -159,14 +160,6 @@ function RosterRow({ entry, rank }: { entry: AgentLeaderboardEntry; rank: number
       </td>
       <td style={bpTdStyle}>{entry.flag ? <span style={{ color: VT.hard }}>⚑</span> : null}</td>
     </tr>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div style={{ padding: '80px 0', textAlign: 'center', fontFamily: VT.mono, fontSize: 11, color: VT.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-      Loading…
-    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 """Application configuration using Pydantic Settings."""
 
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -67,6 +68,13 @@ class Settings(BaseSettings):
     # $3.00/$12.00 per 1M speech tokens vs v1's $3.40/$13.60 (Gemini parity).
     nova_sonic_model: str = "amazon.nova-2-sonic-v1:0"
     nova_sonic_temperature: float = 0.7
+
+    # Langfuse (LLM tracing). Not read directly — the langfuse SDK's
+    # get_client() picks these up from the environment itself — declared here
+    # only so Settings' extra="forbid" validation doesn't reject them.
+    langfuse_secret_key: str = ""
+    langfuse_public_key: str = ""
+    langfuse_base_url: str = ""
     # Nova text model (Converse API) — used by the turn-based eval harness.
     nova_model: str = "amazon.nova-lite-v1:0"
     nova_temperature: float = 0.7
@@ -136,4 +144,15 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings()
+    settings = Settings()
+    # pydantic-settings reads .env into this object only — it never populates
+    # os.environ. The langfuse SDK's get_client() configures itself from
+    # os.environ directly, so mirror these three values there (setdefault:
+    # real process env vars, e.g. in Cloud Run, always win).
+    if settings.langfuse_public_key:
+        os.environ.setdefault("LANGFUSE_PUBLIC_KEY", settings.langfuse_public_key)
+    if settings.langfuse_secret_key:
+        os.environ.setdefault("LANGFUSE_SECRET_KEY", settings.langfuse_secret_key)
+    if settings.langfuse_base_url:
+        os.environ.setdefault("LANGFUSE_BASE_URL", settings.langfuse_base_url)
+    return settings

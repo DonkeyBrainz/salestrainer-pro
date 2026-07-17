@@ -24,7 +24,7 @@ export function PanelTitle({ children, dot }: { children: React.ReactNode; dot: 
 
 // ── Sticky note ───────────────────────────────────────────────────────────────
 export function StickyNote({
-  title, children, rotate = -4, width, bright, pulse, style,
+  title, children, rotate = -4, width, bright, pulse, unwrap, style,
 }: {
   title: string;
   children: React.ReactNode;
@@ -32,11 +32,13 @@ export function StickyNote({
   width?: number | string;
   bright?: boolean;
   pulse?: boolean;
+  unwrap?: boolean;
   style?: React.CSSProperties;
 }) {
+  const className = [pulse && 'sticky-pulse', unwrap && 'sticky-unwrap'].filter(Boolean).join(' ') || undefined;
   return (
     <div
-      className={pulse ? 'sticky-pulse' : undefined}
+      className={className}
       style={{
         width: width ?? 190,
         background: bright ? VT.stickyBright : VT.sticky,
@@ -48,6 +50,7 @@ export function StickyNote({
         transform: `rotate(${rotate}deg)`,
         boxShadow: '3px 4px 10px rgba(0,0,0,0.3)',
         clipPath: 'polygon(0 0,100% 0,100% 88%,88% 100%,0 100%)',
+        ...({ '--rot': `${rotate}deg` } as React.CSSProperties),
         ...style,
       }}
     >

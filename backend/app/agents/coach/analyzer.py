@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langfuse import get_client
 
 from app.agents.coach.hints import get_intervention_message
 from app.agents.coach.prompts import build_coach_prompt, format_conversation_history
@@ -274,19 +275,21 @@ class CoachAnalyzer:
             Parsed CoachAnalysisResponse, or None if the provider produced no
             structured output (treated as a failed analysis upstream).
         """
-        result = await self._provider.complete_structured(
-            [ChatMessage(ChatRole.USER, prompt)],
-            response_schema=CoachAnalysisResponse,
-            model=self._model,
-            temperature=0.1,  # Low temperature for consistent analysis
-            max_output_tokens=1024,
-            # Thinking tokens come out of max_output_tokens before any JSON is
-            # emitted; on this prompt they alone exceed 1024, truncating every
-            # response into an unparseable one. Disabled rather than budgeted
-            # around: hints must land inside the live turn, and thinking costs
-            # ~9s here versus ~1s without, for no better analysis.
-            thinking_budget=0,
-        )
+        langfuse = get_client()
+        with langfuse.start_as_current_observation(as_type="span", name="coach-analysis"):
+            result = await self._provider.complete_structured(
+                [ChatMessage(ChatRole.USER, prompt)],
+                response_schema=CoachAnalysisResponse,
+                model=self._model,
+                temperature=0.1,  # Low temperature for consistent analysis
+                max_output_tokens=1024,
+                # Thinking tokens come out of max_output_tokens before any JSON is
+                # emitted; on this prompt they alone exceed 1024, truncating every
+                # response into an unparseable one. Disabled rather than budgeted
+                # around: hints must land inside the live turn, and thinking costs
+                # ~9s here versus ~1s without, for no better analysis.
+                thinking_budget=0,
+            )
 
         if isinstance(result.parsed, CoachAnalysisResponse):
             return result.parsed
