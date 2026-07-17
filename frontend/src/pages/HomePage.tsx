@@ -8,7 +8,7 @@ import { FrameLabel, StickyNote } from '@/components/voiceprint/primitives';
 import { getEnabledRoles } from '@/components/dashboard/DashboardChrome';
 import UserMenu from '@/components/UserMenu';
 
-const ADMIN_EMAILS = ['user@example.com'];
+const ADMIN_EMAILS = ['user@example.com', 'miklpuerto69@gmail.com'];
 
 const STAGE_CONFIG: Record<string, { letter: string; name: string }> = {
   CONNECT: { letter: 'C', name: 'Connect' },

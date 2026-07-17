@@ -3,10 +3,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchNationalStats, fetchRegionStats } from '@/services/orgStatsService';
 import { VT, scoreColor } from '@/styles/voiceprint';
 import { Panel, PanelTitle, KpiCard, BlueprintTable, bpThStyle, bpTdStyle } from '@/components/voiceprint/primitives';
-import { DashChrome, getEnabledRoles } from '@/components/dashboard/DashboardChrome';
+import { DashChrome } from '@/components/dashboard/DashboardChrome';
 import type { AgentLeaderboardEntry, RegionSummary, StoreSummary } from '@/types/orgStats';
 
-const ADMIN_EMAILS = ['user@example.com'];
+const ADMIN_EMAILS = ['user@example.com', 'miklpuerto69@gmail.com'];
 const REGION_NAMES: Record<string, string> = { NC: 'North Carolina', SC: 'South Carolina', TX: 'Texas' };
 const REGION_ACCENTS = [VT.rapport, VT.standard, VT.amber, VT.special, VT.hard];
 
@@ -85,12 +85,8 @@ export default function AdminDashboardPage() {
   const topPerformers = scoredLeaderboard.slice(0, 5);
   const bottomPerformers = scoredLeaderboard.slice(-5).reverse();
 
-  const enabledRoles = getEnabledRoles(user, isAdmin);
-
   const chrome = (children: React.ReactNode) => (
     <DashChrome
-      role="Admin"
-      enabledRoles={enabledRoles}
       title="ADMIN WING"
       scribbleText="« rm 05 — the map table"
       crumb={regions ? `${crumb} · ${allStores.length} stores · ${totalAgents} agents` : undefined}
