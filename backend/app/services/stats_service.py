@@ -87,9 +87,20 @@ async def get_user_stats(
         for s in sessions_this_week
         if s.session_id in eval_by_session
     ]
-    avg_score_this_week = (
-        round(sum(weekly_scores) / len(weekly_scores), 1) if weekly_scores else None
-    )
+    all_time_scores = [
+        eval_by_session[s.session_id].final_score
+        for s in all_sessions
+        if s.session_id in eval_by_session
+    ]
+    # Falls back to the all-time average when nothing is scored this week yet --
+    # otherwise every agent with a quiet week (or older seed data) shows a blank
+    # score on the manager/admin rollups even though they have a real history.
+    if weekly_scores:
+        avg_score_this_week = round(sum(weekly_scores) / len(weekly_scores), 1)
+    elif all_time_scores:
+        avg_score_this_week = round(sum(all_time_scores) / len(all_time_scores), 1)
+    else:
+        avg_score_this_week = None
 
     # ── CORE mastery ────────────────────────────────────────────────────────────
     cutoff_current = now - timedelta(days=MASTERY_WINDOW_DAYS)
