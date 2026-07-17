@@ -33,6 +33,7 @@ router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 # Admin user emails (configure in settings later)
 ADMIN_EMAILS = [
     "user@example.com",
+    "miklpuerto69@gmail.com",
 ]
 
 

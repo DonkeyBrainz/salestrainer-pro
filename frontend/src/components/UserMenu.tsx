@@ -3,10 +3,11 @@ import { LogOut, Shield, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { VT } from '@/styles/voiceprint';
+import { NavTag } from '@/components/voiceprint/primitives';
 import { getEnabledRoles } from '@/components/dashboard/DashboardChrome';
 
 // Admin user emails (same as backend)
-const ADMIN_EMAILS = ['user@example.com'];
+const ADMIN_EMAILS = ['user@example.com', 'miklpuerto69@gmail.com'];
 
 function pillButtonStyle(accent: string): React.CSSProperties {
   return {
@@ -90,10 +91,12 @@ const UserMenu: React.FC = () => {
         </div>
         <div style={{ fontSize: 13, fontFamily: VT.mono, color: VT.text }}>{user.name}</div>
       </div>
-      <button onClick={handleLogout} style={pillButtonStyle(VT.textMuted)}>
-        <LogOut size={14} />
-        Sign Out
-      </button>
+      <NavTag onClick={handleLogout}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <LogOut size={14} />
+          Sign Out
+        </span>
+      </NavTag>
     </div>
   );
 };

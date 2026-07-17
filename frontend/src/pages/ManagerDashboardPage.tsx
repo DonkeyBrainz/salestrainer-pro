@@ -8,11 +8,9 @@ import {
   CoreBar,
   DashChrome,
   formatLastActive,
-  getEnabledRoles,
 } from '@/components/dashboard/DashboardChrome';
 import type { AgentLeaderboardEntry, StoreStatsResponse } from '@/types/orgStats';
 
-const ADMIN_EMAILS = ['user@example.com'];
 const STICKY_ROTATIONS = [-3, 2.5, -2, 1.5];
 
 function initials(name: string): string {
@@ -26,8 +24,6 @@ export default function ManagerDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const storeId = user?.storeId ?? null;
-  const isAdmin = !!user && ADMIN_EMAILS.some((e) => e.toLowerCase() === user.email?.toLowerCase());
-  const enabledRoles = getEnabledRoles(user, isAdmin);
 
   useEffect(() => {
     if (!storeId) {
@@ -57,8 +53,6 @@ export default function ManagerDashboardPage() {
 
   const chrome = (children: React.ReactNode) => (
     <DashChrome
-      role="Manager"
-      enabledRoles={enabledRoles}
       title="MANAGER OFFICE"
       scribbleText="« rm 04 — site office"
       crumb={data ? `${data.store_name} · ${data.region} · ${data.leaderboard.length} agents` : undefined}

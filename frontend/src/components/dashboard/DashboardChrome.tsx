@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { VT } from '@/styles/voiceprint';
-import { NavTag, Cta, Scribble } from '@/components/voiceprint/primitives';
+import { NavTag, Scribble } from '@/components/voiceprint/primitives';
 import UserMenu from '@/components/UserMenu';
 import type { User } from '@/types/auth';
 import type { CoreBreakdown } from '@/types/orgStats';
@@ -16,42 +16,14 @@ export function getEnabledRoles(user: User | null, isAdmin: boolean): RoleTab[] 
   return roles;
 }
 
-export function RoleTabs({ active, enabled }: { active: RoleTab; enabled: RoleTab[] }) {
-  const navigate = useNavigate();
-  const roles: RoleTab[] = ['Agent', 'Manager', 'Admin'];
-  const routeFor: Record<RoleTab, string> = { Agent: '/', Manager: '/team/manager', Admin: '/team/admin' };
-
-  return (
-    <div style={{ display: 'flex', gap: 6 }}>
-      {roles.map((r) => {
-        const isActive = r === active;
-        const isEnabled = enabled.includes(r);
-        return (
-          <Cta
-            key={r}
-            variant={isActive ? 'active' : 'ghost'}
-            disabled={!isEnabled}
-            onClick={() => isEnabled && !isActive && navigate(routeFor[r])}
-            style={{ padding: '7px 14px', fontSize: 10 }}
-          >
-            {r}
-          </Cta>
-        );
-      })}
-    </div>
-  );
-}
-
 interface DashChromeProps {
   children: React.ReactNode;
-  role: RoleTab;
-  enabledRoles: RoleTab[];
   title: string;
   scribbleText: string;
   crumb?: string;
 }
 
-export function DashChrome({ children, role, enabledRoles, title, scribbleText, crumb }: DashChromeProps) {
+export function DashChrome({ children, title, scribbleText, crumb }: DashChromeProps) {
   const navigate = useNavigate();
   return (
     <div style={{ width: '100%', minHeight: '100vh', color: VT.text }}>
@@ -68,7 +40,6 @@ export function DashChrome({ children, role, enabledRoles, title, scribbleText, 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 10 }}>
           <Scribble>{scribbleText}</Scribble>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <RoleTabs active={role} enabled={enabledRoles} />
             <UserMenu />
           </div>
         </div>
