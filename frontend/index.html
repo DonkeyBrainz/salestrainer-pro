@@ -94,6 +94,91 @@
       .sticky-pulse {
         animation: stickyPulse 0.8s ease 2;
       }
+
+      @keyframes stickyUnwrap {
+        0%   { opacity: 0; transform: perspective(700px) rotate(var(--rot)) rotateX(-92deg) translateY(-14px); }
+        50%  { opacity: 1; transform: perspective(700px) rotate(var(--rot)) rotateX(14deg); }
+        75%  { transform: perspective(700px) rotate(var(--rot)) rotateX(-6deg); }
+        100% { opacity: 1; transform: perspective(700px) rotate(var(--rot)) rotateX(0deg); }
+      }
+      .sticky-unwrap {
+        transform-origin: top center;
+        animation: stickyUnwrap 0.62s cubic-bezier(.34,1.4,.5,1);
+      }
+
+      /* ---------- DRAFTING LOADER ---------- */
+      .draft-loader-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 26px;
+        background:
+          radial-gradient(ellipse at 50% 42%, var(--blue) 0%, var(--blue-deep) 88%),
+          repeating-linear-gradient(0deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 34px),
+          repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 34px);
+        animation: dlFade 0.25s ease;
+      }
+      @keyframes dlFade {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      .dl-outline {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 2.2;
+        stroke-linecap: square;
+        stroke-dasharray: 540;
+        stroke-dashoffset: 540;
+        animation: dlDraw 2.4s linear infinite;
+      }
+      .dl-ghost {
+        fill: none;
+        stroke: var(--line-faint);
+        stroke-width: 2.2;
+        stroke-linecap: square;
+      }
+      @keyframes dlDraw {
+        0%   { stroke-dashoffset: 540; }
+        72%  { stroke-dashoffset: 0; }
+        100% { stroke-dashoffset: 0; }
+      }
+      .dl-pencil {
+        animation: dlMove 2.4s linear infinite;
+        transform-box: fill-box;
+        transform-origin: 0 0;
+      }
+      @keyframes dlMove {
+        0%      { transform: translate(40px,35px); }
+        21%     { transform: translate(200px,35px); }
+        36%     { transform: translate(200px,145px); }
+        58%     { transform: translate(40px,145px); }
+        72%     { transform: translate(40px,35px); }
+        72.01%  { transform: translate(40px,35px); }
+        100%    { transform: translate(40px,35px); }
+      }
+      .dl-bob {
+        animation: dlBob 0.34s ease-in-out infinite;
+        transform-box: fill-box;
+        transform-origin: 0 0;
+      }
+      @keyframes dlBob {
+        0%, 100% { transform: translateY(0) rotate(28deg); }
+        50%      { transform: translateY(-1.4px) rotate(28deg); }
+      }
+      .dl-dots::after {
+        content: '';
+        animation: dlDots 1.2s steps(4,end) infinite;
+      }
+      @keyframes dlDots {
+        0%   { content: ''; }
+        25%  { content: '.'; }
+        50%  { content: '..'; }
+        75%  { content: '...'; }
+      }
     </style>
   </head>
   <body>

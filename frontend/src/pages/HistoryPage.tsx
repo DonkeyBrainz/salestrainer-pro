@@ -10,6 +10,7 @@ import {
   Panel, PanelTitle, StickyNote, NavTag, Cta, FrameLabel, ModeTag, Scribble,
   BlueprintTable, bpThStyle, bpTdStyle, KpiCard,
 } from '@/components/voiceprint/primitives';
+import { DraftingLoader } from '@/components/voiceprint/DraftingLoader';
 
 const DAY = 86400000;
 const LIMIT = 50;
@@ -157,6 +158,10 @@ const HistoryPage: React.FC = () => {
     return () => { cancelled = true; };
   }, [accessToken, sessions, handleFetchSession]);
 
+  if (loading && sessions.length === 0) {
+    return <DraftingLoader show label="archive" subtext="pulling records from the archive" />;
+  }
+
   const handleRowClick = (s: SessionSummary) => {
     setSelectedId(s.sessionId);
     const delta = deltaFor(s);
@@ -226,12 +231,6 @@ const HistoryPage: React.FC = () => {
         {error && (
           <div style={{ padding: '14px 18px', marginBottom: 20, border: `1px solid ${VT.hard}66`, background: 'rgba(228,87,74,0.1)', color: VT.hard, fontSize: 13 }}>
             {error}
-          </div>
-        )}
-
-        {loading && sessions.length === 0 && (
-          <div style={{ padding: '80px 0', textAlign: 'center', fontFamily: VT.mono, fontSize: 11, color: VT.textMuted, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-            Loading sessions…
           </div>
         )}
 
