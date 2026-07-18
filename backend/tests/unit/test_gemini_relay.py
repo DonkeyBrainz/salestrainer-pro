@@ -421,3 +421,21 @@ class TestVoiceTurnObservability:
 
         assert relay._turn_generation is None
         assert relay._pending_usage is None
+
+
+class TestInterruptedRelay:
+    """Barge-in events from the provider must reach the client immediately."""
+
+    async def test_interrupted_event_forwarded_to_client(
+        self, relay: GeminiWebSocketRelay, websocket: AsyncMock
+    ) -> None:
+        live_session = MagicMock()
+
+        async def _events():
+            yield {"type": "interrupted", "audio_data": None, "text": None}
+
+        live_session.receive = _events
+
+        await relay._relay_gemini_to_client(websocket, live_session, user_id="user-1")
+
+        websocket.send_json.assert_awaited_once_with({"type": "interrupted"})

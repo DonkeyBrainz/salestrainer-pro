@@ -382,6 +382,16 @@ class GeminiLiveSession:
                     if not server_content:
                         continue
 
+                    # Barge-in: server-side VAD detected the user speaking over
+                    # the model. Generation is already cancelled upstream; the
+                    # client must flush any buffered/scheduled playback.
+                    if getattr(server_content, "interrupted", False):
+                        yield {
+                            "type": "interrupted",
+                            "audio_data": None,
+                            "text": None,
+                        }
+
                     # Check for input transcription (user's speech)
                     if hasattr(server_content, "input_transcription"):
                         input_trans = server_content.input_transcription

@@ -201,6 +201,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
     messages,
     currentInput,
     onAudioReceived,
+    onInterrupted,
     currentHint,
     moodState,
     completedItems,
@@ -220,6 +221,7 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
     inputAnalyser,
     outputAnalyser,
     playAudio,
+    stopPlayback,
     isPlaying,
     cleanup: cleanupAudio,
   } = useAudio(sendAudio);
@@ -228,6 +230,11 @@ const VoiceSession: React.FC<VoiceSessionProps> = ({ mode, onBack }) => {
     onAudioReceived.current = playAudio;
     return () => { onAudioReceived.current = null; };
   }, [onAudioReceived, playAudio]);
+
+  useEffect(() => {
+    onInterrupted.current = stopPlayback;
+    return () => { onInterrupted.current = null; };
+  }, [onInterrupted, stopPlayback]);
 
   const loadEvaluationPersona = useCallback(async () => {
     setIsLoadingPersona(true);

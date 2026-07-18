@@ -720,6 +720,13 @@ class GeminiWebSocketRelay:
                         }
                     )
 
+                # Barge-in: the user spoke over the model. Forward immediately
+                # so the client flushes its buffered/scheduled playback instead
+                # of talking over the user with stale audio.
+                elif resp_type == "interrupted":
+                    await websocket.send_json({"type": "interrupted"})
+                    logger.debug(f"Relayed barge-in interrupt to client (user_id={user_id})")
+
                 # Token usage for the in-progress turn (last report wins, mirroring
                 # the eval harness's voice_runner._TurnCapture.absorb)
                 elif resp_type == "usage" and response.get("usage"):

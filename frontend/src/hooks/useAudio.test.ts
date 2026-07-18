@@ -55,6 +55,7 @@ const createMockAudioContext = () => ({
     buffer: null,
     connect: vi.fn(),
     start: vi.fn(),
+    stop: vi.fn(),
     onended: null,
   })),
   createBuffer: vi.fn((channels: number, frames: number, rate: number) => ({
@@ -242,6 +243,56 @@ describe('useAudio', () => {
 
       // Should not throw
       expect(result.current.isPlaying).toBeDefined();
+    });
+  });
+
+  describe('stopPlayback (barge-in)', () => {
+    it('should stop scheduled sources and reset playing state', async () => {
+      const { result } = renderHook(() => useAudio());
+
+      await act(async () => {
+        result.current.playAudio('base64-audio-data');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      const ctx = audioContextInstances[audioContextInstances.length - 1];
+      const source = ctx.createBufferSource.mock.results[0].value;
+
+      act(() => {
+        result.current.stopPlayback();
+      });
+
+      expect(source.stop).toHaveBeenCalled();
+      expect(result.current.isPlaying).toBe(false);
+    });
+
+    it('should drop queued audio so it does not play after a flush', async () => {
+      const { result } = renderHook(() => useAudio());
+
+      await act(async () => {
+        result.current.playAudio('chunk-1');
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      const ctx = audioContextInstances[audioContextInstances.length - 1];
+      const scheduledBefore = ctx.createBufferSource.mock.calls.length;
+
+      act(() => {
+        result.current.stopPlayback();
+      });
+
+      // No new sources scheduled by the flushed queue
+      expect(ctx.createBufferSource.mock.calls.length).toBe(scheduledBefore);
+    });
+
+    it('should be safe to call when nothing is playing', () => {
+      const { result } = renderHook(() => useAudio());
+
+      act(() => {
+        result.current.stopPlayback();
+      });
+
+      expect(result.current.isPlaying).toBe(false);
     });
   });
 

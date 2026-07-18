@@ -16,6 +16,10 @@ Required for every provider — the relay depends on these:
                                  "finished": bool}   (model speech, transcript)
     - ``end``:                  {"type", "audio_data": None, "text": None}
                                 (turn complete)
+    - ``interrupted``:          {"type", "audio_data": None, "text": None}
+                                (barge-in: the user spoke over the model; the
+                                relay forwards this so the client flushes any
+                                buffered/scheduled playback immediately)
 
 Optional / provider-specific — the relay treats these as best-effort:
     - ``internal_reasoning``:        model's unspoken text (Gemini)

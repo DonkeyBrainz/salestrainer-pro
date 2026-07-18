@@ -132,10 +132,16 @@ class OpenAIRealtimeSession:
         if event_type in _RESPONSE_DONE_EVENTS:
             return {"type": "end", "audio_data": None, "text": None}
 
+        if event_type == "input_audio_buffer.speech_started":
+            # Server VAD heard the user start speaking. Mid-response this is a
+            # barge-in; the relay tells the client to flush buffered playback.
+            # (Between turns the flush is a harmless no-op.)
+            return {"type": "interrupted", "audio_data": None, "text": None}
+
         if event_type == "error":
             raise self._map_error(event.get("error", {}))
 
-        # session.created, response.created, speech_started/stopped, buffer
+        # session.created, response.created, speech_stopped, buffer
         # commits, etc. — not needed by the relay.
         logger.debug("Ignoring OpenAI Realtime event: %s", event_type)
         return None

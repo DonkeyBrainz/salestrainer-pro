@@ -47,6 +47,10 @@ export interface TurnCompleteMessage {
   type: 'turn_complete';
 }
 
+export interface InterruptedMessage {
+  type: 'interrupted';
+}
+
 export interface ErrorMessage {
   type: 'error';
   code: string;
@@ -103,6 +107,7 @@ export type ServerMessage =
   | ServerAudioMessage
   | TranscriptionMessage
   | TurnCompleteMessage
+  | InterruptedMessage
   | ErrorMessage
   | CoachHintMessage
   | MoodUpdateMessage

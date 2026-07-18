@@ -81,6 +81,7 @@ async def websocket_gemini_relay(
         - JSON: {"type": "ready", "status": "connected"}
         - JSON: {"type": "transcription", "text": "..."}
         - JSON: {"type": "turn_complete"}
+        - JSON: {"type": "interrupted"}  (barge-in: flush buffered playback)
         - JSON: {"type": "coach_hint", "level": "...", "hint": "...", "stage": "...",
                  "items_completed": [...], "items_remaining": [...]} (Training mode only)
         - JSON: {"type": "error", "code": "...", "message": "..."}

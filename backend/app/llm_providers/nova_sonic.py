@@ -195,12 +195,8 @@ class NovaSonicSession:
                 event = data.get("event")
                 if not event:
                     continue
-                translated = self._translate(event)
-                if translated is not None:
+                for translated in self._translate(event):
                     yield translated
-                    if translated["type"] == "end":
-                        # Turn boundary — keep looping for the next turn.
-                        continue
         except StopAsyncIteration:
             return
         except (InvalidRequestError, InternalError, ServiceUnavailableError):
@@ -208,11 +204,11 @@ class NovaSonicSession:
         except Exception as e:  # noqa: BLE001 - surface transport errors as retryable
             raise ServiceUnavailableError(f"Nova Sonic stream error: {e}") from e
 
-    def _translate(self, event: dict[str, Any]) -> LiveEvent | None:
-        """Map one Nova Sonic event to a LiveEvent (or None to ignore)."""
+    def _translate(self, event: dict[str, Any]) -> list[LiveEvent]:
+        """Map one Nova Sonic event to LiveEvents (empty list to ignore)."""
         if "audioOutput" in event:
             content = event["audioOutput"].get("content", "")
-            return {"type": "audio", "audio_data": base64.b64decode(content), "text": None}
+            return [{"type": "audio", "audio_data": base64.b64decode(content), "text": None}]
 
         if "contentStart" in event:
             content_start = event["contentStart"]
@@ -226,44 +222,58 @@ class NovaSonicSession:
                     self._display_assistant_text = (
                         additional_fields.get("generationStage") == "SPECULATIVE"
                     )
-            return None
+            return []
 
         if "textOutput" in event:
             text_out = event["textOutput"]
             role = str(text_out.get("role", "")).upper()
             text = text_out.get("content", "")
 
+            events: list[LiveEvent] = []
             if _INTERRUPTED_MARKER in text:
                 text = text.replace(_INTERRUPTED_MARKER, "").strip()
+                events.append({"type": "interrupted", "audio_data": None, "text": None})
                 if not text:
-                    return None
+                    return events
 
             if role == "USER":
-                return {
-                    "type": "input_transcription",
+                events.append(
+                    {
+                        "type": "input_transcription",
+                        "audio_data": None,
+                        "text": text,
+                        "finished": True,
+                    }
+                )
+                return events
+            if role == "ASSISTANT" and not self._display_assistant_text:
+                # Non-speculative assistant text duplicates what the
+                # speculative pass already emitted — drop it.
+                return events
+            events.append(
+                {
+                    "type": "output_transcription",
                     "audio_data": None,
                     "text": text,
                     "finished": True,
                 }
-            if role == "ASSISTANT" and not self._display_assistant_text:
-                # Non-speculative assistant text duplicates what the
-                # speculative pass already emitted — drop it.
-                return None
-            return {
-                "type": "output_transcription",
-                "audio_data": None,
-                "text": text,
-                "finished": True,
-            }
+            )
+            return events
 
         if "contentEnd" in event:
             stop_reason = str(event["contentEnd"].get("stopReason", "")).upper()
-            if stop_reason in ("END_TURN", "INTERRUPTED"):
-                return {"type": "end", "audio_data": None, "text": None}
-            return None
+            if stop_reason == "INTERRUPTED":
+                # Barge-in: flush client playback, then close the turn.
+                return [
+                    {"type": "interrupted", "audio_data": None, "text": None},
+                    {"type": "end", "audio_data": None, "text": None},
+                ]
+            if stop_reason == "END_TURN":
+                return [{"type": "end", "audio_data": None, "text": None}]
+            return []
 
         if "completionEnd" in event:
-            return {"type": "end", "audio_data": None, "text": None}
+            return [{"type": "end", "audio_data": None, "text": None}]
 
         if "usageEvent" in event:
             usage = event["usageEvent"]
@@ -271,24 +281,26 @@ class NovaSonicSession:
             completion_tokens = int(usage.get("totalOutputTokens") or 0)
             total_tokens = int(usage.get("totalTokens") or (prompt_tokens + completion_tokens))
             if not total_tokens:
-                return None
+                return []
             detail = usage.get("details") or {}
-            return {
-                "type": "usage",
-                "audio_data": None,
-                "text": None,
-                "usage": {
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": total_tokens,
-                },
-                # speechTokens/textTokens breakdown, cumulative + delta.
-                "detail": detail,
-            }
+            return [
+                {
+                    "type": "usage",
+                    "audio_data": None,
+                    "text": None,
+                    "usage": {
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "total_tokens": total_tokens,
+                    },
+                    # speechTokens/textTokens breakdown, cumulative + delta.
+                    "detail": detail,
+                }
+            ]
 
         # contentStart, toolUse, completionStart, etc. — not needed by the relay.
         logger.debug("Ignoring Nova Sonic event: %s", next(iter(event), "?"))
-        return None
+        return []
 
     async def _send_event(self, event: dict[str, Any]) -> None:
         body = json.dumps({"event": event}).encode("utf-8")

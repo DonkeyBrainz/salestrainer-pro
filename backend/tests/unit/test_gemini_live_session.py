@@ -105,6 +105,7 @@ class TestReceive:
         # Disable transcription fields for this test
         mock_response.server_content.input_transcription = None
         mock_response.server_content.output_transcription = None
+        mock_response.server_content.interrupted = None
         # Disable session resumption fields for this test
         mock_response.session_resumption_update = None
         mock_response.go_away = None
@@ -143,6 +144,7 @@ class TestReceive:
         # Disable transcription fields for this test
         mock_response.server_content.input_transcription = None
         mock_response.server_content.output_transcription = None
+        mock_response.server_content.interrupted = None
         # Disable session resumption fields for this test
         mock_response.session_resumption_update = None
         mock_response.go_away = None
@@ -175,6 +177,7 @@ class TestReceive:
         # Disable transcription fields for this test
         mock_response.server_content.input_transcription = None
         mock_response.server_content.output_transcription = None
+        mock_response.server_content.interrupted = None
         # Disable session resumption fields for this test
         mock_response.session_resumption_update = None
         mock_response.go_away = None
@@ -197,6 +200,32 @@ class TestReceive:
         assert responses[0]["audio_data"] is None
         assert responses[0]["text"] is None
 
+    async def test_receives_interrupted(self, live_session, mock_session):
+        """Should yield interrupted marker on barge-in before the turn ends."""
+        mock_response = MagicMock()
+        mock_response.server_content.model_turn = None
+        mock_response.server_content.input_transcription = None
+        mock_response.server_content.output_transcription = None
+        mock_response.session_resumption_update = None
+        mock_response.go_away = None
+        mock_response.server_content.interrupted = True
+        mock_response.server_content.turn_complete = True
+
+        async def mock_turn_generator():
+            yield mock_response
+
+        mock_session.receive.return_value = mock_turn_generator()
+
+        responses = []
+        async for response in live_session.receive():
+            responses.append(response)
+            if response["type"] == "end":
+                await live_session.close()
+
+        assert [r["type"] for r in responses] == ["interrupted", "end"]
+        assert responses[0]["audio_data"] is None
+        assert responses[0]["text"] is None
+
     async def test_receives_multiple_parts(self, live_session, mock_session):
         """Should yield multiple parts from a single response."""
         # Mock response with both audio and text (internal reasoning)
@@ -212,6 +241,7 @@ class TestReceive:
         # Disable transcription fields for this test
         mock_response.server_content.input_transcription = None
         mock_response.server_content.output_transcription = None
+        mock_response.server_content.interrupted = None
         # Disable session resumption fields for this test
         mock_response.session_resumption_update = None
         mock_response.go_away = None
@@ -279,6 +309,7 @@ class TestUsageExtraction:
         mock_response.usage_metadata = usage
         mock_response.server_content.input_transcription = None
         mock_response.server_content.output_transcription = None
+        mock_response.server_content.interrupted = None
         mock_response.server_content.model_turn = None
         mock_response.server_content.turn_complete = True
 
