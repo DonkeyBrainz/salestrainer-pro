@@ -34,6 +34,7 @@ export interface UseWebSocketReturn {
   messages: Message[];
   currentInput: string;
   onAudioReceived: React.MutableRefObject<((base64Pcm: string) => void) | null>;
+  onInterrupted: React.MutableRefObject<(() => void) | null>;
   currentHint: CoachHint | null;
   moodState: CustomerMoodState | null;
   completedItems: string[];
@@ -70,6 +71,9 @@ export function useWebSocket(): UseWebSocketReturn {
 
   // Ref for audio callback to allow integration with useAudio
   const onAudioReceived = useRef<((base64Pcm: string) => void) | null>(null);
+
+  // Ref for barge-in callback: flushes buffered playback via useAudio
+  const onInterrupted = useRef<(() => void) | null>(null);
 
   // Refs for accumulating transcription chunks within a turn
   const pendingUserText = useRef('');
@@ -109,6 +113,11 @@ export function useWebSocket(): UseWebSocketReturn {
 
         case 'audio':
           handleAudio(message);
+          break;
+
+        case 'interrupted':
+          // Barge-in: user spoke over the model — stop buffered playback now
+          onInterrupted.current?.();
           break;
 
         case 'coach_hint': {
@@ -310,6 +319,7 @@ export function useWebSocket(): UseWebSocketReturn {
     messages,
     currentInput,
     onAudioReceived,
+    onInterrupted,
     currentHint,
     moodState,
     completedItems,

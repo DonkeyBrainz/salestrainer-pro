@@ -160,9 +160,13 @@ class TestReceiveTranslation:
 
     async def test_unknown_events_ignored(self) -> None:
         events = await self._run(
-            [{"type": "session.created"}, {"type": "input_audio_buffer.speech_started"}]
+            [{"type": "session.created"}, {"type": "input_audio_buffer.speech_stopped"}]
         )
         assert events == []
+
+    async def test_speech_started_is_interrupted(self) -> None:
+        events = await self._run([{"type": "input_audio_buffer.speech_started"}])
+        assert events == [{"type": "interrupted", "audio_data": None, "text": None}]
 
     async def test_error_event_maps_rate_limit(self) -> None:
         ws = MagicMock()

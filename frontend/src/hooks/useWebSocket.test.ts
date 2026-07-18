@@ -207,6 +207,28 @@ describe('useWebSocket', () => {
     expect(audioHandler).toHaveBeenCalledWith('base64-audio');
   });
 
+  it('should call onInterrupted ref on interrupted message', async () => {
+    const { result } = renderHook(() => useWebSocket());
+
+    const interruptedHandler = vi.fn();
+    result.current.onInterrupted.current = interruptedHandler;
+
+    act(() => {
+      emitMessage({ type: 'interrupted' });
+    });
+
+    expect(interruptedHandler).toHaveBeenCalled();
+  });
+
+  it('should ignore interrupted message when no handler is wired', async () => {
+    renderHook(() => useWebSocket());
+
+    // Must not throw
+    act(() => {
+      emitMessage({ type: 'interrupted' });
+    });
+  });
+
   it('should send audio through service', () => {
     const { result } = renderHook(() => useWebSocket());
 

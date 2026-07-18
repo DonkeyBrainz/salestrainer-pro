@@ -172,15 +172,23 @@ class TestReceiveTranslation:
                 }
             ]
         )
-        assert out[0]["type"] == "output_transcription"
-        assert out[0]["text"] == "Hi, thanks for having me."
-        assert "interrupted" not in out[0]["text"]
+        assert out[0] == {"type": "interrupted", "audio_data": None, "text": None}
+        assert out[1]["type"] == "output_transcription"
+        assert out[1]["text"] == "Hi, thanks for having me."
+        assert "interrupted" not in out[1]["text"]
 
-    async def test_drops_text_that_is_only_the_interrupted_marker(self) -> None:
+    async def test_marker_only_text_is_interrupted_event(self) -> None:
         out = await self._run(
             [{"textOutput": {"role": "ASSISTANT", "content": '{ "interrupted" : true }'}}]
         )
-        assert out == []
+        assert out == [{"type": "interrupted", "audio_data": None, "text": None}]
+
+    async def test_content_end_interrupted_is_interrupted_then_end(self) -> None:
+        out = await self._run([{"contentEnd": {"stopReason": "INTERRUPTED"}}])
+        assert out == [
+            {"type": "interrupted", "audio_data": None, "text": None},
+            {"type": "end", "audio_data": None, "text": None},
+        ]
 
     async def test_drops_non_speculative_assistant_text(self) -> None:
         speculative_start = {

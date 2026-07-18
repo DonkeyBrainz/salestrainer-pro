@@ -16,6 +16,7 @@ export interface UseAudioReturn {
   inputAnalyser: AnalyserNode | null;
   outputAnalyser: AnalyserNode | null;
   playAudio: (base64Pcm: string) => void;
+  stopPlayback: () => void;
   isPlaying: boolean;
   cleanup: () => void;
 }
@@ -69,11 +70,13 @@ export function useAudio(
   const isProcessingQueue = useRef(false);
   // Track when the next scheduled buffer should start (for gapless playback)
   const nextScheduledTime = useRef<number>(0);
-  // Track number of currently scheduled sources to know when playback ends
-  const scheduledSourceCount = useRef<number>(0);
+  // Live scheduled sources, kept so barge-in can stop them mid-flight
+  const scheduledSources = useRef<Set<AudioBufferSourceNode>>(new Set());
   // Queue for incoming base64 data to ensure order is preserved during async decoding
   const incomingAudioQueue = useRef<string[]>([]);
   const isDecodingAudio = useRef(false);
+  // Bumped on flush so in-flight decodes drop buffers from the interrupted turn
+  const playbackGeneration = useRef(0);
 
   // Animation frame for input level
   const levelAnimationFrame = useRef<number | null>(null);
@@ -316,14 +319,15 @@ export function useAudio(
       source.start(nextScheduledTime.current);
       nextScheduledTime.current += buffer.duration;
 
-      // Track active sources to know when all playback is done
-      scheduledSourceCount.current += 1;
+      // Track active sources so barge-in can stop them and so we know
+      // when all playback is done
+      scheduledSources.current.add(source);
 
       source.onended = () => {
-        scheduledSourceCount.current -= 1;
+        scheduledSources.current.delete(source);
 
         // When all scheduled sources have finished, reset state
-        if (scheduledSourceCount.current === 0 && playbackQueue.current.length === 0) {
+        if (scheduledSources.current.size === 0 && playbackQueue.current.length === 0) {
           isProcessingQueue.current = false;
           setIsPlaying(false);
         }
@@ -346,12 +350,17 @@ export function useAudio(
         const base64Pcm = incomingAudioQueue.current.shift();
         if (!base64Pcm) continue;
 
+        const generation = playbackGeneration.current;
         try {
           // Decode base64 to bytes
           const pcmBytes = base64ToBytes(base64Pcm);
 
           // Decode PCM to AudioBuffer
           const audioBuffer = await decodeAudioData(pcmBytes, ctx, OUTPUT_SAMPLE_RATE);
+
+          // A flush happened while decoding — this chunk belongs to the
+          // interrupted turn, drop it
+          if (generation !== playbackGeneration.current) continue;
 
           // Add to playback queue
           playbackQueue.current.push(audioBuffer);
@@ -374,15 +383,32 @@ export function useAudio(
     processIncomingAudio();
   }, [processIncomingAudio]);
 
+  // Flush all playback immediately (barge-in): stop already-scheduled sources
+  // and drop anything queued or still decoding
+  const stopPlayback = useCallback(() => {
+    playbackGeneration.current += 1;
+    incomingAudioQueue.current = [];
+    playbackQueue.current = [];
+
+    for (const source of scheduledSources.current) {
+      source.onended = null;
+      try {
+        source.stop();
+      } catch {
+        // stop() throws if the source already ended — safe to ignore
+      }
+    }
+    scheduledSources.current.clear();
+
+    nextScheduledTime.current = 0;
+    isProcessingQueue.current = false;
+    setIsPlaying(false);
+    logger.info('Audio', 'Playback flushed');
+  }, []);
+
   const cleanup = useCallback(() => {
     stopMic();
-
-    // Clear playback queue and scheduled playback state
-    playbackQueue.current = [];
-    isProcessingQueue.current = false;
-    nextScheduledTime.current = 0;
-    scheduledSourceCount.current = 0;
-    incomingAudioQueue.current = [];
+    stopPlayback();
     isDecodingAudio.current = false;
 
     if (audioState.current.outputContext) {
@@ -395,7 +421,7 @@ export function useAudio(
     setOutputAnalyser(null);
     setIsPlaying(false);
     logger.info('Audio', 'Audio cleanup complete');
-  }, [stopMic]);
+  }, [stopMic, stopPlayback]);
 
   return {
     startMic,
@@ -407,6 +433,7 @@ export function useAudio(
     inputAnalyser,
     outputAnalyser,
     playAudio,
+    stopPlayback,
     isPlaying,
     cleanup,
   };
