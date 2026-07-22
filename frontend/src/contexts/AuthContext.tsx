@@ -10,6 +10,10 @@ const STORAGE_KEYS = {
   USER: 'lsc_user'
 };
 
+// Signed OAuth state, held in first-party sessionStorage so login works when the
+// browser blocks the cross-origin oauth_state cookie (mobile Safari ITP, Chrome).
+const OAUTH_STATE_KEY = 'lsc_oauth_state';
+
 // Actions
 type AuthAction =
   | { type: 'AUTH_START' }
@@ -190,7 +194,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (provider: OAuthProvider = 'google') => {
     dispatch({ type: 'AUTH_START' });
     try {
-      const { authUrl } = await authService.login(provider);
+      const { authUrl, signedState } = await authService.login(provider);
+      // Stash the signed state in first-party storage; sent back on callback.
+      sessionStorage.setItem(OAUTH_STATE_KEY, signedState);
       window.location.href = authUrl;
     } catch (err) {
       dispatch({
@@ -203,7 +209,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleCallback = useCallback(async (code: string, storedState: string) => {
     dispatch({ type: 'AUTH_START' });
     try {
-      const response = await authService.handleCallback(code, storedState);
+      const signedState = sessionStorage.getItem(OAUTH_STATE_KEY);
+      const response = await authService.handleCallback(code, storedState, signedState);
+      sessionStorage.removeItem(OAUTH_STATE_KEY);
       const expiresAt = saveToStorage(response);
       dispatch({
         type: 'AUTH_SUCCESS',

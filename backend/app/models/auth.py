@@ -19,6 +19,12 @@ class CallbackRequest(BaseModel):
 
     code: str
     state: str
+    # Signed state carried by the SPA in first-party storage (sessionStorage) so
+    # the flow works when third-party cookies are blocked (mobile Safari, etc.).
+    # Optional: falls back to the oauth_state cookie when absent.
+    signed_state: str | None = Field(default=None, alias="signedState")
+
+    model_config = {"populate_by_name": True}
 
 
 class RefreshRequest(BaseModel):
@@ -42,6 +48,9 @@ class LoginResponse(BaseModel):
 
     auth_url: str = Field(serialization_alias="authUrl")
     state: str
+    # Signed state for the SPA to stash in sessionStorage and return on callback.
+    # Populated by the POST /auth/login endpoint; empty for the internal helper.
+    signed_state: str = Field(default="", serialization_alias="signedState")
 
 
 class TokenResponse(BaseModel):

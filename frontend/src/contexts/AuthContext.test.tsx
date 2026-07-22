@@ -98,6 +98,8 @@ describe('AuthContext', () => {
 
       // Check that window.location.href was set
       expect(window.location.href).toContain('google.com');
+      // Signed state stashed in first-party sessionStorage for the callback
+      expect(sessionStorage.getItem('lsc_oauth_state')).toBe('mock-signed-state');
     });
 
     it('should set error on login failure', async () => {

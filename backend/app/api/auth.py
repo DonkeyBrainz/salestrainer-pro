@@ -102,8 +102,15 @@ async def login(
     redirect_uri = _get_redirect_uri(settings, provider)
     login_response = auth_service.generate_auth_url(redirect_uri, provider=provider)
 
-    # Sign and store state in HTTP-only cookie for CSRF protection (includes provider)
+    # Sign the state for CSRF protection (includes provider).
     signed_state = state_manager.sign_state(login_response.state, provider=provider)
+
+    # Return the signed state so the SPA can stash it in first-party sessionStorage
+    # and send it back on callback. This is the primary path and works even when
+    # third-party cookies are blocked (mobile Safari ITP, Chrome, etc.).
+    login_response.signed_state = signed_state
+
+    # Also set the cookie as a fallback for clients that still rely on it.
     response.set_cookie(
         key=OAUTH_STATE_COOKIE,
         value=signed_state,
@@ -179,23 +186,33 @@ async def callback_post(
     5. Backend validates state against cookie and exchanges code for tokens
 
     Provider is determined from the signed state cookie.
-    Requires credentials: 'include' on frontend fetch for cookie to be sent.
+
+    The signed state is taken from the request body (SPA sessionStorage) when
+    present, so login works even when the browser blocks the third-party
+    oauth_state cookie (mobile Safari ITP, Chrome). Falls back to the cookie for
+    older clients.
     """
-    # Validate state from cookie against request state
-    if not state_manager.validate_state(oauth_state, request.state):
+    # Prefer the body-supplied signed state; fall back to the cookie.
+    effective_signed = request.signed_state or oauth_state
+
+    # Validate signed state against request state
+    if not state_manager.validate_state(effective_signed, request.state):
         raise InvalidRequestError("Invalid or expired state parameter")
 
-    # Clear the state cookie after validation
-    response.delete_cookie(
-        key=OAUTH_STATE_COOKIE,
-        httponly=True,
-        secure=settings.is_production,
-        samesite="none" if settings.is_production else "lax",
-    )
+    # Clear the state cookie if one was set
+    if oauth_state:
+        response.delete_cookie(
+            key=OAUTH_STATE_COOKIE,
+            httponly=True,
+            secure=settings.is_production,
+            samesite="none" if settings.is_production else "lax",
+        )
 
-    # Extract expected state and provider from signed cookie
+    # Extract expected state and provider from the signed state
     expected_state, provider = (
-        state_manager.verify_state_with_provider(oauth_state) if oauth_state else ("", "google")
+        state_manager.verify_state_with_provider(effective_signed)
+        if effective_signed
+        else ("", "google")
     )
     redirect_uri = _get_redirect_uri(settings, provider)
 

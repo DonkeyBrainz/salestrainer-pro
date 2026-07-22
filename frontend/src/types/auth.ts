@@ -45,6 +45,7 @@ export interface AuthState {
 export interface LoginResponse {
   authUrl: string;
   state: string;
+  signedState: string;
 }
 
 export type OAuthProvider = 'google';

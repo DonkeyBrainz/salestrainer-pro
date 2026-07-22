@@ -31,7 +31,7 @@ describe('authService', () => {
 
   describe('handleCallback', () => {
     it('should exchange code for tokens', async () => {
-      const result = await authService.handleCallback('valid-code', 'valid-state');
+      const result = await authService.handleCallback('valid-code', 'valid-state', 'mock-signed-state');
 
       expect(result).toEqual(mockTokenResponse);
       expect(result.accessToken).toBeTruthy();
@@ -39,13 +39,27 @@ describe('authService', () => {
       expect(result.user).toEqual(mockUser);
     });
 
+    it('should send the signed state in the request body', async () => {
+      let received: { code: string; state: string; signedState?: string | null } | null = null;
+      server.use(
+        http.post('/auth/callback', async ({ request }) => {
+          received = await request.json() as typeof received;
+          return HttpResponse.json(mockTokenResponse);
+        })
+      );
+
+      await authService.handleCallback('valid-code', 'valid-state', 'mock-signed-state');
+
+      expect(received).toMatchObject({ signedState: 'mock-signed-state' });
+    });
+
     it('should throw on invalid state', async () => {
-      await expect(authService.handleCallback('code', 'invalid-state'))
+      await expect(authService.handleCallback('code', 'invalid-state', 'mock-signed-state'))
         .rejects.toThrow('Invalid state parameter');
     });
 
     it('should throw on missing code', async () => {
-      await expect(authService.handleCallback('', 'state'))
+      await expect(authService.handleCallback('', 'state', 'mock-signed-state'))
         .rejects.toThrow();
     });
   });
