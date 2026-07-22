@@ -28,12 +28,12 @@ class AuthService {
     return response.json();
   }
 
-  async handleCallback(code: string, state: string): Promise<TokenResponse> {
+  async handleCallback(code: string, state: string, signedState: string | null): Promise<TokenResponse> {
     const response = await fetch(`${API_BASE}/auth/callback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ code, state })
+      body: JSON.stringify({ code, state, signedState })
     });
 
     if (!response.ok) {

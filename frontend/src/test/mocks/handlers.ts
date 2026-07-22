@@ -24,7 +24,8 @@ export const mockRefreshResponse: RefreshResponse = {
 
 export const mockLoginResponse: LoginResponse = {
   authUrl: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=test',
-  state: 'mock-state-string'
+  state: 'mock-state-string',
+  signedState: 'mock-signed-state'
 };
 
 // Request handlers
@@ -36,7 +37,7 @@ export const handlers = [
 
   // POST /auth/callback
   http.post('/auth/callback', async ({ request }) => {
-    const body = await request.json() as { code: string; state: string };
+    const body = await request.json() as { code: string; state: string; signedState?: string | null };
 
     if (!body.code || !body.state) {
       return HttpResponse.json(
